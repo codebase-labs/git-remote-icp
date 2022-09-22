@@ -5,7 +5,7 @@ use url::Url;
 
 #[derive(Parser)]
 #[clap(about, version)]
-struct Args {
+struct Cli {
     /// A remote repository; either the name of a configured remote or a URL
     #[clap(value_parser)]
     repository: String,
@@ -22,20 +22,20 @@ enum Commands {
 }
 
 fn main() -> Result<(), String> {
-    let args = Args::parse();
-    eprintln!("args.repository: {:?}", args.repository);
-    eprintln!("args.url: {:?}", args.url);
+    let cli = Cli::parse();
+    eprintln!("cli.repository: {:?}", cli.repository);
+    eprintln!("cli.url: {:?}", cli.url);
 
-    let url = match args.url.strip_prefix("ic::") {
+    let url = match cli.url.strip_prefix("ic::") {
         // Assume ic::<transport>://<address>
         Some(u) => Url::parse(&u)
             .map_err(|error| format!("failed to parse URL: {:?}, with error: {:?}", u, error)),
         // Assume ic://<address>
         None => {
-            let u = Url::parse(&args.url).map_err(|error| {
+            let u = Url::parse(&cli.url).map_err(|error| {
                 format!(
                     "failed to parse URL: {:?}, with error: {:?}",
-                    args.url, error
+                    cli.url, error
                 )
             })?;
 
@@ -46,7 +46,7 @@ fn main() -> Result<(), String> {
             //
             // See https://github.com/servo/rust-url/pull/768
             let mut new_url = Url::parse("https://0.0.0.0")
-                .map_err(|e| format!("failed to parse URL: {:?}, {}", args.url, e))?;
+                .map_err(|e| format!("failed to parse URL: {:?}, {}", cli.url, e))?;
 
             new_url.set_fragment(u.fragment());
 
