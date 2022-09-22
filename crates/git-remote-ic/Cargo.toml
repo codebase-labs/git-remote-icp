@@ -1,8 +1,13 @@
 [package]
 name = "git-remote-ic"
+description = "A Git remote helper for the Internet Computer"
 version = "0.1.0"
 edition = "2021"
 authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
 
 [[bin]]
 name = "git-remote-ic"
+
+[dependencies]
+clap = { version = "3.2", features = ["derive"] }
+url = "2.3"
