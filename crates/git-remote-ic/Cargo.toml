@@ -1,0 +1,8 @@
+[package]
+name = "git-remote-ic"
+version = "0.1.0"
+edition = "2021"
+authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
+
+[[bin]]
+name = "git-remote-ic"
