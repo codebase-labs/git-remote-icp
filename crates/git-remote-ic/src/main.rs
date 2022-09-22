@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms)]
 
-use clap::{Parser, ValueEnum};
+use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
 use url::Url;
 
 #[derive(Parser)]
@@ -15,9 +15,9 @@ struct Cli {
     url: String,
 }
 
-#[derive(Copy, Clone, ValueEnum)]
+#[derive(Parser)]
 enum Commands {
-    Capabiliites,
+    Capabilities,
     List,
 }
 
@@ -92,5 +92,35 @@ fn main() -> Result<(), String> {
 
     eprintln!("url: {}", url);
 
-    Ok(())
+    loop {
+        eprintln!("loop");
+
+        let mut input = String::new();
+
+        std::io::stdin()
+            .read_line(&mut input)
+            .map_err(|error| format!("failed to read from stdin with error: {:?}", error))?;
+
+        let input = input.trim();
+
+        eprintln!("input: {:#?}", input);
+
+        let input_command = Command::new("input")
+            .help_template("")
+            .multicall(true)
+            .subcommand_required(true);
+
+        let input_command = Commands::augment_subcommands(input_command);
+
+        let matches = input_command
+            .try_get_matches_from([input])
+            .map_err(|e| e.to_string())?;
+
+        let command = Commands::from_arg_matches(&matches).map_err(|e| e.to_string())?;
+
+        match command {
+            Commands::Capabilities => eprintln!("got capabilities"),
+            Commands::List => eprintln!("got list"),
+        }
+    }
 }
