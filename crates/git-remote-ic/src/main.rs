@@ -103,15 +103,14 @@ async fn main() -> Result<(), String> {
                     None => {
                         trace!("list");
 
-                        // TODO: implement our own
-                        // git_transport::client::transport::Transport that does
-                        // HTTP message signatures using picky. Enable
-                        // async-client to do that.
+                        // TODO: Provide our own implementation of
+                        // git_transport::client::Transport that does HTTP
+                        // message signatures using picky. Change features from
+                        // http-client-curl to blocking-client.
                         let mut transport = Transport::new(&url, Protocol::V2);
                         let extra_parameters = vec![];
                         let result = transport
                             .handshake(Service::UploadPack, &extra_parameters)
-                            //.await
                             .map_err(|e| e.to_string())?;
 
                         let mut refs = result.refs.ok_or("failed to get refs")?;
