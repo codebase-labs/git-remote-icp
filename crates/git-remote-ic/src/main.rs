@@ -4,7 +4,7 @@ use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum };
 
 #[derive(Parser)]
 #[clap(about, version)]
-struct Cli {
+struct Args {
     /// A remote repository; either the name of a configured remote or a URL
     #[clap(value_parser)]
     repository: String,
@@ -31,17 +31,17 @@ enum ListVariant {
 }
 
 fn main() -> Result<(), String> {
-    let cli = Cli::parse();
-    eprintln!("cli.repository: {:?}", cli.repository);
-    eprintln!("cli.url: {:?}", cli.url);
+    let args = Args::parse();
+    eprintln!("args.repository: {:?}", args.repository);
+    eprintln!("args.url: {:?}", args.url);
 
-    let url: String = match cli.url.strip_prefix("ic://") {
+    let url: String = match args.url.strip_prefix("ic://") {
         // The supplied URL was of the form `ic://<address>` so we change it to
         // `https://<address>`
         Some(address) => format!("https://{}", address),
         // The supplied url was of the form `ic::<transport>://<address>` but
         // Git invoked the remote helper with `<transport>://<address>`
-        None => cli.url.to_string(),
+        None => args.url.to_string(),
     };
 
     eprintln!("url: {}", url);
