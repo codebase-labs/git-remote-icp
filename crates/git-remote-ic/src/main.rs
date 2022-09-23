@@ -143,8 +143,8 @@ async fn main() -> Result<(), String> {
                         // * there is no way to construct a
                         //   git_transport::client::http::Transport because:
                         //
-                        //   * Transport::new(_, _) uses Impl::default() which
-                        //     where type Impl = curl::Curl, and
+                        //   * Transport::new(_, _) uses Impl::default() where
+                        //     type Impl = curl::Curl
                         //
                         //   * the struct fields are private
 
