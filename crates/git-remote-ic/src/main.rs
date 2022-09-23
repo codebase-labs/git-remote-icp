@@ -29,7 +29,7 @@ enum Commands {
 
 #[derive(Clone, ValueEnum)]
 enum ListVariant {
-  ForPush,
+    ForPush,
 }
 
 const GIT_DIR: &str = "GIT_DIR";
@@ -86,13 +86,13 @@ fn main() -> Result<(), String> {
                 println!("fetch");
                 println!("push");
                 println!();
-            },
+            }
             Commands::Fetch => eprintln!("got: fetch"),
             Commands::List { variant } => {
                 match variant {
                     Some(x) => match x {
                         ListVariant::ForPush => eprintln!("got: list for-push"),
-                    }
+                    },
                     None => {
                         eprintln!("got: list");
 
@@ -113,7 +113,7 @@ fn main() -> Result<(), String> {
                         //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
                     }
                 }
-            },
+            }
             Commands::Push => eprintln!("got: push"),
         }
     }
