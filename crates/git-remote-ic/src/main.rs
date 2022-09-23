@@ -3,7 +3,7 @@
 use std::env;
 
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
-use git_protocol::fetch::refs;
+use git_protocol::fetch::refs::{self, Ref};
 use git_transport::client::http::Transport;
 use git_transport::client::Transport as _;
 use git_transport::{Protocol, Service};
@@ -117,10 +117,53 @@ async fn main() -> Result<(), String> {
                         let parsed_refs =
                             refs::from_v2_refs(&mut refs).map_err(|e| e.to_string())?;
                         trace!("parsed_refs: {:#?}", parsed_refs);
+
+                        // FIXME
+                        //
+                        // When we make a request to:
+                        //
+                        //   GET /@paul/hello-world.git/info/refs?service=git-upload-pack
+                        //
+                        // It returns:
+                        //
+                        //   0000
+                        //   91536083cdb16ef3c29638054642b50a34ea8c25 HEAD\0symref=HEAD:refs/heads/main
+                        //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
+                        //   0000
+                        //
+                        // We want to produce:
+                        //
+                        //   @refs/heads/main HEAD
+                        //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
+                        //
+                        // But parsed_refs only contains Direct refs
+
+                        parsed_refs.iter().for_each(|r| {
+                            println!("{}", ref_to_string(r))
+                        });
+                        println!()
                     }
                 }
             }
             Commands::Push => trace!("push"),
+        }
+    }
+}
+
+fn ref_to_string(r: &Ref) -> String {
+    match r {
+        Ref::Peeled { full_ref_name, tag: _, object: _} => {
+            // FIXME: not sure how to handle peeled refs yet
+            format!("? {}", full_ref_name)
+        }
+        Ref::Direct { full_ref_name, object } => {
+            // 91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
+            format!("{} {}", object, full_ref_name)
+        }
+        Ref::Symbolic { full_ref_name, target, object: _ } => {
+            // @refs/heads/main HEAD
+            // TODO: confirm these are the right way around
+            format!("@{} {}", full_ref_name, target)
         }
     }
 }
