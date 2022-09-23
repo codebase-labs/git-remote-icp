@@ -9,6 +9,16 @@ use git_transport::client::Transport as _;
 use git_transport::{Protocol, Service};
 use log::trace;
 
+// use http::header::{self, HeaderName};
+// use http::method::Method;
+// use http::request;
+
+// use picky::hash::HashAlgorithm;
+// use picky::http::http_signature::{HttpSignature, HttpSignatureBuilder};
+// use picky::key::PrivateKey;
+// use picky::pem::parse_pem;
+// use picky::signature::SignatureAlgorithm;
+
 #[derive(Parser)]
 #[clap(about, version)]
 struct Args {
@@ -81,6 +91,11 @@ async fn main() -> Result<(), String> {
             .map_err(|error| format!("failed to read from stdin with error: {:?}", error))?;
 
         let input = input.trim();
+
+        if input.is_empty() {
+            continue;
+        }
+
         let input = input.split(" ").collect::<Vec<_>>();
 
         trace!("input: {:#?}", input);
