@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms)]
 
-use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
+use clap::{Command, FromArgMatches as _, Parser, Subcommand};
 use url::Url;
 
 #[derive(Parser)]
@@ -18,7 +18,17 @@ struct Cli {
 #[derive(Parser)]
 enum Commands {
     Capabilities,
-    List,
+    Fetch,
+    List {
+        #[clap(subcommand)]
+        subcommand: Option<ListSubcommands>,
+    },
+    Push,
+}
+
+#[derive(Subcommand)]
+enum ListSubcommands {
+  ForPush,
 }
 
 fn main() -> Result<(), String> {
@@ -106,7 +116,6 @@ fn main() -> Result<(), String> {
         eprintln!("input: {:#?}", input);
 
         let input_command = Command::new("input")
-            .help_template("")
             .multicall(true)
             .subcommand_required(true);
 
@@ -119,8 +128,21 @@ fn main() -> Result<(), String> {
         let command = Commands::from_arg_matches(&matches).map_err(|e| e.to_string())?;
 
         match command {
-            Commands::Capabilities => eprintln!("got capabilities"),
-            Commands::List => eprintln!("got list"),
+            Commands::Capabilities => {
+                println!("fetch");
+                println!("push");
+                println!();
+            },
+            Commands::Fetch => eprintln!("got: fetch"),
+            Commands::List { subcommand } => {
+                match subcommand {
+                    Some(x) => match x {
+                        ListSubcommands::ForPush => eprintln!("got: list for-push"),
+                    }
+                    None => eprintln!("got: list"),
+                }
+            },
+            Commands::Push => eprintln!("got: push"),
         }
     }
 }
