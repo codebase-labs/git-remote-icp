@@ -112,6 +112,7 @@ fn main() -> Result<(), String> {
             .map_err(|error| format!("failed to read from stdin with error: {:?}", error))?;
 
         let input = input.trim();
+        let input = input.split(" ").collect::<Vec<_>>();
 
         eprintln!("input: {:#?}", input);
 
@@ -122,7 +123,7 @@ fn main() -> Result<(), String> {
         let input_command = Commands::augment_subcommands(input_command);
 
         let matches = input_command
-            .try_get_matches_from([input])
+            .try_get_matches_from(input)
             .map_err(|e| e.to_string())?;
 
         let command = Commands::from_arg_matches(&matches).map_err(|e| e.to_string())?;
