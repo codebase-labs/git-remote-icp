@@ -147,7 +147,7 @@ async fn main() -> Result<(), String> {
                         //     where type Impl = curl::Curl, and
                         //
                         //   * the struct fields are private
-                        //
+
                         let mut transport = Transport::new(&url, Protocol::V2);
                         let extra_parameters = vec![];
                         let result = transport
@@ -177,7 +177,8 @@ async fn main() -> Result<(), String> {
                         //   @refs/heads/main HEAD
                         //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
                         //
-                        // But parsed_refs only contains Direct refs when we expect a Symbolic ref
+                        // But parsed_refs only contains Direct refs when we
+                        // expect a Symbolic ref
 
                         parsed_refs.iter().for_each(|r| {
                             println!("{}", ref_to_string(r))
