@@ -145,7 +145,7 @@ async fn main() -> Result<(), String> {
                         //   @refs/heads/main HEAD
                         //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
                         //
-                        // But parsed_refs only contains Direct refs
+                        // But parsed_refs only contains Direct refs when we expect a Symbolic ref
 
                         parsed_refs.iter().for_each(|r| {
                             println!("{}", ref_to_string(r))
