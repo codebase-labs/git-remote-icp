@@ -128,9 +128,26 @@ async fn main() -> Result<(), String> {
                         trace!("list");
 
                         // TODO: Provide our own implementation of
-                        // git_transport::client::Transport that does HTTP
-                        // message signatures using picky. Change features from
-                        // http-client-curl to blocking-client.
+                        // git_transport::client::http::Http that does HTTP
+                        // message signatures using picky.
+                        //
+                        // NOTE: It looks like we should be able to reuse
+                        // git_transport::client::http::Transport with our
+                        // custom Http implementation instead of providing an
+                        // implementation for git_transport::client::Transport
+                        // as well, but:
+                        //
+                        // * the feature http-client-curl would still be
+                        //   required even though curl wouldn't be involved
+                        //
+                        // * there is no way to construct a
+                        //   git_transport::client::http::Transport because:
+                        //
+                        //   * Transport::new(_, _) uses Impl::default() which
+                        //     where type Impl = curl::Curl, and
+                        //
+                        //   * the struct fields are private
+                        //
                         let mut transport = Transport::new(&url, Protocol::V2);
                         let extra_parameters = vec![];
                         let result = transport
