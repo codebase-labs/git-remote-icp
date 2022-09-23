@@ -3,6 +3,10 @@
 use std::env;
 
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
+use git_protocol::fetch::refs;
+use git_transport::client::http::Transport;
+use git_transport::client::{SetServiceResponse, Transport as _};
+use git_transport::{Protocol, Service};
 use log::trace;
 
 #[derive(Parser)]
@@ -101,26 +105,21 @@ async fn main() -> Result<(), String> {
 
                         let request_url = format!("{}/info/refs?service=git-upload-pack", url);
 
-                        let response = reqwest::get(request_url).await.map_err(|e| e.to_string())?;
-                        trace!("response: {:#?}", response);
-                        let body = response.text().await.map_err(|e| e.to_string())?;
-                        trace!("response body: {}", body);
+                        // TODO: implement our own
+                        // git_transport::client::transport::Transport that does
+                        // HTTP message signatures using picky. Enable
+                        // async-client to do that.
+                        let mut transport = Transport::new(&url, Protocol::V2);
+                        let extra_parameters = vec![];
+                        let result = transport
+                            .handshake(Service::UploadPack, &extra_parameters)
+                            //.await
+                            .map_err(|e| e.to_string())?;
 
-                        // When we make a request to:
-                        //
-                        //   GET /@paul/hello-world.git/info/refs?service=git-upload-pack
-                        //
-                        // It returns:
-                        //
-                        //   0000
-                        //   91536083cdb16ef3c29638054642b50a34ea8c25 HEAD\0symref=HEAD:refs/heads/main
-                        //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
-                        //   0000
-                        //
-                        // But we want to produce:
-                        //
-                        //   @refs/heads/main HEAD
-                        //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
+                        let mut refs = result.refs.ok_or("failed to get refs")?;
+                        let parsed_refs =
+                            refs::from_v2_refs(&mut refs).map_err(|e| e.to_string())?;
+                        trace!("parsed_refs: {:#?}", parsed_refs);
                     }
                 }
             }

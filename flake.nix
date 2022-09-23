@@ -56,6 +56,11 @@
           # all of that work (e.g. via cachix) when running in CI
           cargoArtifacts = craneLib.buildDepsOnly {
             inherit src;
+            nativeBuildInputs = [
+              # For git-transport http-client-curl
+              pkgs.cmake
+              pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
+            ];
           };
 
           git-remote-ic = craneLib.buildPackage rec {
