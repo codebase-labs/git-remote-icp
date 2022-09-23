@@ -5,7 +5,7 @@ use std::env;
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_protocol::fetch::refs;
 use git_transport::client::http::Transport;
-use git_transport::client::{SetServiceResponse, Transport as _};
+use git_transport::client::Transport as _;
 use git_transport::{Protocol, Service};
 use log::trace;
 
