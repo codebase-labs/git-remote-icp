@@ -35,7 +35,10 @@ enum Commands {
         #[clap(arg_enum, value_parser)]
         variant: Option<ListVariant>,
     },
-    Push,
+    Push {
+        #[clap(value_parser)]
+        src_dst: String,
+    }
 }
 
 #[derive(Clone, ValueEnum)]
@@ -151,7 +154,7 @@ async fn main() -> Result<(), String> {
                     }
                 }
             }
-            Commands::Push => trace!("push"),
+            Commands::Push { src_dst }=> trace!("push {}", src_dst),
         }
     }
 }
