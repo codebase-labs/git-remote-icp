@@ -10,4 +10,3 @@ name = "git-remote-ic"
 
 [dependencies]
 clap = { version = "3.2", features = ["derive"] }
-url = "2.3"
