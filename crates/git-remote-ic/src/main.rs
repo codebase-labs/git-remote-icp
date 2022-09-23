@@ -48,7 +48,7 @@ enum Commands {
     Push {
         #[clap(value_parser)]
         src_dst: String,
-    }
+    },
 }
 
 #[derive(Clone, ValueEnum)]
@@ -180,29 +180,40 @@ async fn main() -> Result<(), String> {
                         // But parsed_refs only contains Direct refs when we
                         // expect a Symbolic ref
 
-                        parsed_refs.iter().for_each(|r| {
-                            println!("{}", ref_to_string(r))
-                        });
+                        parsed_refs
+                            .iter()
+                            .for_each(|r| println!("{}", ref_to_string(r)));
                         println!()
                     }
                 }
             }
-            Commands::Push { src_dst }=> trace!("push {}", src_dst),
+            Commands::Push { src_dst } => trace!("push {}", src_dst),
         }
     }
 }
 
 fn ref_to_string(r: &Ref) -> String {
     match r {
-        Ref::Peeled { full_ref_name, tag: _, object: _} => {
+        Ref::Peeled {
+            full_ref_name,
+            tag: _,
+            object: _,
+        } => {
             // FIXME: not sure how to handle peeled refs yet
             format!("? {}", full_ref_name)
         }
-        Ref::Direct { full_ref_name, object } => {
+        Ref::Direct {
+            full_ref_name,
+            object,
+        } => {
             // 91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
             format!("{} {}", object, full_ref_name)
         }
-        Ref::Symbolic { full_ref_name, target, object: _ } => {
+        Ref::Symbolic {
+            full_ref_name,
+            target,
+            object: _,
+        } => {
             // @refs/heads/main HEAD
             // TODO: confirm these are the right way around
             format!("@{} {}", full_ref_name, target)
