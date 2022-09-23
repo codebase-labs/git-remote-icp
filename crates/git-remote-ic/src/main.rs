@@ -84,7 +84,25 @@ fn main() -> Result<(), String> {
                     Some(x) => match x {
                         ListVariant::ForPush => eprintln!("got: list for-push"),
                     }
-                    None => eprintln!("got: list"),
+                    None => {
+                        eprintln!("got: list");
+
+                        // When we make a request to:
+                        //
+                        //   GET /@paul/hello-world.git/info/refs?service=git-upload-pack
+                        //
+                        // It returns:
+                        //
+                        //   0000
+                        //   91536083cdb16ef3c29638054642b50a34ea8c25 HEAD\0symref=HEAD:refs/heads/main
+                        //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
+                        //   0000
+                        //
+                        // But we want to produce:
+                        //
+                        //   @refs/heads/main HEAD
+                        //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
+                    }
                 }
             },
             Commands::Push => eprintln!("got: push"),
