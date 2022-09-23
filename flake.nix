@@ -90,10 +90,7 @@
               # RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
               RUST_SRC_PATH = pkgs.rust.packages.stable.rustPlatform.rustLibSrc;
               inputsFrom = builtins.attrValues self.checks;
-              nativeBuildInputs = [
-                pkgs.darwin.apple_sdk.frameworks.Security
-                rust
-              ];
+              nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ git-remote-ic.nativeBuildInputs;
             };
           }
       );
