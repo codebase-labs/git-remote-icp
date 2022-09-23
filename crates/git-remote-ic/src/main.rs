@@ -8,6 +8,7 @@ use git_transport::client::http::Transport;
 use git_transport::client::Transport as _;
 use git_transport::{Protocol, Service};
 use log::trace;
+use strum::{EnumString, EnumVariantNames, VariantNames as _};
 
 // use http::header::{self, HeaderName};
 // use http::method::Method;
@@ -31,8 +32,10 @@ struct Args {
     url: String,
 }
 
-#[derive(Parser)]
+#[derive(EnumString, EnumVariantNames, Parser)]
+#[strum(serialize_all = "kebab_case")]
 enum Commands {
+    #[strum(disabled)]
     Capabilities,
     Fetch {
         #[clap(value_parser)]
@@ -41,6 +44,7 @@ enum Commands {
         #[clap(value_parser)]
         name: String,
     },
+    #[strum(disabled)]
     List {
         #[clap(arg_enum, value_parser)]
         variant: Option<ListVariant>,
@@ -114,8 +118,9 @@ async fn main() -> Result<(), String> {
 
         match command {
             Commands::Capabilities => {
-                println!("fetch");
-                println!("push");
+                Commands::VARIANTS.iter().for_each(|command| {
+                    println!("{}", command)
+                });
                 println!();
             }
             Commands::Fetch { hash, name } => trace!("fetch {} {}", hash, name),
