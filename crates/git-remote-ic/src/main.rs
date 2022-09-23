@@ -44,17 +44,13 @@ fn main() -> Result<(), String> {
     eprintln!("args.repository: {:?}", args.repository);
     eprintln!("args.url: {:?}", args.url);
 
-    let temp_url;
-    let url: &str = match args.url.strip_prefix("ic://") {
+    let url: String = match args.url.strip_prefix("ic://") {
         // The supplied URL was of the form `ic://<address>` so we change it to
         // `https://<address>`
-        Some(address) => {
-            temp_url = format!("https://{}", address);
-            &temp_url
-        }
+        Some(address) => format!("https://{}", address),
         // The supplied url was of the form `ic::<transport>://<address>` but
         // Git invoked the remote helper with `<transport>://<address>`
-        None => &args.url,
+        None => args.url.to_string(),
     };
 
     eprintln!("url: {}", url);
