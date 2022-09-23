@@ -39,10 +39,9 @@ const GIT_DIR: &str = "GIT_DIR";
 async fn main() -> Result<(), String> {
     env_logger::init();
 
-    match env::var(GIT_DIR) {
-        Ok(git_dir) => trace!("GIT_DIR: {}", git_dir),
-        Err(e) => trace!("failed to get GIT_DIR with error: {}", e),
-    }
+    let git_dir =
+        env::var(GIT_DIR).map_err(|e| format!("failed to get GIT_DIR with error: {}", e))?;
+    trace!("GIT_DIR: {}", git_dir);
 
     let args = Args::parse();
     trace!("args.repository: {:?}", args.repository);
