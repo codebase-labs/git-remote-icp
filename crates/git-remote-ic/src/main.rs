@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms)]
 
-use clap::{Command, FromArgMatches as _, Parser, Subcommand};
+use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum };
 use url::Url;
 
 #[derive(Parser)]
@@ -20,14 +20,14 @@ enum Commands {
     Capabilities,
     Fetch,
     List {
-        #[clap(subcommand)]
-        subcommand: Option<ListSubcommands>,
+        #[clap(arg_enum, value_parser)]
+        variant: Option<ListVariant>,
     },
     Push,
 }
 
-#[derive(Subcommand)]
-enum ListSubcommands {
+#[derive(Clone, ValueEnum)]
+enum ListVariant {
   ForPush,
 }
 
@@ -134,10 +134,10 @@ fn main() -> Result<(), String> {
                 println!();
             },
             Commands::Fetch => eprintln!("got: fetch"),
-            Commands::List { subcommand } => {
-                match subcommand {
+            Commands::List { variant } => {
+                match variant {
                     Some(x) => match x {
-                        ListSubcommands::ForPush => eprintln!("got: list for-push"),
+                        ListVariant::ForPush => eprintln!("got: list for-push"),
                     }
                     None => eprintln!("got: list"),
                 }
