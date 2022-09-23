@@ -1,6 +1,8 @@
 #![deny(rust_2018_idioms)]
 
-use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum };
+use std::env;
+
+use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 
 #[derive(Parser)]
 #[clap(about, version)]
@@ -30,7 +32,14 @@ enum ListVariant {
   ForPush,
 }
 
+const GIT_DIR: &str = "GIT_DIR";
+
 fn main() -> Result<(), String> {
+    match env::var(GIT_DIR) {
+        Ok(git_dir) => eprintln!("GIT_DIR: {}", git_dir),
+        Err(e) => println!("failed to get GIT_DIR with error: {}", e),
+    }
+
     let args = Args::parse();
     eprintln!("args.repository: {:?}", args.repository);
     eprintln!("args.url: {:?}", args.url);
