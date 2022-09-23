@@ -4,6 +4,11 @@
 
 A Git remote helper for the Internet Computer.
 
+## Resources
+
+* https://git-scm.com/docs/gitremote-helpers
+* https://rovaughn.github.io/2015-2-9.html
+
 ## Debugging
 
 ```
