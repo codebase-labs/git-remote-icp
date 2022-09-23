@@ -34,7 +34,8 @@ enum ListVariant {
 
 const GIT_DIR: &str = "GIT_DIR";
 
-fn main() -> Result<(), String> {
+#[tokio::main]
+async fn main() -> Result<(), String> {
     match env::var(GIT_DIR) {
         Ok(git_dir) => eprintln!("GIT_DIR: {}", git_dir),
         Err(e) => println!("failed to get GIT_DIR with error: {}", e),
@@ -95,6 +96,13 @@ fn main() -> Result<(), String> {
                     },
                     None => {
                         eprintln!("got: list");
+
+                        let request_url = format!("{}/info/refs?service=git-upload-pack", url);
+
+                        let response = reqwest::get(request_url).await.map_err(|e| e.to_string())?;
+                        eprintln!("response: {:#?}", response);
+                        let body = response.text().await.map_err(|e| e.to_string())?;
+                        eprintln!("response body: {}", body);
 
                         // When we make a request to:
                         //

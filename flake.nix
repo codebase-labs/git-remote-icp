@@ -56,16 +56,13 @@
           # all of that work (e.g. via cachix) when running in CI
           cargoArtifacts = craneLib.buildDepsOnly {
             inherit src;
-            nativeBuildInputs = [
-              pkgs.libiconv
-            ];
           };
 
           git-remote-ic = craneLib.buildPackage rec {
             pname = "git-remote-ic";
             inherit cargoArtifacts src;
             nativeBuildInputs = [
-              pkgs.libiconv
+              pkgs.darwin.apple_sdk.frameworks.Security
             ];
           };
 
@@ -94,6 +91,7 @@
               RUST_SRC_PATH = pkgs.rust.packages.stable.rustPlatform.rustLibSrc;
               inputsFrom = builtins.attrValues self.checks;
               nativeBuildInputs = [
+                pkgs.darwin.apple_sdk.frameworks.Security
                 rust
               ];
             };
