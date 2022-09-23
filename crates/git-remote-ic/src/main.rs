@@ -3,6 +3,7 @@
 use std::env;
 
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
+use log::trace;
 
 #[derive(Parser)]
 #[clap(about, version)]
@@ -36,14 +37,16 @@ const GIT_DIR: &str = "GIT_DIR";
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
+    env_logger::init();
+
     match env::var(GIT_DIR) {
-        Ok(git_dir) => eprintln!("GIT_DIR: {}", git_dir),
-        Err(e) => println!("failed to get GIT_DIR with error: {}", e),
+        Ok(git_dir) => trace!("GIT_DIR: {}", git_dir),
+        Err(e) => trace!("failed to get GIT_DIR with error: {}", e),
     }
 
     let args = Args::parse();
-    eprintln!("args.repository: {:?}", args.repository);
-    eprintln!("args.url: {:?}", args.url);
+    trace!("args.repository: {:?}", args.repository);
+    trace!("args.url: {:?}", args.url);
 
     let url: String = match args.url.strip_prefix("ic://") {
         // The supplied URL was of the form `ic://<address>` so we change it to
@@ -54,10 +57,10 @@ async fn main() -> Result<(), String> {
         None => args.url.to_string(),
     };
 
-    eprintln!("url: {}", url);
+    trace!("url: {}", url);
 
     loop {
-        eprintln!("loop");
+        trace!("loop");
 
         let mut input = String::new();
 
@@ -68,7 +71,7 @@ async fn main() -> Result<(), String> {
         let input = input.trim();
         let input = input.split(" ").collect::<Vec<_>>();
 
-        eprintln!("input: {:#?}", input);
+        trace!("input: {:#?}", input);
 
         let input_command = Command::new("input")
             .multicall(true)
@@ -88,21 +91,21 @@ async fn main() -> Result<(), String> {
                 println!("push");
                 println!();
             }
-            Commands::Fetch => eprintln!("got: fetch"),
+            Commands::Fetch => trace!("fetch"),
             Commands::List { variant } => {
                 match variant {
                     Some(x) => match x {
-                        ListVariant::ForPush => eprintln!("got: list for-push"),
+                        ListVariant::ForPush => trace!("list for-push"),
                     },
                     None => {
-                        eprintln!("got: list");
+                        trace!("list");
 
                         let request_url = format!("{}/info/refs?service=git-upload-pack", url);
 
                         let response = reqwest::get(request_url).await.map_err(|e| e.to_string())?;
-                        eprintln!("response: {:#?}", response);
+                        trace!("response: {:#?}", response);
                         let body = response.text().await.map_err(|e| e.to_string())?;
-                        eprintln!("response body: {}", body);
+                        trace!("response body: {}", body);
 
                         // When we make a request to:
                         //
@@ -122,7 +125,7 @@ async fn main() -> Result<(), String> {
                     }
                 }
             }
-            Commands::Push => eprintln!("got: push"),
+            Commands::Push => trace!("push"),
         }
     }
 }
