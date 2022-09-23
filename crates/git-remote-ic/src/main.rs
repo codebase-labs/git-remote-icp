@@ -103,8 +103,6 @@ async fn main() -> Result<(), String> {
                     None => {
                         trace!("list");
 
-                        let request_url = format!("{}/info/refs?service=git-upload-pack", url);
-
                         // TODO: implement our own
                         // git_transport::client::transport::Transport that does
                         // HTTP message signatures using picky. Enable
