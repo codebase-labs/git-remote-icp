@@ -24,7 +24,13 @@ struct Args {
 #[derive(Parser)]
 enum Commands {
     Capabilities,
-    Fetch,
+    Fetch {
+        #[clap(value_parser)]
+        hash: String, // TODO: git_hash::ObjectId?
+
+        #[clap(value_parser)]
+        name: String,
+    },
     List {
         #[clap(arg_enum, value_parser)]
         variant: Option<ListVariant>,
@@ -94,7 +100,7 @@ async fn main() -> Result<(), String> {
                 println!("push");
                 println!();
             }
-            Commands::Fetch => trace!("fetch"),
+            Commands::Fetch { hash, name } => trace!("fetch {} {}", hash, name),
             Commands::List { variant } => {
                 match variant {
                     Some(x) => match x {
