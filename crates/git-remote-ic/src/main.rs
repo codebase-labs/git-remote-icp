@@ -85,6 +85,9 @@ async fn main() -> Result<(), String> {
 
     trace!("url: {}", url);
 
+    // FIXME: fetch and push lines are sent in batches that are terminated by
+    // newlines but we can't batch them because of the loop
+
     loop {
         trace!("loop");
 
