@@ -164,7 +164,8 @@ async fn main() -> Result<(), String> {
                             refs::from_v2_refs(&mut refs).map_err(|e| e.to_string())?;
                         trace!("parsed_refs: {:#?}", parsed_refs);
 
-                        // FIXME
+                        // FIXME: server doesn't appear to communicate that it
+                        // uses the v2 protocol.
                         //
                         // When we make a request to:
                         //
