@@ -137,7 +137,7 @@ async fn main() -> Result<(), String> {
 
                         // TODO: Provide our own implementation of
                         // git_transport::client::http::Http that does HTTP
-                        // message signatures using picky.
+                        // message signatures.
                         //
                         // NOTE: It looks like we should be able to reuse
                         // git_transport::client::http::Transport with our
