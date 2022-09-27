@@ -3,13 +3,10 @@
 use std::env;
 
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
-use git_features::io;
 use git_protocol::fetch::refs::{self, Ref};
 use git_transport::client::{http, Transport};
 use git_transport::{Protocol, Service};
 use log::trace;
-use std::collections::hash_map::HashMap;
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use strum::{EnumString, EnumVariantNames, VariantNames as _};
 
 // use http::header::{self, HeaderName};
@@ -137,29 +134,8 @@ async fn main() -> Result<(), String> {
                     None => {
                         trace!("list");
 
-                        // TODO: Provide our own implementation of
-                        // git_transport::client::http::Http that does HTTP
-                        // message signatures.
-                        //
-                        // NOTE: It looks like we should be able to reuse
-                        // git_transport::client::http::Transport with our
-                        // custom Http implementation instead of providing an
-                        // implementation for git_transport::client::Transport
-                        // as well, but:
-                        //
-                        // * the feature http-client-curl would still be
-                        //   required even though curl wouldn't be involved
-                        //
-                        // * there is no way to construct a
-                        //   git_transport::client::http::Transport because:
-                        //
-                        //   * Transport::new(_, _) uses Impl::default() where
-                        //     type Impl = curl::Curl
-                        //
-                        //   * the struct fields are private
-
                         // FIXME: use v2
-                        let mut transport = http::Transport::new(Http::new(), &url, Protocol::V1);
+                        let mut transport = http::Transport::new(&url, Protocol::V1);
                         let extra_parameters = vec![];
                         let result = transport
                             .handshake(Service::UploadPack, &extra_parameters)
@@ -174,29 +150,6 @@ async fn main() -> Result<(), String> {
                             refs::from_v1_refs_received_as_part_of_handshake_and_capabilities(&mut refs, capabilities).map_err(|e| e.to_string())?;
 
                         trace!("parsed_refs: {:#?}", parsed_refs);
-
-                        // FIXME: server doesn't appear to communicate that it
-                        // uses the v2 protocol.
-                        // gix -c protocol.version=1 remote -u https://w7uni-tiaaa-aaaam-qaydq-cai.raw.ic0.app/@paul/hello-world.git refs
-                        //
-                        // When we make a request to:
-                        //
-                        //   GET /@paul/hello-world.git/info/refs?service=git-upload-pack
-                        //
-                        // It returns:
-                        //
-                        //   0000
-                        //   91536083cdb16ef3c29638054642b50a34ea8c25 HEAD\0symref=HEAD:refs/heads/main
-                        //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
-                        //   0000
-                        //
-                        // We want to produce:
-                        //
-                        //   @refs/heads/main HEAD
-                        //   91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
-                        //
-                        // But parsed_refs only contains Direct refs when we
-                        // expect a Symbolic ref
 
                         parsed_refs
                             .iter()
@@ -236,105 +189,5 @@ fn ref_to_string(r: &Ref) -> String {
             // TODO: confirm these are the right way around
             format!("@{} {}", full_ref_name, target)
         }
-    }
-}
-
-struct Http {
-    client: reqwest::blocking::Client,
-    // req:
-    // res:
-}
-
-impl Http {
-    pub fn new() -> Http {
-        Http {
-            client: reqwest::blocking::Client::new(),
-        }
-    }
-}
-
-impl Http {
-    fn make_request(
-        &mut self,
-        url: &str,
-        headers: impl IntoIterator<Item = impl AsRef<str>>,
-        upload: bool,
-    ) -> Result<http::PostResponse<io::pipe::Reader, io::pipe::Reader, io::pipe::Writer>, http::Error>
-    {
-        let method = if upload {
-            reqwest::Method::POST
-        } else {
-            reqwest::Method::GET
-        };
-
-        let request = self.client.request(method, url);
-
-        let request_header_pairs = headers
-            .into_iter()
-            .filter_map(|header| {
-                let parts = header.as_ref().split(": ").collect::<Vec<_>>();
-                let key = parts.get(0)?;
-                let value = parts.get(1)?;
-                Some((key.to_string(), value.to_string()))
-            })
-            .collect::<Vec<_>>();
-
-        let request_header_hash_map = HashMap::from_iter(request_header_pairs);
-
-        let request_header_map =
-            reqwest::header::HeaderMap::try_from(&request_header_hash_map).map_err(|e| e.into())?;
-
-        let request = request.headers(request_header_map);
-
-        let request = request.body(_);
-
-        let request = request.build().map_err(|e| e.into())?;
-
-        // FIXME: understand this
-        let upload_body = [];
-
-        let response = self.client.execute(request).map_err(|e| e.into())?;
-
-        let response_headers = response
-            .headers()
-            .iter()
-            .map(|(key, value)| format!("{}: {}", key.to_string(), value.to_string()))
-            .collect::<Vec<_>>()
-            .join("\n");
-
-        // TODO: bytes, bytes_stream, or chunk?
-        // let response_body = response.text().map(|e| e.into())?;
-        // let response_body = response.bytes().unwrap();
-        let response_body = BufReader::new(response);
-
-        Ok(http::PostResponse {
-            post_body: upload_body,
-            headers: response_headers,
-            body: response_body,
-        })
-    }
-}
-
-impl http::Http for Http {
-    // FIXME
-    type Headers = io::pipe::Reader;
-    type ResponseBody = BufReader<reqwest::blocking::Response>;
-    type PostBody = io::pipe::Writer;
-
-    fn get(
-        &mut self,
-        url: &str,
-        headers: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Result<http::GetResponse<Self::Headers, Self::ResponseBody>, http::Error> {
-        self.make_request(url, headers, false).map(Into::into)
-    }
-
-    fn post(
-        &mut self,
-        url: &str,
-        headers: impl IntoIterator<Item = impl AsRef<str>>,
-    ) -> Result<http::PostResponse<Self::Headers, Self::ResponseBody, Self::PostBody>, http::Error>
-    {
-        self.make_request(url, headers, true)
     }
 }
