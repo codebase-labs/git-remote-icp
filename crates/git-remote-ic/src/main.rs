@@ -122,6 +122,7 @@ async fn main() -> Result<(), String> {
 
         match command {
             Commands::Capabilities => {
+                // TODO: buffer and flush
                 Commands::VARIANTS
                     .iter()
                     .for_each(|command| println!("{}", command));
@@ -153,6 +154,7 @@ async fn main() -> Result<(), String> {
 
                         trace!("parsed_refs: {:#?}", parsed_refs);
 
+                        // TODO: buffer and flush
                         parsed_refs
                             .iter()
                             .for_each(|r| println!("{}", ref_to_string(r)));
