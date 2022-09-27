@@ -85,8 +85,7 @@ async fn main() -> Result<(), String> {
 
     trace!("url: {}", url);
 
-    // FIXME: fetch and push lines are sent in batches that are terminated by
-    // newlines but we can't batch them because of the loop
+    let mut batch: Vec<Commands> = vec![];
 
     loop {
         trace!("loop");
@@ -101,7 +100,10 @@ async fn main() -> Result<(), String> {
 
         if input.is_empty() {
             trace!("terminated with a blank line");
-            continue;
+            trace!("process batch: {:#?}", batch);
+            // TODO: actually process the batch
+            batch.clear();
+            continue
         }
 
         let input = input.split(' ').collect::<Vec<_>>();
@@ -128,7 +130,10 @@ async fn main() -> Result<(), String> {
                     .for_each(|command| println!("{}", command));
                 println!();
             }
-            Commands::Fetch { hash, name } => trace!("fetch {} {}", hash, name),
+            Commands::Fetch { ref hash, ref name } => {
+                trace!("batch fetch {} {}", hash, name);
+                batch.push(command)
+            }
             Commands::List { variant } => {
                 match variant {
                     Some(x) => match x {
@@ -162,7 +167,10 @@ async fn main() -> Result<(), String> {
                     }
                 }
             }
-            Commands::Push { src_dst } => trace!("push {}", src_dst),
+            Commands::Push { ref src_dst } => {
+                trace!("batch push {}", src_dst);
+                batch.push(command)
+            }
         }
     }
 }
