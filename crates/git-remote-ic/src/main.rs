@@ -102,7 +102,7 @@ async fn main() -> Result<(), String> {
             continue;
         }
 
-        let input = input.split(" ").collect::<Vec<_>>();
+        let input = input.split(' ').collect::<Vec<_>>();
 
         trace!("input: {:#?}", input);
 
