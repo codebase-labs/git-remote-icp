@@ -100,6 +100,7 @@ async fn main() -> Result<(), String> {
         let input = input.trim();
 
         if input.is_empty() {
+            trace!("terminated with a blank line");
             continue;
         }
 
