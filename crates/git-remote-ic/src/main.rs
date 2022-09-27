@@ -31,7 +31,7 @@ struct Args {
     url: String,
 }
 
-#[derive(EnumString, EnumVariantNames, Parser)]
+#[derive(Debug, EnumString, EnumVariantNames, Parser)]
 #[strum(serialize_all = "kebab_case")]
 enum Commands {
     #[strum(disabled)]
@@ -54,7 +54,7 @@ enum Commands {
     },
 }
 
-#[derive(Clone, ValueEnum)]
+#[derive(Clone, Debug, ValueEnum)]
 enum ListVariant {
     ForPush,
 }
