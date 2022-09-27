@@ -9,6 +9,7 @@ authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
 name = "git-remote-ic"
 
 [dependencies]
+bytes = "1.1"
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
 git-features = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-features" }

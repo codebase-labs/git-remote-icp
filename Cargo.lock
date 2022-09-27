@@ -383,6 +383,7 @@ dependencies = [
 name = "git-remote-ic"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "clap",
  "env_logger",
  "git-features",

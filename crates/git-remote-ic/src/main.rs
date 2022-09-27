@@ -241,6 +241,8 @@ fn ref_to_string(r: &Ref) -> String {
 
 struct Http {
     client: reqwest::blocking::Client,
+    // req:
+    // res:
 }
 
 impl Http {
@@ -259,55 +261,32 @@ impl Http {
         upload: bool,
     ) -> Result<http::PostResponse<io::pipe::Reader, io::pipe::Reader, io::pipe::Writer>, http::Error>
     {
-        // let mut list = curl::easy::List::new();
-        // for header in headers {
-        //     list.append(header.as_ref())?;
-        // }
-        // if self
-        //     .req
-        //     .send(remote::Request {
-        //         url: url.to_owned(),
-        //         headers: list,
-        //         upload,
-        //     })
-        //     .is_err()
-        // {
-        //     return Err(self.restore_thread_after_failure());
-        // }
-        // let remote::Response {
-        //     headers,
-        //     body,
-        //     upload_body,
-        // } = match self.res.recv() {
-        //     Ok(res) => res,
-        //     Err(_) => return Err(self.restore_thread_after_failure()),
-        // };
-        // Ok(http::PostResponse {
-        //     post_body: upload_body,
-        //     headers,
-        //     body,
-        // })
         let method = if upload {
             reqwest::Method::POST
         } else {
             reqwest::Method::GET
         };
+
         let request = self.client.request(method, url);
 
-        let request_headers = headers
+        let request_header_pairs = headers
             .into_iter()
             .filter_map(|header| {
-                let parts = header.as_ref().split("=").collect::<Vec<_>>();
+                let parts = header.as_ref().split(": ").collect::<Vec<_>>();
                 let key = parts.get(0)?;
                 let value = parts.get(1)?;
                 Some((key.to_string(), value.to_string()))
             })
             .collect::<Vec<_>>();
 
-        let request_headers = HashMap::from_iter(request_headers);
-        let request_headers =
-            reqwest::header::HeaderMap::try_from(&request_headers).map_err(|e| e.into())?;
-        let request = request.headers(request_headers);
+        let request_header_hash_map = HashMap::from_iter(request_header_pairs);
+
+        let request_header_map =
+            reqwest::header::HeaderMap::try_from(&request_header_hash_map).map_err(|e| e.into())?;
+
+        let request = request.headers(request_header_map);
+
+        let request = request.body(_);
 
         let request = request.build().map_err(|e| e.into())?;
 
@@ -319,12 +298,14 @@ impl Http {
         let response_headers = response
             .headers()
             .iter()
-            // .collect::<Vec<_>>()
-            .map(|(key, value)| format!("{}: {}", key, value))
+            .map(|(key, value)| format!("{}: {}", key.to_string(), value.to_string()))
             .collect::<Vec<_>>()
             .join("\n");
 
-        let response_body = response.text();
+        // TODO: bytes, bytes_stream, or chunk?
+        // let response_body = response.text().map(|e| e.into())?;
+        // let response_body = response.bytes().unwrap();
+        let response_body = BufReader::new(response);
 
         Ok(http::PostResponse {
             post_body: upload_body,
@@ -335,8 +316,9 @@ impl Http {
 }
 
 impl http::Http for Http {
+    // FIXME
     type Headers = io::pipe::Reader;
-    type ResponseBody = io::pipe::Reader;
+    type ResponseBody = BufReader<reqwest::blocking::Response>;
     type PostBody = io::pipe::Writer;
 
     fn get(
