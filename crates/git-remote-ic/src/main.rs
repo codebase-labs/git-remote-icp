@@ -67,6 +67,7 @@ async fn main() -> Result<(), String> {
 
     let git_dir =
         env::var(GIT_DIR).map_err(|e| format!("failed to get GIT_DIR with error: {}", e))?;
+
     trace!("GIT_DIR: {}", git_dir);
 
     let args = Args::parse();
