@@ -9,6 +9,7 @@ authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
 name = "git-remote-ic"
 
 [dependencies]
+bstr = "1.0"
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
 gitoxide-core = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/gitoxide-core", features = ["blocking-client"] }

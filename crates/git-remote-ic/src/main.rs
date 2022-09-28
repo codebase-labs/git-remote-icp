@@ -154,7 +154,7 @@ async fn main() -> Result<(), String> {
 
                         let protocol = core::net::Protocol::V1; // FIXME: use v2
                         let refs_directory = Some(PathBuf::from(GIT_DIR));
-                        let wanted_refs = Vec::<BString>::new(); // Fetch all advertised references
+                        let wanted_refs = Vec::<bstr::BString>::new(); // Fetch all advertised references
                         let pack_and_index_directory = Some(PathBuf::from(GIT_DIR));
                         let progress = git_features::progress::Discard;
 

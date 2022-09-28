@@ -691,6 +691,7 @@ dependencies = [
 name = "git-remote-ic"
 version = "0.1.0"
 dependencies = [
+ "bstr 1.0.1",
  "clap",
  "env_logger",
  "git-features",
