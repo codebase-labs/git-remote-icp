@@ -1,12 +1,15 @@
 #![deny(rust_2018_idioms)]
 
-use std::env;
-
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_protocol::fetch::refs::{self, Ref};
 use git_transport::client::{http, Transport};
-use git_transport::{Protocol, Service};
+use git_transport::Service;
+use gitoxide_core as core;
 use log::trace;
+use std::env;
+use std::path::PathBuf;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use strum::{EnumString, EnumVariantNames, VariantNames as _};
 
 // use http::header::{self, HeaderName};
@@ -103,7 +106,7 @@ async fn main() -> Result<(), String> {
             trace!("process batch: {:#?}", batch);
             // TODO: actually process the batch
             batch.clear();
-            continue
+            continue;
         }
 
         let input = input.split(' ').collect::<Vec<_>>();
@@ -142,12 +145,43 @@ async fn main() -> Result<(), String> {
                     None => {
                         trace!("list");
 
-                        // FIXME: use v2
-                        let mut transport = http::Transport::new(&url, Protocol::V1);
-                        let extra_parameters = vec![];
-                        let result = transport
-                            .handshake(Service::UploadPack, &extra_parameters)
-                            .map_err(|e| e.to_string())?;
+                        // Using the following approach for now because we can't
+                        // seem to easily construct a delegate to pass to
+                        // git_protocol::fetch
+                        //
+                        // * Delegate impls in git-protocol are only for tests
+                        // * Delegate impl in gitoxide-core is private
+
+                        let protocol = core::net::Protocol::V1; // FIXME: use v2
+                        let refs_directory = Some(PathBuf::from(GIT_DIR));
+                        let wanted_refs = Vec::<BString>::new(); // Fetch all advertised references
+                        let pack_and_index_directory = Some(PathBuf::from(GIT_DIR));
+                        let progress = git_features::progress::Discard;
+
+                        let thread_limit = None;
+                        let format = core::OutputFormat::Human;
+                        let should_interrupt = Arc::new(AtomicBool::new(false));
+                        let mut out = Vec::<u8>::new();
+                        // let object_hash = git_repository::hash::Kind::SHA1;
+                        let object_hash = git_hash::Kind::Sha1;
+
+                        let context = core::pack::receive::Context {
+                            thread_limit,
+                            format,
+                            should_interrupt,
+                            out,
+                            object_hash,
+                        };
+
+                        let _ = core::pack::receive(
+                            Some(protocol),
+                            &url,
+                            pack_and_index_directory,
+                            refs_directory,
+                            wanted_refs.into_iter().map(|r| r.into()).collect(),
+                            progress,
+                            context,
+                        );
 
                         let mut refs = result.refs.ok_or("failed to get refs")?;
                         let capabilities = result.capabilities.iter();

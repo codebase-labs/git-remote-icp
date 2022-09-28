@@ -11,6 +11,9 @@ name = "git-remote-ic"
 [dependencies]
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
+gitoxide-core = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/gitoxide-core", features = ["blocking-client"] }
+git-features = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-features" }
+git-hash = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-hash" }
 git-protocol = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-protocol", features = ["blocking-client"] }
 git-transport = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-transport", features = ["http-client-curl"] }
 log = "0.4"
