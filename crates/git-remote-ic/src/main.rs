@@ -1,5 +1,6 @@
 #![deny(rust_2018_idioms)]
 
+use anyhow::Context;
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_protocol::fetch::refs::{self, Ref};
 use git_transport::client::{http, Transport};
@@ -65,11 +66,10 @@ enum ListVariant {
 const GIT_DIR: &str = "GIT_DIR";
 
 #[tokio::main]
-async fn main() -> Result<(), String> {
+async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let git_dir =
-        env::var(GIT_DIR).map_err(|e| format!("failed to get GIT_DIR with error: {}", e))?;
+    let git_dir = env::var(GIT_DIR).context("failed to get GIT_DIR")?;
 
     trace!("GIT_DIR: {}", git_dir);
 
@@ -97,7 +97,7 @@ async fn main() -> Result<(), String> {
 
         std::io::stdin()
             .read_line(&mut input)
-            .map_err(|error| format!("failed to read from stdin with error: {:?}", error))?;
+            .context("failed to read from stdin")?;
 
         let input = input.trim();
 
@@ -118,12 +118,8 @@ async fn main() -> Result<(), String> {
             .subcommand_required(true);
 
         let input_command = Commands::augment_subcommands(input_command);
-
-        let matches = input_command
-            .try_get_matches_from(input)
-            .map_err(|e| e.to_string())?;
-
-        let command = Commands::from_arg_matches(&matches).map_err(|e| e.to_string())?;
+        let matches = input_command.try_get_matches_from(input)?;
+        let command = Commands::from_arg_matches(&matches)?;
 
         match command {
             Commands::Capabilities => {
@@ -181,7 +177,7 @@ async fn main() -> Result<(), String> {
                             wanted_refs.into_iter().map(|r| r.into()).collect(),
                             progress,
                             context,
-                        );
+                        )?;
 
                         let mut refs = result.refs.ok_or("failed to get refs")?;
                         let capabilities = result.capabilities.iter();
