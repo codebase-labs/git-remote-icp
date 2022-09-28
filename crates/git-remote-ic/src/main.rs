@@ -157,8 +157,7 @@ async fn main() -> anyhow::Result<()> {
                         let thread_limit = None;
                         let format = core::OutputFormat::Human;
                         let should_interrupt = Arc::new(AtomicBool::new(false));
-                        let mut out = Vec::<u8>::new();
-                        // let object_hash = git_repository::hash::Kind::SHA1;
+                        let out = std::io::stdout();
                         let object_hash = git_hash::Kind::Sha1;
 
                         let context = core::pack::receive::Context {
@@ -179,21 +178,18 @@ async fn main() -> anyhow::Result<()> {
                             context,
                         )?;
 
-                        let mut refs = result.refs.ok_or("failed to get refs")?;
-                        let capabilities = result.capabilities.iter();
+                        // // FIXME: use v2
+                        // let parsed_refs =
+                        //     // refs::from_v2_refs(&mut refs).map_err(|e| e.to_string())?;
+                        //     refs::from_v1_refs_received_as_part_of_handshake_and_capabilities(&mut refs, capabilities).map_err(|e| e.to_string())?;
 
-                        // FIXME: use v2
-                        let parsed_refs =
-                            // refs::from_v2_refs(&mut refs).map_err(|e| e.to_string())?;
-                            refs::from_v1_refs_received_as_part_of_handshake_and_capabilities(&mut refs, capabilities).map_err(|e| e.to_string())?;
+                        // trace!("parsed_refs: {:#?}", parsed_refs);
 
-                        trace!("parsed_refs: {:#?}", parsed_refs);
-
-                        // TODO: buffer and flush
-                        parsed_refs
-                            .iter()
-                            .for_each(|r| println!("{}", ref_to_string(r)));
-                        println!()
+                        // // TODO: buffer and flush
+                        // parsed_refs
+                        //     .iter()
+                        //     .for_each(|r| println!("{}", ref_to_string(r)));
+                        // println!()
                     }
                 }
             }
