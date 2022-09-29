@@ -4,6 +4,12 @@
 
 A Git remote helper for the Internet Computer.
 
+## Generating a public/private key pair
+
+```
+ssh-keygen -t rsa -b 4096 -C "0+a@users.noreply.codebase.org"
+```
+
 ## Resources
 
 * https://git-scm.com/docs/gitremote-helpers
