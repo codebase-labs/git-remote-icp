@@ -24,5 +24,12 @@ cargo run origin ic://w7uni-tiaaa-aaaam-qaydq-cai.raw.ic0.app/@paul/hello-world.
 or
 
 ```
+cargo build && PATH=./target/debug:$PATH RUST_LOG=trace GIT_DIR=~/temp/hello-world git-remote-ic origin http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
+```
+
+or
+
+```
 cargo build && PATH=./target/debug:$PATH RUST_LOG=trace git clone ic://w7uni-tiaaa-aaaam-qaydq-cai.raw.ic0.app/@paul/hello-world.git
+
 ```
