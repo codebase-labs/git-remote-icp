@@ -38,7 +38,6 @@ struct Args {
 #[derive(Debug, EnumVariantNames, Parser)]
 #[strum(serialize_all = "kebab_case")]
 enum Commands {
-    // TODO: omit from capabilities if possible with strum
     Capabilities,
     Fetch {
         #[clap(value_parser)]
@@ -47,7 +46,6 @@ enum Commands {
         #[clap(value_parser)]
         name: String,
     },
-    // TODO: omit from capabilities if possible with strum
     List {
         #[clap(arg_enum, value_parser)]
         variant: Option<ListVariant>,
@@ -126,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
                 // TODO: buffer and flush
                 Commands::VARIANTS
                     .iter()
+                    .filter(|command| **command != "capabilities" && **command != "list")
                     .for_each(|command| println!("{}", command));
                 println!();
             }
