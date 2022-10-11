@@ -35,7 +35,7 @@ struct Args {
     url: String,
 }
 
-#[derive(Debug, EnumString, EnumVariantNames, Parser)]
+#[derive(Debug, EnumVariantNames, Parser)]
 #[strum(serialize_all = "kebab_case")]
 enum Commands {
     #[strum(disabled)]
