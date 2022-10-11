@@ -38,7 +38,7 @@ struct Args {
 #[derive(Debug, EnumVariantNames, Parser)]
 #[strum(serialize_all = "kebab_case")]
 enum Commands {
-    #[strum(disabled)]
+    // TODO: omit from capabilities if possible with strum
     Capabilities,
     Fetch {
         #[clap(value_parser)]
@@ -47,7 +47,7 @@ enum Commands {
         #[clap(value_parser)]
         name: String,
     },
-    #[strum(disabled)]
+    // TODO: omit from capabilities if possible with strum
     List {
         #[clap(arg_enum, value_parser)]
         variant: Option<ListVariant>,
