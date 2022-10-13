@@ -18,6 +18,7 @@ git-features = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/g
 git-hash = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-hash" }
 git-protocol = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-protocol", features = ["blocking-client"] }
 git-transport = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-transport", features = ["http-client-curl"] }
+# http-sig = { git = "https://github.com/dskyberg/http-signatures", branch = "ietf-httpbis-skyberg" }
 log = "0.4"
 strum = { version = "0.24", features = ["derive"] }
 tokio = { version = "1.12", features = ["full"] }
