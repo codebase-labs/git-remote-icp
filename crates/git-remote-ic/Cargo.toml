@@ -13,11 +13,11 @@ anyhow = "1.0"
 bstr = "1.0"
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
-gitoxide-core = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/gitoxide-core", features = ["blocking-client"] }
-git-features = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-features" }
-git-hash = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-hash" }
-git-protocol = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-protocol", features = ["blocking-client"] }
-git-transport = { path = "../../../../../Byron/gitoxide/paulyoung/git-transport/git-transport", features = ["http-client-curl"] }
+gitoxide-core = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a", features = ["blocking-client"] }
+# git-features = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a" }
+# git-hash = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a" }
+git-protocol = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a", features = ["blocking-client"] }
+git-transport = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a", features = ["http-client-reqwest"] }
 # http-sig = { git = "https://github.com/dskyberg/http-signatures", branch = "ietf-httpbis-skyberg" }
 log = "0.4"
 strum = { version = "0.24", features = ["derive"] }
