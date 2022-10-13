@@ -784,6 +784,7 @@ dependencies = [
  "bstr 1.0.1",
  "clap",
  "env_logger",
+ "git-features",
  "git-protocol",
  "git-transport",
  "gitoxide-core",

@@ -2,6 +2,8 @@
 
 use anyhow::Context;
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
+use git_features::progress;
+use git_protocol::fetch;
 use git_protocol::fetch::refs::{self, Ref};
 use git_transport::client::{http, Transport};
 use git_transport::Service;
@@ -140,6 +142,7 @@ async fn main() -> anyhow::Result<()> {
                     None => {
                         trace!("list");
 
+                        /*
                         // Using the following approach for now because we can't
                         // seem to easily construct a delegate to pass to
                         // git_protocol::fetch
@@ -176,15 +179,43 @@ async fn main() -> anyhow::Result<()> {
                             progress,
                             context,
                         )?;
+                        */
 
-                        // // FIXME: use v2
-                        // let parsed_refs =
-                        //     // refs::from_v2_refs(&mut refs).map_err(|e| e.to_string())?;
-                        //     refs::from_v1_refs_received_as_part_of_handshake_and_capabilities(&mut refs, capabilities).map_err(|e| e.to_string())?;
+                        // TODO: fetch::Transport::configure
 
-                        // trace!("parsed_refs: {:#?}", parsed_refs);
+                        let http = http::Impl::default();
+                        let mut transport =
+                            http::Transport::new_http(http, &url, git_transport::Protocol::V2);
 
-                        // // TODO: buffer and flush
+                        let authenticate = |action| {
+                            panic!("unexpected call to authenticate with action: {:#?}", action)
+                        };
+                        let extra_parameters = vec![];
+                        let mut progress = progress::Discard;
+
+                        // let result = transport.handshake(Service::UploadPack, &extra_parameters)?;
+                        let outcome = fetch::handshake(
+                            &mut transport,
+                            authenticate,
+                            extra_parameters,
+                            &mut progress,
+                        )?;
+
+                        let refs = fetch::refs(
+                            &mut transport,
+                            outcome.server_protocol_version,
+                            &outcome.capabilities,
+                            // TODO: gain a better understanding of
+                            // https://github.com/Byron/gitoxide/blob/da5f63cbc7506990f46d310f8064678decb86928/git-repository/src/remote/connection/ref_map.rs#L153-L168
+                            |_capabilities, _arguments, _features| {
+                                Ok(fetch::delegate::LsRefsAction::Continue)
+                            },
+                            &mut progress,
+                        )?;
+
+                        trace!("refs: {:#?}", refs);
+
+                        // TODO: buffer and flush
                         // parsed_refs
                         //     .iter()
                         //     .for_each(|r| println!("{}", ref_to_string(r)));
