@@ -184,7 +184,6 @@ async fn main() -> anyhow::Result<()> {
                         let extra_parameters = vec![];
                         let mut progress = progress::Discard;
 
-                        // let result = transport.handshake(Service::UploadPack, &extra_parameters)?;
                         let outcome = fetch::handshake(
                             &mut transport,
                             authenticate,
