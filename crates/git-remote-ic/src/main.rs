@@ -79,6 +79,18 @@ async fn main() -> anyhow::Result<()> {
 
     trace!("url: {}", url);
 
+
+    // TODO: look into fetch::Transport::configure for message signing
+    let http = http::Impl::default();
+    let mut transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
+
+    let authenticate =
+        |action| panic!("unexpected call to authenticate with action: {:#?}", action);
+
+    // Implement once option capability is supported
+    let mut progress = progress::Discard;
+
+
     let mut batch: BTreeSet<Commands> = BTreeSet::new();
 
     loop {
@@ -172,17 +184,7 @@ async fn main() -> anyhow::Result<()> {
                         )?;
                         */
 
-                        // TODO: fetch::Transport::configure
-
-                        let http = http::Impl::default();
-                        let mut transport =
-                            http::Transport::new_http(http, &url, git_transport::Protocol::V2);
-
-                        let authenticate = |action| {
-                            panic!("unexpected call to authenticate with action: {:#?}", action)
-                        };
                         let extra_parameters = vec![];
-                        let mut progress = progress::Discard;
 
                         let outcome = fetch::handshake(
                             &mut transport,
