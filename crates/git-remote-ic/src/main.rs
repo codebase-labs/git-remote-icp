@@ -59,7 +59,7 @@ const GIT_DIR: &str = "GIT_DIR";
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
-    git_repository::interrupt::init_handler({ move || {} })?;
+    git_repository::interrupt::init_handler(move || {})?;
 
     let git_dir = env::var(GIT_DIR).context("failed to get GIT_DIR")?;
 
@@ -80,7 +80,7 @@ async fn main() -> anyhow::Result<()> {
 
     trace!("url: {}", url);
 
-    let repo = _;
+    let repo = git_repository::open(GIT_DIR)?;
 
     // TODO: look into fetch::Transport::configure for message signing
     let http = http::Impl::default();
@@ -88,9 +88,6 @@ async fn main() -> anyhow::Result<()> {
 
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
-
-    // Implement once option capability is supported
-    let mut progress = progress::Discard;
 
     let mut batch: BTreeSet<Commands> = BTreeSet::new();
 
@@ -109,21 +106,26 @@ async fn main() -> anyhow::Result<()> {
             trace!("terminated with a blank line");
             trace!("process batch: {:#?}", batch);
 
-            let mut remote = repo.remote_at(url)?;
+            let mut remote = repo.remote_at(url.clone())?;
 
-            for command in batch {
+            for command in &batch {
                 match command {
-                    Commands::Fetch { hash, name } => {
-                        remote =
-                            remote.with_refspec(hash, git_repository::remote::Direction::Fetch)?;
+                    Commands::Fetch { hash, name: _ } => {
+                        remote = remote.with_refspec(
+                            hash.as_bytes(),
+                            git_repository::remote::Direction::Fetch,
+                        )?;
                     }
                     _ => (),
                 }
             }
 
+            // Implement once option capability is supported
+            let progress = progress::Discard;
+
             let _outcome = remote
                 .connect(git_repository::remote::Direction::Fetch, progress)?
-                // .prepare_fetch(self.fetch_options.clone())?
+                .prepare_fetch(Default::default())?
                 .receive(&git_repository::interrupt::IS_INTERRUPTED);
 
             batch.clear();
@@ -203,6 +205,9 @@ async fn main() -> anyhow::Result<()> {
                         */
 
                         let extra_parameters = vec![];
+
+                        // Implement once option capability is supported
+                        let mut progress = progress::Discard;
 
                         let outcome = fetch::handshake(
                             &mut transport,
