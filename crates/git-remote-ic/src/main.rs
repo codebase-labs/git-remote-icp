@@ -9,11 +9,11 @@ use git_transport::client::{http, Transport};
 use git_transport::Service;
 use gitoxide_core as core;
 use log::trace;
+use std::collections::BTreeSet;
 use std::env;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use std::collections::BTreeSet;
 use strum::{EnumString, EnumVariantNames, VariantNames as _};
 
 #[derive(Parser)]
@@ -59,6 +59,7 @@ const GIT_DIR: &str = "GIT_DIR";
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
+    git_repository::interrupt::init_handler({ move || {} })?;
 
     let git_dir = env::var(GIT_DIR).context("failed to get GIT_DIR")?;
 
@@ -79,6 +80,7 @@ async fn main() -> anyhow::Result<()> {
 
     trace!("url: {}", url);
 
+    let repo = _;
 
     // TODO: look into fetch::Transport::configure for message signing
     let http = http::Impl::default();
@@ -89,7 +91,6 @@ async fn main() -> anyhow::Result<()> {
 
     // Implement once option capability is supported
     let mut progress = progress::Discard;
-
 
     let mut batch: BTreeSet<Commands> = BTreeSet::new();
 
@@ -107,7 +108,24 @@ async fn main() -> anyhow::Result<()> {
         if input.is_empty() {
             trace!("terminated with a blank line");
             trace!("process batch: {:#?}", batch);
-            // TODO: actually process the batch
+
+            let mut remote = repo.remote_at(url)?;
+
+            for command in batch {
+                match command {
+                    Commands::Fetch { hash, name } => {
+                        remote =
+                            remote.with_refspec(hash, git_repository::remote::Direction::Fetch)?;
+                    }
+                    _ => (),
+                }
+            }
+
+            let _outcome = remote
+                .connect(git_repository::remote::Direction::Fetch, progress)?
+                // .prepare_fetch(self.fetch_options.clone())?
+                .receive(&git_repository::interrupt::IS_INTERRUPTED);
+
             batch.clear();
             continue;
         }

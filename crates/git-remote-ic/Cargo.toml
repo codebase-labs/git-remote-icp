@@ -17,6 +17,7 @@ gitoxide-core = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab
 git-features = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a" }
 # git-hash = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a" }
 git-protocol = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a", features = ["blocking-client"] }
+git-repository = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a" }
 git-transport = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a", features = ["http-client-reqwest"] }
 # http-sig = { git = "https://github.com/dskyberg/http-signatures", branch = "ietf-httpbis-skyberg" }
 log = "0.4"
