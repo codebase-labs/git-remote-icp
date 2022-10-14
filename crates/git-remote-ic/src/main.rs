@@ -216,10 +216,8 @@ async fn main() -> anyhow::Result<()> {
                         trace!("refs: {:#?}", refs);
 
                         // TODO: buffer and flush
-                        // parsed_refs
-                        //     .iter()
-                        //     .for_each(|r| println!("{}", ref_to_string(r)));
-                        // println!()
+                        refs.iter().for_each(|r| println!("{}", ref_to_string(r)));
+                        println!()
                     }
                 }
             }
