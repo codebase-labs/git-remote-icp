@@ -252,8 +252,7 @@ fn ref_to_string(r: &Ref) -> String {
             object: _,
         } => {
             // @refs/heads/main HEAD
-            // TODO: confirm these are the right way around
-            format!("@{} {}", full_ref_name, target)
+            format!("@{} {}", target, full_ref_name)
         }
     }
 }
