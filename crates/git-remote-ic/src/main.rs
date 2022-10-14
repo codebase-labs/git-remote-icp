@@ -1,6 +1,6 @@
 #![deny(rust_2018_idioms)]
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_features::progress;
 use git_protocol::fetch;
@@ -11,6 +11,7 @@ use gitoxide_core as core;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -80,7 +81,11 @@ async fn main() -> anyhow::Result<()> {
 
     trace!("url: {}", url);
 
-    let repo = git_repository::open(GIT_DIR)?;
+    let repo_dir = Path::new(&git_dir)
+        .parent()
+        .ok_or(anyhow!("failed to get repository directory"))?;
+
+    let repo = git_repository::open(repo_dir)?;
 
     // TODO: look into fetch::Transport::configure for message signing
     let http = http::Impl::default();
