@@ -13,6 +13,7 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::collections::BTreeSet;
 use strum::{EnumString, EnumVariantNames, VariantNames as _};
 
 // use http::header::{self, HeaderName};
@@ -37,7 +38,7 @@ struct Args {
     url: String,
 }
 
-#[derive(Debug, EnumVariantNames, Parser)]
+#[derive(Debug, EnumVariantNames, Eq, Ord, PartialEq, PartialOrd, Parser)]
 #[strum(serialize_all = "kebab_case")]
 enum Commands {
     Capabilities,
@@ -58,7 +59,7 @@ enum Commands {
     },
 }
 
-#[derive(Clone, Debug, ValueEnum)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, ValueEnum)]
 enum ListVariant {
     ForPush,
 }
@@ -88,7 +89,7 @@ async fn main() -> anyhow::Result<()> {
 
     trace!("url: {}", url);
 
-    let mut batch: Vec<Commands> = vec![];
+    let mut batch: BTreeSet<Commands> = BTreeSet::new();
 
     loop {
         trace!("loop");
@@ -132,7 +133,7 @@ async fn main() -> anyhow::Result<()> {
             }
             Commands::Fetch { ref hash, ref name } => {
                 trace!("batch fetch {} {}", hash, name);
-                batch.push(command)
+                let _ = batch.insert(command);
             }
             Commands::List { variant } => {
                 match variant {
@@ -223,7 +224,7 @@ async fn main() -> anyhow::Result<()> {
             }
             Commands::Push { ref src_dst } => {
                 trace!("batch push {}", src_dst);
-                batch.push(command)
+                let _ = batch.insert(command);
             }
         }
     }
