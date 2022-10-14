@@ -16,16 +16,6 @@ use std::sync::Arc;
 use std::collections::BTreeSet;
 use strum::{EnumString, EnumVariantNames, VariantNames as _};
 
-// use http::header::{self, HeaderName};
-// use http::method::Method;
-// use http::request;
-
-// use picky::hash::HashAlgorithm;
-// use picky::http::http_signature::{HttpSignature, HttpSignatureBuilder};
-// use picky::key::PrivateKey;
-// use picky::pem::parse_pem;
-// use picky::signature::SignatureAlgorithm;
-
 #[derive(Parser)]
 #[clap(about, version)]
 struct Args {
