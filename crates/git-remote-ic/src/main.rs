@@ -82,7 +82,6 @@ async fn main() -> anyhow::Result<()> {
 
     let repo = git_repository::open(repo_dir)?;
 
-    // TODO: look into fetch::Transport::configure for message signing
     let http = http::Impl::default();
     let mut transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
 
@@ -125,6 +124,7 @@ async fn main() -> anyhow::Result<()> {
 
             let outcome = remote
                 .connect(git_repository::remote::Direction::Fetch, progress)?
+                // TODO: ^ look into transport_mut().configure() here, or use to_connection_with_transport()
                 .prepare_fetch(Default::default())?
                 .receive(&git_repository::interrupt::IS_INTERRUPTED);
 
