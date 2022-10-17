@@ -123,9 +123,11 @@ async fn main() -> anyhow::Result<()> {
             let progress = progress::Discard;
 
             let outcome = remote
-                // .connect(git_repository::remote::Direction::Fetch, progress)?
                 .to_connection_with_transport(transport, progress)
-                .prepare_fetch(Default::default())?
+                .prepare_fetch(git_repository::remote::ref_map::Options {
+                    prefix_from_spec_as_filter_on_remote: true,
+                    handshake_parameters: vec![],
+                })?
                 .receive(&git_repository::interrupt::IS_INTERRUPTED);
 
             trace!("outcome: {:#?}", outcome);
