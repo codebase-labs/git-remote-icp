@@ -82,9 +82,6 @@ async fn main() -> anyhow::Result<()> {
 
     let repo = git_repository::open(repo_dir)?;
 
-    let http = http::Impl::default();
-    let mut transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
-
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
 
@@ -118,6 +115,9 @@ async fn main() -> anyhow::Result<()> {
                     _ => (),
                 }
             }
+
+            let http = http::Impl::default();
+            let mut transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
 
             // Implement once option capability is supported
             let progress = progress::Discard;
@@ -171,6 +171,9 @@ async fn main() -> anyhow::Result<()> {
                     None => {
                         trace!("list");
 
+                        let http = http::Impl::default();
+                        let mut transport =
+                            http::Transport::new_http(http, &url, git_transport::Protocol::V2);
                         let extra_parameters = vec![];
 
                         // Implement once option capability is supported
