@@ -136,7 +136,7 @@ async fn main() -> anyhow::Result<()> {
             trace!("outcome: {:#?}", outcome);
 
             batch.clear();
-            continue;
+            break Ok(());
         }
 
         let input = input.split(' ').collect::<Vec<_>>();
