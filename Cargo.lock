@@ -541,6 +541,7 @@ dependencies = [
 [[package]]
 name = "git-actor"
 version = "0.13.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "btoi",
@@ -553,6 +554,7 @@ dependencies = [
 [[package]]
 name = "git-attributes"
 version = "0.5.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "compact_str",
@@ -567,6 +569,7 @@ dependencies = [
 [[package]]
 name = "git-bitmap"
 version = "0.1.2"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "quick-error",
 ]
@@ -574,6 +577,7 @@ dependencies = [
 [[package]]
 name = "git-chunk"
 version = "0.3.2"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "thiserror",
 ]
@@ -581,6 +585,7 @@ dependencies = [
 [[package]]
 name = "git-command"
 version = "0.1.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
 ]
@@ -588,6 +593,7 @@ dependencies = [
 [[package]]
 name = "git-commitgraph"
 version = "0.10.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-chunk",
@@ -600,6 +606,7 @@ dependencies = [
 [[package]]
 name = "git-config"
 version = "0.9.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-config-value",
@@ -619,6 +626,7 @@ dependencies = [
 [[package]]
 name = "git-config-value"
 version = "0.8.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bitflags",
  "bstr 1.0.1",
@@ -630,6 +638,7 @@ dependencies = [
 [[package]]
 name = "git-credentials"
 version = "0.6.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-command",
@@ -644,6 +653,7 @@ dependencies = [
 [[package]]
 name = "git-date"
 version = "0.2.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "itoa",
@@ -654,6 +664,7 @@ dependencies = [
 [[package]]
 name = "git-diff"
 version = "0.20.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "git-hash",
  "git-object",
@@ -664,6 +675,7 @@ dependencies = [
 [[package]]
 name = "git-discover"
 version = "0.6.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-hash",
@@ -676,6 +688,7 @@ dependencies = [
 [[package]]
 name = "git-features"
 version = "0.23.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bytes",
  "crc32fast",
@@ -698,6 +711,7 @@ dependencies = [
 [[package]]
 name = "git-glob"
 version = "0.4.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bitflags",
  "bstr 1.0.1",
@@ -706,6 +720,7 @@ dependencies = [
 [[package]]
 name = "git-hash"
 version = "0.9.11"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "hex",
  "thiserror",
@@ -714,6 +729,7 @@ dependencies = [
 [[package]]
 name = "git-index"
 version = "0.6.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "atoi",
  "bitflags",
@@ -734,6 +750,7 @@ dependencies = [
 [[package]]
 name = "git-lock"
 version = "2.1.1"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "fastrand",
  "git-tempfile",
@@ -743,6 +760,7 @@ dependencies = [
 [[package]]
 name = "git-mailmap"
 version = "0.5.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-actor",
@@ -752,6 +770,7 @@ dependencies = [
 [[package]]
 name = "git-object"
 version = "0.22.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "btoi",
@@ -769,6 +788,7 @@ dependencies = [
 [[package]]
 name = "git-odb"
 version = "0.34.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "arc-swap",
  "git-features",
@@ -785,6 +805,7 @@ dependencies = [
 [[package]]
 name = "git-pack"
 version = "0.24.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bytesize",
  "clru",
@@ -808,6 +829,7 @@ dependencies = [
 [[package]]
 name = "git-packetline"
 version = "0.13.1"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "hex",
@@ -817,6 +839,7 @@ dependencies = [
 [[package]]
 name = "git-path"
 version = "0.5.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "thiserror",
@@ -825,6 +848,7 @@ dependencies = [
 [[package]]
 name = "git-prompt"
 version = "0.1.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "git-command",
  "git-config-value",
@@ -836,6 +860,7 @@ dependencies = [
 [[package]]
 name = "git-protocol"
 version = "0.21.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "btoi",
@@ -851,6 +876,7 @@ dependencies = [
 [[package]]
 name = "git-quote"
 version = "0.3.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "btoi",
@@ -860,6 +886,7 @@ dependencies = [
 [[package]]
 name = "git-ref"
 version = "0.17.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "git-actor",
  "git-features",
@@ -877,6 +904,7 @@ dependencies = [
 [[package]]
 name = "git-refspec"
 version = "0.3.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-hash",
@@ -907,6 +935,7 @@ dependencies = [
 [[package]]
 name = "git-repository"
 version = "0.25.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "byte-unit",
  "clru",
@@ -949,6 +978,7 @@ dependencies = [
 [[package]]
 name = "git-revision"
 version = "0.6.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-date",
@@ -961,6 +991,7 @@ dependencies = [
 [[package]]
 name = "git-sec"
 version = "0.4.1"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bitflags",
  "dirs",
@@ -972,6 +1003,7 @@ dependencies = [
 [[package]]
 name = "git-tempfile"
 version = "2.0.5"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "dashmap",
  "libc",
@@ -984,6 +1016,7 @@ dependencies = [
 [[package]]
 name = "git-transport"
 version = "0.21.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "base64",
  "bstr 1.0.1",
@@ -998,6 +1031,7 @@ dependencies = [
 [[package]]
 name = "git-traverse"
 version = "0.18.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "git-hash",
  "git-object",
@@ -1008,6 +1042,7 @@ dependencies = [
 [[package]]
 name = "git-url"
 version = "0.10.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-features",
@@ -1020,6 +1055,7 @@ dependencies = [
 [[package]]
 name = "git-validate"
 version = "0.6.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "thiserror",
@@ -1028,6 +1064,7 @@ dependencies = [
 [[package]]
 name = "git-worktree"
 version = "0.6.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "bstr 1.0.1",
  "git-attributes",
@@ -1044,6 +1081,7 @@ dependencies = [
 [[package]]
 name = "gitoxide-core"
 version = "0.19.0"
+source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
 dependencies = [
  "anyhow",
  "bytesize",

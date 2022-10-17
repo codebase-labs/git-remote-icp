@@ -13,16 +13,11 @@ anyhow = "1.0"
 bstr = "1.0"
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
-# gitoxide-core = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a", features = ["blocking-client"] }
-gitoxide-core = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/compiled-without-http/gitoxide-core", features = ["blocking-client"] }
-# git-features = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a" }
-git-features = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/compiled-without-http/git-features" }
-# git-protocol = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a", features = ["blocking-client"] }
-git-protocol = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/compiled-without-http/git-protocol", features = ["blocking-client"] }
-# git-repository = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a" }
-git-repository = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/compiled-without-http/git-repository" }
-# git-transport = { git = "https://github.com/Byron/gitoxide", rev="104d922add61ab21c534c24ce8ed37cddf3e275a", features = ["http-client-reqwest"] }
-git-transport = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/compiled-without-http/git-transport", features = ["http-client-reqwest"] }
+gitoxide-core = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2", features = ["blocking-client"] }
+git-features = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2" }
+git-protocol = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2", features = ["blocking-client"] }
+git-repository = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2" }
+git-transport = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2", features = ["http-client-reqwest"] }
 # http-sig = { git = "https://github.com/dskyberg/http-signatures", branch = "ietf-httpbis-skyberg" }
 log = "0.4"
 strum = { version = "0.24", features = ["derive"] }
