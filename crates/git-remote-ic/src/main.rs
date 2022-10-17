@@ -171,45 +171,6 @@ async fn main() -> anyhow::Result<()> {
                     None => {
                         trace!("list");
 
-                        /*
-                        // Using the following approach for now because we can't
-                        // seem to easily construct a delegate to pass to
-                        // git_protocol::fetch
-                        //
-                        // * Delegate impls in git-protocol are only for tests
-                        // * Delegate impl in gitoxide-core is private
-
-                        let protocol = core::net::Protocol::V1; // FIXME: use v2
-                        let refs_directory = Some(PathBuf::from(GIT_DIR));
-                        let wanted_refs = Vec::<bstr::BString>::new(); // Fetch all advertised references
-                        let pack_and_index_directory = Some(PathBuf::from(GIT_DIR));
-                        let progress = git_features::progress::Discard;
-
-                        let thread_limit = None;
-                        let format = core::OutputFormat::Human;
-                        let should_interrupt = Arc::new(AtomicBool::new(false));
-                        let out = std::io::stdout();
-                        let object_hash = git_hash::Kind::Sha1;
-
-                        let context = core::pack::receive::Context {
-                            thread_limit,
-                            format,
-                            should_interrupt,
-                            out,
-                            object_hash,
-                        };
-
-                        let _ = core::pack::receive(
-                            Some(protocol),
-                            &url,
-                            pack_and_index_directory,
-                            refs_directory,
-                            wanted_refs.into_iter().map(|r| r.into()).collect(),
-                            progress,
-                            context,
-                        )?;
-                        */
-
                         let extra_parameters = vec![];
 
                         // Implement once option capability is supported
