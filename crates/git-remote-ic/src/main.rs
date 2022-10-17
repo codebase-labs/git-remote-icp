@@ -4,18 +4,13 @@ use anyhow::{anyhow, Context};
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_features::progress;
 use git_protocol::fetch;
-use git_protocol::fetch::refs::{self, Ref};
-use git_transport::client::{http, Transport};
-use git_transport::Service;
-use gitoxide_core as core;
+use git_protocol::fetch::refs::Ref;
+use git_transport::client::http;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
-use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
-use strum::{EnumString, EnumVariantNames, VariantNames as _};
+use strum::{EnumVariantNames, VariantNames as _};
 
 #[derive(Parser)]
 #[clap(about, version)]
