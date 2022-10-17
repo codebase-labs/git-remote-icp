@@ -591,19 +591,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "git-commitgraph"
-version = "0.10.0"
-source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
-dependencies = [
- "bstr 1.0.1",
- "git-chunk",
- "git-features",
- "git-hash",
- "memmap2",
- "thiserror",
-]
-
-[[package]]
 name = "git-config"
 version = "0.9.0"
 source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
@@ -926,7 +913,6 @@ dependencies = [
  "git-protocol",
  "git-repository",
  "git-transport",
- "gitoxide-core",
  "log",
  "strum",
  "tokio",
@@ -1075,21 +1061,6 @@ dependencies = [
  "git-object",
  "git-path",
  "io-close",
- "thiserror",
-]
-
-[[package]]
-name = "gitoxide-core"
-version = "0.19.0"
-source = "git+https://github.com/Byron/gitoxide?rev=375051fa97d79f95fa7179b536e616c4aefd88e2#375051fa97d79f95fa7179b536e616c4aefd88e2"
-dependencies = [
- "anyhow",
- "bytesize",
- "git-commitgraph",
- "git-pack",
- "git-repository",
- "git-transport",
- "tempfile",
  "thiserror",
 ]
 
