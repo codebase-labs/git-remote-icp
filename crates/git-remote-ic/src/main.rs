@@ -123,8 +123,8 @@ async fn main() -> anyhow::Result<()> {
             let progress = progress::Discard;
 
             let outcome = remote
-                .connect(git_repository::remote::Direction::Fetch, progress)?
-                // TODO: ^ look into transport_mut().configure() here, or use to_connection_with_transport()
+                // .connect(git_repository::remote::Direction::Fetch, progress)?
+                .to_connection_with_transport(transport, progress)
                 .prepare_fetch(Default::default())?
                 .receive(&git_repository::interrupt::IS_INTERRUPTED);
 
