@@ -136,6 +136,8 @@ async fn main() -> anyhow::Result<()> {
             trace!("outcome: {:#?}", outcome);
 
             batch.clear();
+
+            // continue; // Useful to inspect .git directory before it disappears
             break Ok(());
         }
 
