@@ -128,10 +128,12 @@ async fn main() -> anyhow::Result<()> {
             // Implement once option capability is supported
             let progress = progress::Discard;
 
-            let _outcome = remote
+            let outcome = remote
                 .connect(git_repository::remote::Direction::Fetch, progress)?
                 .prepare_fetch(Default::default())?
                 .receive(&git_repository::interrupt::IS_INTERRUPTED);
+
+            trace!("outcome: {:#?}", outcome);
 
             batch.clear();
             continue;
