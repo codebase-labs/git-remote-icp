@@ -85,7 +85,8 @@ async fn main() -> anyhow::Result<()> {
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
 
-    let mut batch: BTreeSet<Commands> = BTreeSet::new();
+    let mut fetch: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut push: BTreeSet<String> = BTreeSet::new();
 
     loop {
         trace!("loop");
@@ -101,21 +102,16 @@ async fn main() -> anyhow::Result<()> {
         if input.is_empty() {
             trace!("terminated with a blank line");
 
-            if !batch.is_empty() {
-                trace!("process batch: {:#?}", batch);
+            if !fetch.is_empty() {
+                trace!("process fetch: {:#?}", fetch);
 
                 let mut remote = repo.remote_at(url.clone())?;
 
-                for command in &batch {
-                    match command {
-                        Commands::Fetch { hash, name: _ } => {
-                            remote = remote.with_refspec(
-                                hash.as_bytes(),
-                                git_repository::remote::Direction::Fetch,
-                            )?;
-                        }
-                        _ => (),
-                    }
+                for (hash, _name) in &fetch {
+                    remote = remote.with_refspec(
+                        hash.as_bytes(),
+                        git_repository::remote::Direction::Fetch,
+                    )?;
                 }
 
                 let http = http::Impl::default();
@@ -136,8 +132,15 @@ async fn main() -> anyhow::Result<()> {
 
                 // TODO: delete .keep files by outputting: lock <file>
 
-                batch.clear();
+                fetch.clear();
                 println!();
+            }
+
+            if !push.is_empty() {
+                trace!("process push: {:#?}", push);
+
+                // push.clear();
+                // println!();
             }
 
             // continue; // Useful to inspect .git directory before it disappears
@@ -165,9 +168,9 @@ async fn main() -> anyhow::Result<()> {
                     .for_each(|command| println!("{}", command));
                 println!();
             }
-            Commands::Fetch { ref hash, ref name } => {
+            Commands::Fetch { hash, name } => {
                 trace!("batch fetch {} {}", hash, name);
-                let _ = batch.insert(command);
+                let _ = fetch.insert((hash, name));
             }
             Commands::List { variant } => {
                 match variant {
@@ -212,9 +215,9 @@ async fn main() -> anyhow::Result<()> {
                 refs.iter().for_each(|r| println!("{}", ref_to_string(r)));
                 println!()
             }
-            Commands::Push { ref src_dst } => {
+            Commands::Push { src_dst } => {
                 trace!("batch push {}", src_dst);
-                let _ = batch.insert(command);
+                let _ = push.insert(src_dst);
             }
         }
     }
