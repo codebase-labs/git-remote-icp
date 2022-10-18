@@ -117,7 +117,7 @@ async fn main() -> anyhow::Result<()> {
             }
 
             let http = http::Impl::default();
-            let mut transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
+            let transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
 
             // Implement once option capability is supported
             let progress = progress::Discard;
