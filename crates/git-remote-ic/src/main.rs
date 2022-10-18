@@ -100,42 +100,45 @@ async fn main() -> anyhow::Result<()> {
 
         if input.is_empty() {
             trace!("terminated with a blank line");
-            trace!("process batch: {:#?}", batch);
 
-            let mut remote = repo.remote_at(url.clone())?;
+            if !batch.is_empty() {
+                trace!("process batch: {:#?}", batch);
 
-            for command in &batch {
-                match command {
-                    Commands::Fetch { hash, name: _ } => {
-                        remote = remote.with_refspec(
-                            hash.as_bytes(),
-                            git_repository::remote::Direction::Fetch,
-                        )?;
+                let mut remote = repo.remote_at(url.clone())?;
+
+                for command in &batch {
+                    match command {
+                        Commands::Fetch { hash, name: _ } => {
+                            remote = remote.with_refspec(
+                                hash.as_bytes(),
+                                git_repository::remote::Direction::Fetch,
+                            )?;
+                        }
+                        _ => (),
                     }
-                    _ => (),
                 }
+
+                let http = http::Impl::default();
+                let transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
+
+                // Implement once option capability is supported
+                let progress = progress::Discard;
+
+                let outcome = remote
+                    .to_connection_with_transport(transport, progress)
+                    .prepare_fetch(git_repository::remote::ref_map::Options {
+                        prefix_from_spec_as_filter_on_remote: true,
+                        handshake_parameters: vec![],
+                    })?
+                    .receive(&git_repository::interrupt::IS_INTERRUPTED);
+
+                trace!("outcome: {:#?}", outcome);
+
+                // TODO: delete .keep files by outputting: lock <file>
+
+                batch.clear();
+                println!();
             }
-
-            let http = http::Impl::default();
-            let transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
-
-            // Implement once option capability is supported
-            let progress = progress::Discard;
-
-            let outcome = remote
-                .to_connection_with_transport(transport, progress)
-                .prepare_fetch(git_repository::remote::ref_map::Options {
-                    prefix_from_spec_as_filter_on_remote: true,
-                    handshake_parameters: vec![],
-                })?
-                .receive(&git_repository::interrupt::IS_INTERRUPTED);
-
-            trace!("outcome: {:#?}", outcome);
-
-            // TODO: delete .keep files by outputting: lock <file>
-
-            batch.clear();
-            println!();
 
             // continue; // Useful to inspect .git directory before it disappears
             break Ok(());
