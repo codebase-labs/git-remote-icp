@@ -135,6 +135,7 @@ async fn main() -> anyhow::Result<()> {
             // TODO: delete .keep files by outputting: lock <file>
 
             batch.clear();
+            println!();
 
             // continue; // Useful to inspect .git directory before it disappears
             break Ok(());
