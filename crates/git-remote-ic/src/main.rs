@@ -176,41 +176,41 @@ async fn main() -> anyhow::Result<()> {
                     },
                     None => {
                         trace!("list");
-
-                        let http = http::Impl::default();
-                        let mut transport =
-                            http::Transport::new_http(http, &url, git_transport::Protocol::V2);
-                        let extra_parameters = vec![];
-
-                        // Implement once option capability is supported
-                        let mut progress = progress::Discard;
-
-                        let outcome = fetch::handshake(
-                            &mut transport,
-                            authenticate,
-                            extra_parameters,
-                            &mut progress,
-                        )?;
-
-                        let refs = fetch::refs(
-                            &mut transport,
-                            outcome.server_protocol_version,
-                            &outcome.capabilities,
-                            // TODO: gain a better understanding of
-                            // https://github.com/Byron/gitoxide/blob/da5f63cbc7506990f46d310f8064678decb86928/git-repository/src/remote/connection/ref_map.rs#L153-L168
-                            |_capabilities, _arguments, _features| {
-                                Ok(fetch::delegate::LsRefsAction::Continue)
-                            },
-                            &mut progress,
-                        )?;
-
-                        trace!("refs: {:#?}", refs);
-
-                        // TODO: buffer and flush
-                        refs.iter().for_each(|r| println!("{}", ref_to_string(r)));
-                        println!()
                     }
                 }
+
+                let http = http::Impl::default();
+                let mut transport =
+                    http::Transport::new_http(http, &url, git_transport::Protocol::V2);
+                let extra_parameters = vec![];
+
+                // Implement once option capability is supported
+                let mut progress = progress::Discard;
+
+                let outcome = fetch::handshake(
+                    &mut transport,
+                    authenticate,
+                    extra_parameters,
+                    &mut progress,
+                )?;
+
+                let refs = fetch::refs(
+                    &mut transport,
+                    outcome.server_protocol_version,
+                    &outcome.capabilities,
+                    // TODO: gain a better understanding of
+                    // https://github.com/Byron/gitoxide/blob/da5f63cbc7506990f46d310f8064678decb86928/git-repository/src/remote/connection/ref_map.rs#L153-L168
+                    |_capabilities, _arguments, _features| {
+                        Ok(fetch::delegate::LsRefsAction::Continue)
+                    },
+                    &mut progress,
+                )?;
+
+                trace!("refs: {:#?}", refs);
+
+                // TODO: buffer and flush
+                refs.iter().for_each(|r| println!("{}", ref_to_string(r)));
+                println!()
             }
             Commands::Push { ref src_dst } => {
                 trace!("batch push {}", src_dst);
