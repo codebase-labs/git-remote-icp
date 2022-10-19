@@ -203,8 +203,11 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
 
-                // FIXME: use signing here too
-                let http = http::Impl::default();
+                let mut http = http::Impl::default();
+
+                http.configure(&reqwest_config)
+                    .map_err(|err| anyhow!(err.to_string()))?;
+
                 let mut transport =
                     http::Transport::new_http(http, &url, git_transport::Protocol::V2);
                 let extra_parameters = vec![];
