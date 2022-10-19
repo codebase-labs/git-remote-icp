@@ -6,10 +6,14 @@ use git_features::progress;
 use git_protocol::fetch;
 use git_protocol::fetch::refs::Ref;
 use git_transport::client::http;
+use git_transport::client::http::Http as _;
+use http_sig::{SigningConfig, SigningExt as _};
+use lazy_static::lazy_static;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 use strum::{EnumVariantNames, VariantNames as _};
 
 #[derive(Parser)]
@@ -52,6 +56,11 @@ enum ListVariant {
 
 const GIT_DIR: &str = "GIT_DIR";
 
+lazy_static! {
+    static ref SIGNING_CONFIG: SigningConfig =
+        SigningConfig::new_default("label", "key_id", b"key");
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -82,6 +91,16 @@ async fn main() -> anyhow::Result<()> {
 
     let repo = git_repository::open(repo_dir)?;
 
+    let reqwest_config = http::Config {
+        config: None,
+        configure_request: Some(Arc::new(Mutex::new(
+            |request: &mut reqwest::blocking::Request| {
+                // FIXME: don't unwrap
+                request.sign(&SIGNING_CONFIG).unwrap();
+            },
+        ))),
+    };
+
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
 
@@ -108,13 +127,15 @@ async fn main() -> anyhow::Result<()> {
                 let mut remote = repo.remote_at(url.clone())?;
 
                 for (hash, _name) in &fetch {
-                    remote = remote.with_refspec(
-                        hash.as_bytes(),
-                        git_repository::remote::Direction::Fetch,
-                    )?;
+                    remote = remote
+                        .with_refspec(hash.as_bytes(), git_repository::remote::Direction::Fetch)?;
                 }
 
-                let http = http::Impl::default();
+                let mut http = http::Impl::default();
+
+                http.configure(&reqwest_config)
+                    .map_err(|err| anyhow!(err.to_string()))?;
+
                 let transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
 
                 // Implement once option capability is supported
@@ -182,6 +203,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
 
+                // FIXME: use signing here too
                 let http = http::Impl::default();
                 let mut transport =
                     http::Transport::new_http(http, &url, git_transport::Protocol::V2);
