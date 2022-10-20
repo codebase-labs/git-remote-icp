@@ -2,12 +2,25 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
+    adobe-git-server-src = {
+      url = "github:adobe/git-server?rev=3509b1c6e4db64075b62324912054944e1603986";
+      flake = false;
+    };
+
     crane = {
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     flake-utils.url = "github:numtide/flake-utils";
+
+    npmlock2nix = {
+      url = "github:nix-community/npmlock2nix";
+      flake = false;
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+      };
+    };
 
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
@@ -21,8 +34,10 @@
   outputs = {
     self,
     nixpkgs,
+    adobe-git-server-src,
     crane,
     flake-utils,
+    npmlock2nix,
     rust-overlay
   }:
     let
@@ -36,6 +51,15 @@
           pkgs = import nixpkgs {
             inherit system;
             overlays = [
+              (final: prev: {
+                # We're stuck on nodejs-14_x while using npmlock2nix, but
+                # temporarily switching to nodejs-16_x with its support for
+                # lockfile v2 can be useful to catch incompatible
+                # dependency issues that nodejs-14_x and v1 doesn't.
+                # https://github.com/nix-community/npmlock2nix/issues/153
+                nodejs = pkgs.nodejs-14_x;
+                npmlock2nix = pkgs.callPackage npmlock2nix {};
+              })
               (import rust-overlay)
             ];
           };
@@ -63,12 +87,87 @@
             ];
           };
 
+          test-repo = pkgs.runCommand "test-repo" {
+            buildInputs = [
+              pkgs.git
+            ];
+          } ''
+            HOME=$TMP
+
+            mkdir $out
+            cd $out
+
+            git config --global init.defaultBranch main
+            git config --global user.name "Test"
+            git config --global user.email 0+test.users.noreply@codebase.org
+
+            git init
+            echo "# Hello, World!" > README.md
+            git add .
+            git commit -m "Initial commit"
+          '';
+
+          adobe-git-server = pkgs.npmlock2nix.build {
+            src = adobe-git-server-src;
+            buildCommands = [];
+            installPhase = ''
+              mkdir $out
+              cp -R . $out
+            '';
+          };
+
+          adobe-git-server-config = pkgs.writeText "config.js" (builtins.toJSON {
+            virtualRepos = {
+              testOwner = {
+                testRepo = {
+                  path = test-repo;
+                };
+              };
+            };
+            listen = {
+              http = {
+                port = 4887;
+              };
+            };
+          });
+
           git-remote-ic = craneLib.buildPackage rec {
             pname = "git-remote-ic";
             inherit cargoArtifacts src;
             nativeBuildInputs = [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
+            doInstallCheck = true;
+            installCheckInputs = [
+              pkgs.git
+              pkgs.nodejs
+            ];
+            installCheckPhase = ''
+              export PATH=$out/bin:$PATH
+
+              export RUST_BACKTRACE=full
+              export RUST_LOG=trace
+
+              export GIT_TRACE=true
+              export GIT_CURL_VERBOSE=true
+              export GIT_TRACE_PACK_ACCESS=true
+              export GIT_TRACE_PACKET=true
+              export GIT_TRACE_PACKFILE=true
+              export GIT_TRACE_PERFORMANCE=true
+              export GIT_TRACE_SETUP=true
+              export GIT_TRACE_SHALLOW=true
+
+              # export NODE_PATH=${adobe-git-server}/node_modules
+
+              cp ${adobe-git-server-config} config.js
+              node ${adobe-git-server}/index.js
+
+              # cp --no-preserve=mode,ownership,timestamp -R ${adobe-git-server}/. .
+              # cp --no-preserve=mode,ownership,timestamp ${adobe-git-server-config} config.js
+              # node index.js
+
+              exit 1
+            '';
           };
 
           apps = {
@@ -79,11 +178,21 @@
         in
           rec {
             checks = {
-              inherit git-remote-ic;
+              inherit
+                adobe-git-server
+                adobe-git-server-config
+                git-remote-ic
+                test-repo
+              ;
             };
 
             packages = {
-              inherit git-remote-ic;
+              inherit
+                adobe-git-server
+                adobe-git-server-config
+                git-remote-ic
+                test-repo
+              ;
             };
 
             inherit apps;

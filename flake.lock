@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "adobe-git-server-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1632208322,
+        "narHash": "sha256-SkKjxkJFckMiwgHTZyj3soZxVxDYbblfIuroi6h3szw=",
+        "owner": "adobe",
+        "repo": "git-server",
+        "rev": "3509b1c6e4db64075b62324912054944e1603986",
+        "type": "github"
+      },
+      "original": {
+        "owner": "adobe",
+        "repo": "git-server",
+        "rev": "3509b1c6e4db64075b62324912054944e1603986",
+        "type": "github"
+      }
+    },
     "crane": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -84,11 +101,29 @@
         "type": "github"
       }
     },
+    "npmlock2nix": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1654775747,
+        "narHash": "sha256-9pXHDpIjmsK5390wmpGHu9aA4QOPpegPBvThHeBlef4=",
+        "owner": "nix-community",
+        "repo": "npmlock2nix",
+        "rev": "5c4f247688fc91d665df65f71c81e0726621aaa8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "npmlock2nix",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
+        "adobe-git-server-src": "adobe-git-server-src",
         "crane": "crane",
         "flake-utils": "flake-utils_2",
         "nixpkgs": "nixpkgs",
+        "npmlock2nix": "npmlock2nix",
         "rust-overlay": "rust-overlay"
       }
     },
