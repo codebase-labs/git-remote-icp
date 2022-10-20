@@ -143,6 +143,7 @@ async fn main() -> anyhow::Result<()> {
 
                 let outcome = remote
                     .to_connection_with_transport(transport, progress)
+                    // For pushing we should get the packetline writer here
                     .prepare_fetch(git_repository::remote::ref_map::Options {
                         prefix_from_spec_as_filter_on_remote: true,
                         handshake_parameters: vec![],
