@@ -116,25 +116,24 @@
             '';
           };
 
-          adobe-git-server-config = pkgs.writeText "config.js" (
-            let
-              config = builtins.toJSON {
-                virtualRepos = {
-                  testOwner = {
-                    testRepo = {
-                      path = test-repo;
-                    };
-                  };
-                };
-                listen = {
-                  http = {
-                    port = 4887;
-                  };
+          adobe-git-server-config = {
+            virtualRepos = {
+              "test-owner" = {
+                "test-repo" = {
+                  path = test-repo;
                 };
               };
-            in
-              "module.exports = ${config};"
-          );
+            };
+            listen = {
+              http = {
+                port = 4887;
+              };
+            };
+          };
+
+          adobe-git-server-config-js = pkgs.writeText "config.js" ''
+            module.exports = ${builtins.toJSON adobe-git-server-config};
+          '';
 
           git-remote-ic = craneLib.buildPackage rec {
             pname = "git-remote-ic";
@@ -148,6 +147,8 @@
               pkgs.nodejs
             ];
             installCheckPhase = ''
+              set -e
+
               export PATH=$out/bin:$PATH
 
               export RUST_BACKTRACE=full
@@ -162,16 +163,20 @@
               export GIT_TRACE_SETUP=true
               export GIT_TRACE_SHALLOW=true
 
-              # export NODE_PATH=${adobe-git-server}/node_modules
+              cp ${adobe-git-server-config-js} config.js
+              node ${adobe-git-server}/index.js &
+              NODE_PID=$!
 
-              cp ${adobe-git-server-config} config.js
-              node ${adobe-git-server}/index.js
+              trap "EXIT_CODE=\$? && kill \$NODE_PID && exit \$EXIT_CODE" EXIT
 
-              # cp --no-preserve=mode,ownership,timestamp -R ${adobe-git-server}/. .
-              # cp --no-preserve=mode,ownership,timestamp ${adobe-git-server-config} config.js
-              # node index.js
+              sleep 1
 
-              exit 1
+              git clone http://localhost:${builtins.toJSON adobe-git-server-config.listen.http.port}/test-owner/test-repo.git test-repo-http
+              git clone ic::http://localhost:${builtins.toJSON adobe-git-server-config.listen.http.port}/test-owner/test-repo.git test-repo-ic
+
+              diff --recursive test-repo-http test-repo-ic
+
+              kill "$NODE_PID"
             '';
           };
 
@@ -185,7 +190,7 @@
             checks = {
               inherit
                 adobe-git-server
-                adobe-git-server-config
+                adobe-git-server-config-js
                 git-remote-ic
                 test-repo
               ;
@@ -194,7 +199,7 @@
             packages = {
               inherit
                 adobe-git-server
-                adobe-git-server-config
+                adobe-git-server-config-js
                 git-remote-ic
                 test-repo
               ;
