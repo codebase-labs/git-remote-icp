@@ -116,20 +116,25 @@
             '';
           };
 
-          adobe-git-server-config = pkgs.writeText "config.js" (builtins.toJSON {
-            virtualRepos = {
-              testOwner = {
-                testRepo = {
-                  path = test-repo;
+          adobe-git-server-config = pkgs.writeText "config.js" (
+            let
+              config = builtins.toJSON {
+                virtualRepos = {
+                  testOwner = {
+                    testRepo = {
+                      path = test-repo;
+                    };
+                  };
+                };
+                listen = {
+                  http = {
+                    port = 4887;
+                  };
                 };
               };
-            };
-            listen = {
-              http = {
-                port = 4887;
-              };
-            };
-          });
+            in
+              "module.exports = ${config};"
+          );
 
           git-remote-ic = craneLib.buildPackage rec {
             pname = "git-remote-ic";
