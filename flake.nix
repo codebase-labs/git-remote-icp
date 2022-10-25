@@ -105,6 +105,9 @@
             echo "# Hello, World!" > README.md
             git add .
             git commit -m "Initial commit"
+
+            git config receive.denyCurrentBranch updateInstead
+            # git config http.receivepack true
           '';
 
           adobe-git-server = pkgs.npmlock2nix.build {
