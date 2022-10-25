@@ -164,7 +164,7 @@ index 168b68e..73ceade 100644
             nativeBuildInputs = [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
-            doInstallCheck = true;
+            # doInstallCheck = true;
             installCheckInputs = [
               pkgs.git
               pkgs.nodejs
