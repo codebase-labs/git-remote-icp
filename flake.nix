@@ -113,6 +113,27 @@
           adobe-git-server = pkgs.npmlock2nix.build {
             src = adobe-git-server-src;
             buildCommands = [];
+            node_modules_attrs = {
+              sourceOverrides = {
+                git-http-backend = sourceInfo: drv: drv.overrideAttrs (old: {
+                  patches = builtins.toFile "git-http-backend.patch"
+                    ''
+diff --git a/lib/service.js b/lib/service.js
+index 168b68e..d9f6053 100644
+--- a/lib/service.js
++++ b/lib/service.js
+@@ -102,5 +102,5 @@ function infoPrelude (service) {
+         var n = (4 + s.length).toString(16);
+         return Array(4 - n.length + 1).join('0') + n + s;
+     }
+-    return pack('# service=' + service + '\n') + '0000';
++    return pack('# service=' + service + '\n') + '0000' + pack('version 2\n') + '0000';
+ }
+
+                    '';
+                });
+              };
+            };
             installPhase = ''
               mkdir $out
               cp -R . $out
