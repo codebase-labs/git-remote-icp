@@ -91,12 +91,12 @@ async fn main() -> anyhow::Result<()> {
 
     let repo = git_repository::open(repo_dir)?;
 
-    let reqwest_config = http::Config {
-        config: None,
+    let reqwest_options = http::Options {
         configure_request: Some(Arc::new(Mutex::new(
             |request: &mut reqwest::blocking::Request| {
                 // FIXME: don't unwrap
-                request.sign(&SIGNING_CONFIG).unwrap();
+                request.sign(&SIGNING_CONFIG)?;
+                Ok(())
             },
         ))),
     };
@@ -133,7 +133,7 @@ async fn main() -> anyhow::Result<()> {
 
                 let mut http = http::Impl::default();
 
-                http.configure(&reqwest_config)
+                http.configure(&reqwest_options)
                     .map_err(|err| anyhow!(err.to_string()))?;
 
                 let transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
@@ -206,7 +206,7 @@ async fn main() -> anyhow::Result<()> {
 
                 let mut http = http::Impl::default();
 
-                http.configure(&reqwest_config)
+                http.configure(&reqwest_options)
                     .map_err(|err| anyhow!(err.to_string()))?;
 
                 let mut transport =

@@ -13,15 +13,11 @@ anyhow = "1.0"
 bstr = "1.0"
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
-# git-features = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2" }
-git-features = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/reqwest-client-builder/git-features" }
-# git-protocol = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2", features = ["blocking-client"] }
-git-protocol = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/reqwest-client-builder/git-protocol", features = ["blocking-client"] }
-# git-repository = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2", features = ["blocking-network-client"] }
-git-repository = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/reqwest-client-builder/git-repository", features = ["blocking-network-client"]  }
-# git-transport = { git = "https://github.com/Byron/gitoxide", rev="375051fa97d79f95fa7179b536e616c4aefd88e2", features = ["http-client-reqwest"] }
-git-transport = { path = "/Users/py/projects/Byron/gitoxide/paulyoung/reqwest-client-builder/git-transport", features = ["http-client-reqwest"] }
 http-sig = { git = "https://github.com/dskyberg/http-signatures", branch = "ietf-httpbis-skyberg" }
+git-features = { git = "https://github.com/Byron/gitoxide", rev="93f2dd8f7db87afc04a523458faaa46f9b33f21a" }
+git-protocol = { git = "https://github.com/Byron/gitoxide", rev="93f2dd8f7db87afc04a523458faaa46f9b33f21a", features = ["blocking-client"] }
+git-repository = { git = "https://github.com/Byron/gitoxide", rev="93f2dd8f7db87afc04a523458faaa46f9b33f21a", features = ["blocking-network-client"] }
+git-transport = { git = "https://github.com/Byron/gitoxide", rev="93f2dd8f7db87afc04a523458faaa46f9b33f21a", features = ["http-client-reqwest"] }
 lazy_static = "1.4"
 log = "0.4"
 reqwest = "0.11"
