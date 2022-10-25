@@ -104,11 +104,11 @@
     "npmlock2nix": {
       "flake": false,
       "locked": {
-        "lastModified": 1654775747,
-        "narHash": "sha256-9pXHDpIjmsK5390wmpGHu9aA4QOPpegPBvThHeBlef4=",
+        "lastModified": 1666460237,
+        "narHash": "sha256-HME6rnysvCwUVtH+BDWDGahmweMaLgD2wqHeRuGp6QI=",
         "owner": "nix-community",
         "repo": "npmlock2nix",
-        "rev": "5c4f247688fc91d665df65f71c81e0726621aaa8",
+        "rev": "eeed152290ec2425f96c5e74e469c40b621e1468",
         "type": "github"
       },
       "original": {
