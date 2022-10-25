@@ -57,8 +57,13 @@ enum ListVariant {
 const GIT_DIR: &str = "GIT_DIR";
 
 lazy_static! {
-    static ref SIGNING_CONFIG: SigningConfig =
-        SigningConfig::new_default("label", "key_id", b"key");
+    static ref SIGNING_CONFIG: SigningConfig = {
+        let mut signing_config = SigningConfig::new_default("label", "key_id", b"key");
+        // TEMP: this causes the second call to `sign` to hang
+        // https://github.com/PassFort/http-signatures/issues/17
+        signing_config.set_compute_digest(false);
+        signing_config
+    };
 }
 
 #[tokio::main]
@@ -95,7 +100,9 @@ async fn main() -> anyhow::Result<()> {
         configure_request: Some(Arc::new(Mutex::new(
             |request: &mut reqwest::blocking::Request| {
                 // FIXME: don't unwrap
+                eprintln!("before sign");
                 request.sign(&SIGNING_CONFIG)?;
+                eprintln!("after sign");
                 Ok(())
             },
         ))),
