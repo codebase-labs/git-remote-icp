@@ -237,7 +237,9 @@ index 168b68e..73ceade 100644
               # RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
               RUST_SRC_PATH = pkgs.rust.packages.stable.rustPlatform.rustLibSrc;
               inputsFrom = builtins.attrValues self.checks;
-              nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ git-remote-ic.nativeBuildInputs;
+              nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ git-remote-ic.nativeBuildInputs ++ [
+                pkgs.openssh
+              ];
             };
           }
       );
