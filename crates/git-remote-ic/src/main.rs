@@ -57,13 +57,7 @@ enum ListVariant {
 const GIT_DIR: &str = "GIT_DIR";
 
 lazy_static! {
-    static ref SIGNING_CONFIG: SigningConfig = {
-        let mut signing_config = SigningConfig::new_default("label", "key_id", b"key");
-        // TEMP: this causes the second call to `sign` to hang
-        // https://github.com/PassFort/http-signatures/issues/17
-        signing_config.set_compute_digest(false);
-        signing_config
-    };
+    static ref SIGNING_CONFIG: Mutex<Option<SigningConfig>> = Mutex::new(None);
 }
 
 #[tokio::main]
@@ -74,6 +68,42 @@ async fn main() -> anyhow::Result<()> {
     let git_dir = env::var(GIT_DIR).context("failed to get GIT_DIR")?;
 
     trace!("GIT_DIR: {}", git_dir);
+
+    // TODO: determine if we can use gitoxide here instead
+    let private_key_path = std::process::Command::new("git")
+        .arg("config")
+        .arg("ic.privateKey")
+        .output()?;
+
+    let private_key_path = private_key_path.stdout;
+    let private_key_path = String::from_utf8(private_key_path)?;
+    let private_key_path = private_key_path.trim();
+
+    if private_key_path.is_empty() {
+        return Err(anyhow!("failed to read ic.privateKey from git config. Set with `git config --global ic.privateKey <path to private key>`"));
+    }
+
+    trace!("private key path: {}", private_key_path);
+
+    let private_key_data = std::fs::read(private_key_path)
+        .map_err(|err| anyhow!("failed to read private key: {}", err))?;
+
+    let mut static_signing_config = SIGNING_CONFIG
+        .lock()
+        .expect("failed to obtain lock on signing config");
+
+    let mut new_signing_config = SigningConfig::new_default(
+        "label",
+        "key_id",
+        &private_key_data,
+    );
+    // new_signing_config.set_components(&signing_components);
+    new_signing_config.set_skip_missing(false);
+    new_signing_config.set_signature_created_auto();
+    new_signing_config.set_signature_expires_relative(60000);
+
+    *static_signing_config = Some(new_signing_config);
+    drop(static_signing_config);
 
     let args = Args::parse();
     trace!("args.repository: {:?}", args.repository);
@@ -99,10 +129,22 @@ async fn main() -> anyhow::Result<()> {
     let reqwest_options = http::Options {
         configure_request: Some(Arc::new(Mutex::new(
             |request: &mut reqwest::blocking::Request| {
-                // FIXME: don't unwrap
-                eprintln!("before sign");
-                request.sign(&SIGNING_CONFIG)?;
-                eprintln!("after sign");
+                trace!("before lock");
+                let signing_config = SIGNING_CONFIG
+                    .lock()
+                    .expect("failed to obtain lock on signing config");
+                trace!("after lock");
+
+                let signing_config = signing_config
+                    .as_ref()
+                    .ok_or_else(|| anyhow!("expected signing config"))?;
+
+                trace!("before sign");
+                request.sign(&signing_config)?;
+                trace!("after sign");
+
+                drop(signing_config);
+
                 Ok(())
             },
         ))),

@@ -13,7 +13,21 @@ A Git remote helper for the Internet Computer.
 ## Generating a public/private key pair
 
 ```
-ssh-keygen -t rsa -b 4096 -C "0+a@users.noreply.codebase.org"
+ssh-keygen -t ed25519 -C "0+handle@users.noreply.codebase.org"
+```
+
+or
+
+```
+ssh-keygen -t rsa -b 4096 -C "0+handle@users.noreply.codebase.org"
+```
+
+## Configuring Git
+
+### Globally
+
+```
+git config --global ic.privateKey /absolute/path/to/private/key/file
 ```
 
 ## Resources
@@ -26,7 +40,7 @@ ssh-keygen -t rsa -b 4096 -C "0+a@users.noreply.codebase.org"
 ### Against a local repository
 
 ```
-cargo build && PATH=./target/debug:$PATH RUST_LOG=trace git clone ic::http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
+cargo build && PATH=./target/debug:$PATH RUST_LOG=trace git -c ic.privateKey=/absolute/path/to/private/key clone ic::http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
 ```
 
 ### Against a remote repository
