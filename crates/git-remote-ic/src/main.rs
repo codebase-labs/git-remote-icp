@@ -96,6 +96,7 @@ async fn main() -> anyhow::Result<()> {
     let private_key = http_sig::EcdsaP256Sha256Sign::new_pkcs8_pem(&private_key_data)
         .expect("failed to create private key from key material");
 
+    // TODO: read ic.keyId from git config
     let mut new_signing_config = SigningConfig::new("sig", "key_id", private_key);
     new_signing_config.set_signature_created_auto();
     new_signing_config.set_signature_expires_relative(60000); // 1 minute
