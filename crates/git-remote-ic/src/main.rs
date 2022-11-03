@@ -98,9 +98,13 @@ async fn main() -> anyhow::Result<()> {
         &private_key_data,
     );
     // new_signing_config.set_components(&signing_components);
-    new_signing_config.set_skip_missing(false);
     new_signing_config.set_signature_created_auto();
     new_signing_config.set_signature_expires_relative(60000); // 1 minute
+
+    // TODO: determine if this should be set. The "digest" header (for example)
+    // will be omitted when the body is empty.
+    //
+    // new_signing_config.set_skip_missing(false);
 
     *static_signing_config = Some(new_signing_config);
     drop(static_signing_config);
