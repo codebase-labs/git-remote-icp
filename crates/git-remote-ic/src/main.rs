@@ -5,7 +5,7 @@ use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_features::progress;
 use git_protocol::fetch;
 use git_protocol::fetch::refs::Ref;
-use git_transport::client::http;
+use git_transport::client::http as git_http;
 use git_transport::client::http::Http as _;
 use http_sig::{SigningConfig, SigningExt as _};
 use lazy_static::lazy_static;
@@ -126,7 +126,7 @@ async fn main() -> anyhow::Result<()> {
 
     let repo = git_repository::open(repo_dir)?;
 
-    let reqwest_options = http::Options {
+    let reqwest_options = git_http::Options {
         configure_request: Some(Arc::new(Mutex::new(
             |request: &mut reqwest::blocking::Request| {
                 trace!("before lock");
@@ -180,12 +180,12 @@ async fn main() -> anyhow::Result<()> {
                         .with_refspec(hash.as_bytes(), git_repository::remote::Direction::Fetch)?;
                 }
 
-                let mut http = http::Impl::default();
+                let mut http = git_http::Impl::default();
 
                 http.configure(&reqwest_options)
                     .map_err(|err| anyhow!(err.to_string()))?;
 
-                let transport = http::Transport::new_http(http, &url, git_transport::Protocol::V2);
+                let transport = git_http::Transport::new_http(http, &url, git_transport::Protocol::V2);
 
                 // Implement once option capability is supported
                 let progress = progress::Discard;
@@ -253,13 +253,13 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
 
-                let mut http = http::Impl::default();
+                let mut http = git_http::Impl::default();
 
                 http.configure(&reqwest_options)
                     .map_err(|err| anyhow!(err.to_string()))?;
 
                 let mut transport =
-                    http::Transport::new_http(http, &url, git_transport::Protocol::V2);
+                    git_http::Transport::new_http(http, &url, git_transport::Protocol::V2);
                 let extra_parameters = vec![];
 
                 // Implement once option capability is supported
