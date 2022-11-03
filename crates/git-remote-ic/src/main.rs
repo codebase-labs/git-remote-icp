@@ -129,6 +129,8 @@ async fn main() -> anyhow::Result<()> {
     let reqwest_options = git_http::Options {
         configure_request: Some(Arc::new(Mutex::new(
             |request: &mut reqwest::blocking::Request| {
+                trace!("configure_request: {:#?}", request);
+
                 trace!("before lock");
                 let signing_config = SIGNING_CONFIG
                     .lock()
@@ -138,6 +140,7 @@ async fn main() -> anyhow::Result<()> {
                 let signing_config = signing_config
                     .as_ref()
                     .ok_or_else(|| anyhow!("expected signing config"))?;
+                trace!("HTTP signature signing config: {:#?}", signing_config);
 
                 trace!("before sign");
                 request.sign(&signing_config)?;
