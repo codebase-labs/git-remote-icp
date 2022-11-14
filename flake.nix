@@ -2,25 +2,12 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-    adobe-git-server-src = {
-      url = "github:adobe/git-server?rev=3509b1c6e4db64075b62324912054944e1603986";
-      flake = false;
-    };
-
     crane = {
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     flake-utils.url = "github:numtide/flake-utils";
-
-    npmlock2nix = {
-      url = "github:nix-community/npmlock2nix";
-      flake = false;
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
-    };
 
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
@@ -34,10 +21,8 @@
   outputs = {
     self,
     nixpkgs,
-    adobe-git-server-src,
     crane,
     flake-utils,
-    npmlock2nix,
     rust-overlay
   }:
     let
@@ -51,15 +36,6 @@
           pkgs = import nixpkgs {
             inherit system;
             overlays = [
-              (final: prev: {
-                # We're stuck on nodejs-14_x while using npmlock2nix, but
-                # temporarily switching to nodejs-16_x with its support for
-                # lockfile v2 can be useful to catch incompatible
-                # dependency issues that nodejs-14_x and v1 doesn't.
-                # https://github.com/nix-community/npmlock2nix/issues/153
-                nodejs = pkgs.nodejs-14_x;
-                npmlock2nix = pkgs.callPackage npmlock2nix {};
-              })
               (import rust-overlay)
             ];
           };
@@ -110,64 +86,17 @@
             # git config http.receivepack true
           '';
 
-          adobe-git-server = pkgs.npmlock2nix.build {
-            src = adobe-git-server-src;
-            buildCommands = [];
-            node_modules_attrs = {
-              sourceOverrides = {
-                git-http-backend = sourceInfo: drv: drv.overrideAttrs (old: {
-                  patches = builtins.toFile "git-http-backend.patch" ''
-diff --git a/lib/service.js b/lib/service.js
-index 168b68e..73ceade 100644
---- a/lib/service.js
-+++ b/lib/service.js
-@@ -102,5 +102,5 @@ function infoPrelude (service) {
-         var n = (4 + s.length).toString(16);
-         return Array(4 - n.length + 1).join('0') + n + s;
-     }
--    return pack('# service=' + service + '\n') + '0000';
-+    return pack('# service=' + service + '\n') + '0000' + pack('version 2\n') + pack('fetch\n') + pack('ls-refs\n') + '0000';
- }
-
-                    '';
-                });
-              };
-            };
-            installPhase = ''
-              mkdir $out
-              cp -R . $out
-            '';
-          };
-
-          adobe-git-server-config = {
-            virtualRepos = {
-              "test-owner" = {
-                "test-repo" = {
-                  path = test-repo;
-                };
-              };
-            };
-            listen = {
-              http = {
-                port = 4887;
-              };
-            };
-          };
-
-          adobe-git-server-config-js = pkgs.writeText "config.js" ''
-            module.exports = ${builtins.toJSON adobe-git-server-config};
-          '';
-
           git-remote-ic = craneLib.buildPackage rec {
             pname = "git-remote-ic";
             inherit cargoArtifacts src;
             nativeBuildInputs = [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
-            # doInstallCheck = true;
+            doInstallCheck = true;
             installCheckInputs = [
               pkgs.git
-              pkgs.nodejs
+              pkgs.netcat
+              pkgs.which
             ];
             installCheckPhase = ''
               set -e
@@ -186,20 +115,44 @@ index 168b68e..73ceade 100644
               export GIT_TRACE_SETUP=true
               export GIT_TRACE_SHALLOW=true
 
-              cp ${adobe-git-server-config-js} config.js
-              node ${adobe-git-server}/index.js &
-              NODE_PID=$!
+              # Based on https://github.com/Byron/gitoxide/blob/0c9c48b3b91a1396eb1796f288a2cb10380d1f14/tests/helpers.sh#L59
+              git -c uploadPack.allowRefInWant daemon --verbose --base-path=${test-repo} --export-all --user-path &
+              GIT_DAEMON_PID=$!
 
-              trap "EXIT_CODE=\$? && kill \$NODE_PID && exit \$EXIT_CODE" EXIT
+              trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
 
-              sleep 1
+              # DEFAULT_GIT_PORT is 9418
+              while ! nc -z localhost 9418; do
+                sleep 0.1
+              done
 
-              git clone http://localhost:${builtins.toJSON adobe-git-server-config.listen.http.port}/test-owner/test-repo.git test-repo-http
-              git clone ic::http://localhost:${builtins.toJSON adobe-git-server-config.listen.http.port}/test-owner/test-repo.git test-repo-ic
+              git clone git://localhost/.git test-repo-tcp
+              git clone ic::git://localhost/.git test-repo-ic
 
-              diff --recursive test-repo-http test-repo-ic
+              GIT_LOG_TCP=$(git -C test-repo-tcp log)
+              GIT_LOG_IC=$(git -C test-repo-ic log)
 
-              kill "$NODE_PID"
+              if [ "$GIT_LOG_TCP" == "$GIT_LOG_IC" ]; then
+                echo "GIT_LOG_TCP == GIT_LOG_IC"
+              else
+                echo "GIT_LOG_TCP != GIT_LOG_IC"
+                exit 1
+              fi
+
+              GIT_DIFF_TCP=$(git -C test-repo-tcp diff)
+
+              git -C test-repo-ic remote add -f test-repo-tcp "$PWD/test-repo-tcp"
+              git -C test-repo-ic remote update
+              GIT_DIFF_IC=$(git -C test-repo-ic diff main remotes/test-repo-tcp/main)
+
+              if [ "$GIT_DIFF_TCP" == "$GIT_DIFF_IC" ]; then
+                echo "GIT_DIFF_TCP == GIT_DIFF_IC"
+              else
+                echo "GIT_DIFF_TCP != GIT_DIFF_IC"
+                exit 1
+              fi
+
+              kill "$GIT_DAEMON_PID"
             '';
           };
 
@@ -212,8 +165,6 @@ index 168b68e..73ceade 100644
           rec {
             checks = {
               inherit
-                adobe-git-server
-                adobe-git-server-config-js
                 git-remote-ic
                 test-repo
               ;
@@ -221,8 +172,6 @@ index 168b68e..73ceade 100644
 
             packages = {
               inherit
-                adobe-git-server
-                adobe-git-server-config-js
                 git-remote-ic
                 test-repo
               ;

@@ -89,8 +89,8 @@ async fn main() -> anyhow::Result<()> {
 
     let url: String = match args.url.strip_prefix("ic://") {
         // The supplied URL was of the form `ic://<address>` so we change it to
-        // `https://<address>`
-        Some(address) => format!("https://{}", address),
+        // `git://<address>` (for now)
+        Some(address) => format!("git://{}", address),
         // The supplied url was of the form `ic::<transport>://<address>` but
         // Git invoked the remote helper with `<transport>://<address>`
         None => args.url.to_string(),
