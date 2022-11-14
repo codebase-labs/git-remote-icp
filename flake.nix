@@ -44,7 +44,7 @@
           # rust = pkgs.rust-bin.nightly."2022-06-01".default;
 
           # NB: we don't need to overlay our custom toolchain for the *entire*
-          # pkgs (which would require rebuidling anything else which uses rust).
+          # pkgs (which would require rebuilding anything else which uses rust).
           # Instead, we just want to update the scope that crane will use by appending
           # our specific toolchain there.
           craneLib = (crane.mkLib pkgs).overrideToolchain rust;
