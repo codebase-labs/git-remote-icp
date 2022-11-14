@@ -57,9 +57,7 @@
           cargoArtifacts = craneLib.buildDepsOnly {
             inherit src;
             nativeBuildInputs = [
-              # For git-transport http-client-curl
               pkgs.cmake
-              pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
             ];
           };
 
