@@ -18,7 +18,7 @@ struct Args {
     #[clap(value_parser)]
     repository: String,
 
-    /// A URL of the form ic://<address> or ic::<transport>://<address>
+    /// A URL of the form icp://<address> or icp::<transport>://<address>
     #[clap(value_parser)]
     url: String,
 }
@@ -63,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
     // TODO: determine if we can use gitoxide here instead
     let private_key_path = std::process::Command::new("git")
         .arg("config")
-        .arg("ic.privateKey")
+        .arg("icp.privateKey")
         .output()?;
 
     let private_key_path = private_key_path.stdout;
@@ -71,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
     let private_key_path = private_key_path.trim();
 
     // if private_key_path.is_empty() {
-    //     return Err(anyhow!("failed to read ic.privateKey from git config. Set with `git config --global ic.privateKey <path to private key>`"));
+    //     return Err(anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`"));
     // }
 
     trace!("private key path: {}", private_key_path);
@@ -81,17 +81,17 @@ async fn main() -> anyhow::Result<()> {
 
     // let private_key = _;
 
-    // TODO: read ic.keyId from git config
+    // TODO: read icp.keyId from git config
 
     let args = Args::parse();
     trace!("args.repository: {:?}", args.repository);
     trace!("args.url: {:?}", args.url);
 
-    let url: String = match args.url.strip_prefix("ic://") {
-        // The supplied URL was of the form `ic://<address>` so we change it to
+    let url: String = match args.url.strip_prefix("icp://") {
+        // The supplied URL was of the form `icp://<address>` so we change it to
         // `git://<address>` (for now)
         Some(address) => format!("git://{}", address),
-        // The supplied url was of the form `ic::<transport>://<address>` but
+        // The supplied url was of the form `icp::<transport>://<address>` but
         // Git invoked the remote helper with `<transport>://<address>`
         None => args.url.to_string(),
     };

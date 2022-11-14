@@ -86,8 +86,8 @@
             # git config http.receivepack true
           '';
 
-          git-remote-ic = craneLib.buildPackage rec {
-            pname = "git-remote-ic";
+          git-remote-icp = craneLib.buildPackage rec {
+            pname = "git-remote-icp";
             inherit cargoArtifacts src;
             nativeBuildInputs = [
               pkgs.darwin.apple_sdk.frameworks.Security
@@ -96,7 +96,6 @@
             installCheckInputs = [
               pkgs.git
               pkgs.netcat
-              pkgs.which
             ];
             installCheckPhase = ''
               set -e
@@ -127,28 +126,28 @@
               done
 
               git clone git://localhost/.git test-repo-tcp
-              git clone ic::git://localhost/.git test-repo-ic
+              git clone icp::git://localhost/.git test-repo-icp
 
               GIT_LOG_TCP=$(git -C test-repo-tcp log)
-              GIT_LOG_IC=$(git -C test-repo-ic log)
+              GIT_LOG_ICP=$(git -C test-repo-icp log)
 
-              if [ "$GIT_LOG_TCP" == "$GIT_LOG_IC" ]; then
-                echo "GIT_LOG_TCP == GIT_LOG_IC"
+              if [ "$GIT_LOG_TCP" == "$GIT_LOG_ICP" ]; then
+                echo "GIT_LOG_TCP == GIT_LOG_ICP"
               else
-                echo "GIT_LOG_TCP != GIT_LOG_IC"
+                echo "GIT_LOG_TCP != GIT_LOG_ICP"
                 exit 1
               fi
 
               GIT_DIFF_TCP=$(git -C test-repo-tcp diff)
 
-              git -C test-repo-ic remote add -f test-repo-tcp "$PWD/test-repo-tcp"
-              git -C test-repo-ic remote update
-              GIT_DIFF_IC=$(git -C test-repo-ic diff main remotes/test-repo-tcp/main)
+              git -C test-repo-icp remote add -f test-repo-tcp "$PWD/test-repo-tcp"
+              git -C test-repo-icp remote update
+              GIT_DIFF_ICP=$(git -C test-repo-icp diff main remotes/test-repo-tcp/main)
 
-              if [ "$GIT_DIFF_TCP" == "$GIT_DIFF_IC" ]; then
-                echo "GIT_DIFF_TCP == GIT_DIFF_IC"
+              if [ "$GIT_DIFF_TCP" == "$GIT_DIFF_ICP" ]; then
+                echo "GIT_DIFF_TCP == GIT_DIFF_ICP"
               else
-                echo "GIT_DIFF_TCP != GIT_DIFF_IC"
+                echo "GIT_DIFF_TCP != GIT_DIFF_ICP"
                 exit 1
               fi
 
@@ -157,36 +156,36 @@
           };
 
           apps = {
-            git-remote-ic = flake-utils.lib.mkApp {
-              drv = git-remote-ic;
+            git-remote-icp = flake-utils.lib.mkApp {
+              drv = git-remote-icp;
             };
           };
         in
           rec {
             checks = {
               inherit
-                git-remote-ic
+                git-remote-icp
                 test-repo
               ;
             };
 
             packages = {
               inherit
-                git-remote-ic
+                git-remote-icp
                 test-repo
               ;
             };
 
             inherit apps;
 
-            defaultPackage = packages.git-remote-ic;
-            defaultApp = apps.git-remote-ic;
+            defaultPackage = packages.git-remote-icp;
+            defaultApp = apps.git-remote-icp;
 
             devShell = pkgs.mkShell {
               # RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
               RUST_SRC_PATH = pkgs.rust.packages.stable.rustPlatform.rustLibSrc;
               inputsFrom = builtins.attrValues self.checks;
-              nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ git-remote-ic.nativeBuildInputs ++ [
+              nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ git-remote-icp.nativeBuildInputs ++ [
                 pkgs.openssh
               ];
             };
