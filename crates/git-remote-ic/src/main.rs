@@ -5,15 +5,10 @@ use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_features::progress;
 use git_protocol::fetch;
 use git_protocol::fetch::refs::Ref;
-use git_transport::client::http as git_http;
-use git_transport::client::http::Http as _;
-use http_sig::{SigningConfig, SigningExt as _};
-use lazy_static::lazy_static;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 use strum::{EnumVariantNames, VariantNames as _};
 
 #[derive(Parser)]
@@ -56,10 +51,6 @@ enum ListVariant {
 
 const GIT_DIR: &str = "GIT_DIR";
 
-lazy_static! {
-    static ref SIGNING_CONFIG: Mutex<Option<SigningConfig>> = Mutex::new(None);
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -79,44 +70,18 @@ async fn main() -> anyhow::Result<()> {
     let private_key_path = String::from_utf8(private_key_path)?;
     let private_key_path = private_key_path.trim();
 
-    if private_key_path.is_empty() {
-        return Err(anyhow!("failed to read ic.privateKey from git config. Set with `git config --global ic.privateKey <path to private key>`"));
-    }
+    // if private_key_path.is_empty() {
+    //     return Err(anyhow!("failed to read ic.privateKey from git config. Set with `git config --global ic.privateKey <path to private key>`"));
+    // }
 
     trace!("private key path: {}", private_key_path);
 
-    let private_key_data = std::fs::read(private_key_path)
-        .map_err(|err| anyhow!("failed to read private key: {}", err))?;
+    // let private_key_data = std::fs::read(private_key_path)
+    //     .map_err(|err| anyhow!("failed to read private key: {}", err))?;
 
-    let mut static_signing_config = SIGNING_CONFIG
-        .lock()
-        .expect("failed to obtain lock on signing config");
-
-    let private_key = http_sig::EcdsaP256Sha256Sign::new_pkcs8_pem(&private_key_data)
-        .expect("failed to create private key from key material");
+    // let private_key = _;
 
     // TODO: read ic.keyId from git config
-    let mut new_signing_config = SigningConfig::new("sig", "key_id", private_key);
-
-    let signature_components = vec![
-        http_sig::SignatureComponent::Header(http::header::CONTENT_LENGTH),
-        http_sig::SignatureComponent::Header(http::header::CONTENT_TYPE),
-        http_sig::SignatureComponent::Header(http::header::DATE),
-        http_sig::SignatureComponent::Header(http::header::HeaderName::from_static("digest")),
-        http_sig::SignatureComponent::Header(http::header::HOST),
-    ];
-
-    new_signing_config.set_components(&signature_components);
-    new_signing_config.set_signature_created_auto();
-    new_signing_config.set_signature_expires_relative(60000); // 1 minute
-
-    // TODO: determine if this should be set. The "digest" header (for example)
-    // will be omitted when the body is empty.
-    //
-    // new_signing_config.set_skip_missing(false);
-
-    *static_signing_config = Some(new_signing_config);
-    drop(static_signing_config);
 
     let args = Args::parse();
     trace!("args.repository: {:?}", args.repository);
@@ -138,33 +103,6 @@ async fn main() -> anyhow::Result<()> {
         .ok_or(anyhow!("failed to get repository directory"))?;
 
     let repo = git_repository::open(repo_dir)?;
-
-    let reqwest_options = git_http::Options {
-        configure_request: Some(Arc::new(Mutex::new(
-            |request: &mut reqwest::blocking::Request| {
-                trace!("configure_request: {:#?}", request);
-
-                trace!("before lock");
-                let signing_config = SIGNING_CONFIG
-                    .lock()
-                    .expect("failed to obtain lock on signing config");
-                trace!("after lock");
-
-                let signing_config = signing_config
-                    .as_ref()
-                    .ok_or_else(|| anyhow!("expected signing config"))?;
-                trace!("HTTP signature signing config: {:#?}", signing_config);
-
-                trace!("before sign");
-                request.sign(&signing_config)?;
-                trace!("after sign");
-
-                drop(signing_config);
-
-                Ok(())
-            },
-        ))),
-    };
 
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
@@ -196,15 +134,11 @@ async fn main() -> anyhow::Result<()> {
                         .with_refspec(hash.as_bytes(), git_repository::remote::Direction::Fetch)?;
                 }
 
-                let mut http = git_http::Impl::default();
-
-                http.configure(&reqwest_options)
-                    .map_err(|err| anyhow!(err.to_string()))?;
-
-                let transport = git_http::Transport::new_http(http, &url, git_transport::Protocol::V2);
-
                 // Implement once option capability is supported
                 let progress = progress::Discard;
+
+                // TODO: use custom transport once commands are implemented
+                let transport = git_transport::connect(url, git_transport::Protocol::V2).await?;
 
                 let outcome = remote
                     .to_connection_with_transport(transport, progress)
@@ -212,12 +146,15 @@ async fn main() -> anyhow::Result<()> {
                     .prepare_fetch(git_repository::remote::ref_map::Options {
                         prefix_from_spec_as_filter_on_remote: true,
                         handshake_parameters: vec![],
-                    })?
-                    .receive(&git_repository::interrupt::IS_INTERRUPTED);
+                    })
+                    .await?
+                    .receive(&git_repository::interrupt::IS_INTERRUPTED)
+                    .await?;
 
                 trace!("outcome: {:#?}", outcome);
 
                 // TODO: delete .keep files by outputting: lock <file>
+                // TODO: determine if gitoxide handles this for us yet
 
                 fetch.clear();
                 println!();
@@ -269,24 +206,21 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
 
-                let mut http = git_http::Impl::default();
-
-                http.configure(&reqwest_options)
-                    .map_err(|err| anyhow!(err.to_string()))?;
-
+                // TODO: use custom transport once commands are implemented
                 let mut transport =
-                    git_http::Transport::new_http(http, &url, git_transport::Protocol::V2);
-                let extra_parameters = vec![];
+                    git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
 
                 // Implement once option capability is supported
                 let mut progress = progress::Discard;
+                let extra_parameters = vec![];
 
                 let outcome = fetch::handshake(
                     &mut transport,
                     authenticate,
                     extra_parameters,
                     &mut progress,
-                )?;
+                )
+                .await?;
 
                 let refs = fetch::refs(
                     &mut transport,
@@ -298,7 +232,8 @@ async fn main() -> anyhow::Result<()> {
                         Ok(fetch::delegate::LsRefsAction::Continue)
                     },
                     &mut progress,
-                )?;
+                )
+                .await?;
 
                 trace!("refs: {:#?}", refs);
 
@@ -335,6 +270,14 @@ fn ref_to_string(r: &Ref) -> String {
             full_ref_name,
             target,
             object: _,
+        } => {
+            // @refs/heads/main HEAD
+            format!("@{} {}", target, full_ref_name)
+        }
+        // TODO: determine if this is the correct way to handle unborn symrefs
+        Ref::Unborn {
+            full_ref_name,
+            target,
         } => {
             // @refs/heads/main HEAD
             format!("@{} {}", target, full_ref_name)
