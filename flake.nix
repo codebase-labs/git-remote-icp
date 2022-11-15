@@ -61,29 +61,6 @@
             ];
           };
 
-          test-repo = pkgs.runCommand "test-repo" {
-            buildInputs = [
-              pkgs.git
-            ];
-          } ''
-            HOME=$TMP
-
-            mkdir $out
-            cd $out
-
-            git config --global init.defaultBranch main
-            git config --global user.name "Test"
-            git config --global user.email 0+test.users.noreply@codebase.org
-
-            git init
-            echo "# Hello, World!" > README.md
-            git add .
-            git commit -m "Initial commit"
-
-            git config receive.denyCurrentBranch updateInstead
-            # git config http.receivepack true
-          '';
-
           git-remote-icp = craneLib.buildPackage rec {
             pname = "git-remote-icp";
             inherit cargoArtifacts src;
@@ -98,6 +75,7 @@
             installCheckPhase = ''
               set -e
 
+              export HOME=$TMP
               export PATH=$out/bin:$PATH
 
               export RUST_BACKTRACE=full
@@ -112,8 +90,25 @@
               export GIT_TRACE_SETUP=true
               export GIT_TRACE_SHALLOW=true
 
+              git config --global init.defaultBranch main
+              git config --global user.name "Test"
+              git config --global user.email 0+test.users.noreply@codebase.org
+              git config --global receive.denyCurrentBranch updateInstead
+
+
+              # Set up test repo
+
+              mkdir test-repo
+              git -C test-repo init
+              echo "# Hello, World!" > test-repo/README.md
+              git -C test-repo add .
+              git -C test-repo commit -m "Initial commit"
+
+
+              # Start Git daemon
+
               # Based on https://github.com/Byron/gitoxide/blob/0c9c48b3b91a1396eb1796f288a2cb10380d1f14/tests/helpers.sh#L59
-              git daemon --verbose --base-path=${test-repo} --export-all --user-path &
+              git daemon --verbose --base-path=test-repo --enable=receive-pack --export-all --user-path &
               GIT_DAEMON_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
@@ -122,6 +117,9 @@
               while ! nc -z localhost 9418; do
                 sleep 0.1
               done
+
+
+              # Test clone
 
               git clone git://localhost/.git test-repo-tcp
               git clone icp::git://localhost/.git test-repo-icp
@@ -149,6 +147,24 @@
                 exit 1
               fi
 
+
+              # Test push
+
+              echo "\n" >> test-repo-tcp/README.md
+              git -C test-repo-tcp add .
+              git -C test-repo-tcp commit -m "Add trailing newline"
+              git -C test-repo-tcp push origin main
+
+              git -C test-repo reset HEAD~1 --hard
+
+              echo "\n" >> test-repo-icp/README.md
+              git -C test-repo-icp add .
+              git -C test-repo-icp commit -m "Add trailing newline"
+              git -C test-repo-icp push origin main
+
+
+              # Exit cleanly
+
               kill "$GIT_DAEMON_PID"
             '';
           };
@@ -163,14 +179,12 @@
             checks = {
               inherit
                 git-remote-icp
-                test-repo
               ;
             };
 
             packages = {
               inherit
                 git-remote-icp
-                test-repo
               ;
             };
 
