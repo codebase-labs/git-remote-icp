@@ -1,6 +1,7 @@
 #![deny(rust_2018_idioms)]
 
 use anyhow::{anyhow, Context};
+use bstr::ByteSlice as _;
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_features::progress;
 use git_protocol::fetch;
@@ -138,7 +139,7 @@ async fn main() -> anyhow::Result<()> {
                 let progress = progress::Discard;
 
                 // TODO: use custom transport once commands are implemented
-                let transport = git_transport::connect(url, git_transport::Protocol::V2).await?;
+                let transport = git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
 
                 let outcome = remote
                     .to_connection_with_transport(transport, progress)
@@ -163,8 +164,29 @@ async fn main() -> anyhow::Result<()> {
             if !push.is_empty() {
                 trace!("process push: {:#?}", push);
 
-                // push.clear();
-                // println!();
+                let mut remote = repo.remote_at(url.clone())?;
+
+                // Implement once option capability is supported
+                let progress = progress::Discard;
+
+                // TODO: use custom transport once commands are implemented
+                let transport = git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
+
+                let ref_spec_refs: Vec<_> = push
+                    .iter()
+                    .map(|unparse_ref_spec| {
+                        let ref_spec_ref = git_refspec::parse(
+                            unparse_ref_spec.as_bytes().as_bstr(),
+                            git_refspec::parse::Operation::Push,
+                        )?;
+                        Ok(ref_spec_ref)
+                    })
+                    .collect::<Result<Vec<_>, anyhow::Error>>()?;
+
+                trace!("ref spec refs: {:#?}", ref_spec_refs);
+
+                push.clear();
+                println!();
             }
 
             // continue; // Useful to inspect .git directory before it disappears
