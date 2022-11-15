@@ -232,8 +232,10 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("ancestors: {:#?}", ancestors);
 
-                push.clear();
-                println!();
+                // TEMP: Don't successfully exit until this command is implemented
+
+                // push.clear();
+                // println!();
             }
 
             // continue; // Useful to inspect .git directory before it disappears
