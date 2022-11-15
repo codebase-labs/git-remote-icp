@@ -1,6 +1,6 @@
 [package]
 name = "git-remote-icp"
-description = "A Git remote helper for the Internet Computer"
+description = "A Git remote helper for the Internet Computer Protocol"
 version = "0.1.0"
 edition = "2021"
 authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
