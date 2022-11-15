@@ -18,6 +18,7 @@ git-protocol = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a139
 git-refspec = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14" }
 git-repository = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14", features = ["async-network-client-async-std"] }
 git-transport = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14", features = ["async-client"] }
+git-traverse = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14" }
 log = "0.4"
 strum = { version = "0.24", features = ["derive"] }
 tokio = { version = "1.12", features = ["full"] }

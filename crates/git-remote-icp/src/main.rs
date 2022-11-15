@@ -139,7 +139,8 @@ async fn main() -> anyhow::Result<()> {
                 let progress = progress::Discard;
 
                 // TODO: use custom transport once commands are implemented
-                let transport = git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
+                let transport =
+                    git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
 
                 let outcome = remote
                     .to_connection_with_transport(transport, progress)
@@ -164,26 +165,72 @@ async fn main() -> anyhow::Result<()> {
             if !push.is_empty() {
                 trace!("process push: {:#?}", push);
 
+                use git_refspec::parse::Operation;
+                use git_refspec::{instruction, Instruction};
+
                 let mut remote = repo.remote_at(url.clone())?;
 
                 // Implement once option capability is supported
                 let progress = progress::Discard;
 
                 // TODO: use custom transport once commands are implemented
-                let transport = git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
+                let transport =
+                    git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
 
                 let instructions: Vec<_> = push
                     .iter()
                     .map(|unparse_ref_spec| {
                         let ref_spec_ref = git_refspec::parse(
                             unparse_ref_spec.as_bytes().as_bstr(),
-                            git_refspec::parse::Operation::Push,
+                            Operation::Push,
                         )?;
                         Ok(ref_spec_ref.instruction())
                     })
                     .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
                 trace!("instructions: {:#?}", instructions);
+
+                let push_instructions =
+                    instructions
+                        .iter()
+                        .filter_map(|instruction| match instruction {
+                            Instruction::Push(instruction::Push::Matching {
+                                src,
+                                dst,
+                                allow_non_fast_forward,
+                            }) => Some((src, dst, allow_non_fast_forward)),
+                            _ => None,
+                        });
+
+                trace!("push instructions: {:#?}", push_instructions);
+
+                let ancestors: Vec<_> = push_instructions
+                    .map(|(src, dst, allow_non_fast_forward)| {
+                        let mut src_reference = repo.find_reference(*src)?;
+                        let mut dst_reference = repo.find_reference(*dst)?;
+
+                        let src_id = src_reference.peel_to_id_in_place()?;
+                        let dst_id = dst_reference.peel_to_id_in_place()?;
+
+                        let dst_object = repo.find_object(dst_id)?;
+                        let dst_commit = dst_object.try_into_commit()?;
+                        let dst_commit_time = dst_commit.committer().map(|committer| committer.time.seconds_since_unix_epoch)?;
+
+                        let ancestors = src_id
+                            .ancestors()
+                            .sorting(
+                                git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
+                                    time_in_seconds_since_epoch: dst_commit_time
+                                },
+                            )
+                            // TODO: repo object cache?
+                            .all()?;
+
+                        Ok(ancestors.collect::<Vec<_>>())
+                    })
+                    .collect::<Result<Vec<_>, anyhow::Error>>()?;
+
+                trace!("ancestors: {:#?}", ancestors);
 
                 push.clear();
                 println!();

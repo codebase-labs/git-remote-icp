@@ -1032,6 +1032,7 @@ dependencies = [
  "git-refspec",
  "git-repository",
  "git-transport",
+ "git-traverse",
  "log",
  "strum",
  "tokio",
