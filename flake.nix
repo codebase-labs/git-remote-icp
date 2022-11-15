@@ -113,7 +113,7 @@
               export GIT_TRACE_SHALLOW=true
 
               # Based on https://github.com/Byron/gitoxide/blob/0c9c48b3b91a1396eb1796f288a2cb10380d1f14/tests/helpers.sh#L59
-              git -c uploadPack.allowRefInWant daemon --verbose --base-path=${test-repo} --export-all --user-path &
+              git daemon --verbose --base-path=${test-repo} --export-all --user-path &
               GIT_DAEMON_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
