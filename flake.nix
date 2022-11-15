@@ -122,7 +122,7 @@
               # Test clone
 
               git clone git://localhost/.git test-repo-tcp
-              git clone icp::git://localhost/.git test-repo-icp
+              git clone icp://localhost/.git test-repo-icp
 
               GIT_LOG_TCP=$(git -C test-repo-tcp log)
               GIT_LOG_ICP=$(git -C test-repo-icp log)
