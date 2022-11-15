@@ -90,6 +90,9 @@
               export GIT_TRACE_SETUP=true
               export GIT_TRACE_SHALLOW=true
 
+              export GIT_AUTHOR_DATE="2022-11-14 21:26:57 -0800"
+              export GIT_COMMITTER_DATE="$GIT_AUTHOR_DATE"
+
               git config --global init.defaultBranch main
               git config --global user.name "Test"
               git config --global user.email 0+test.users.noreply@codebase.org
