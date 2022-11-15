@@ -6,6 +6,7 @@ use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_features::progress;
 use git_protocol::fetch;
 use git_protocol::fetch::refs::Ref;
+use git_repository::odb::pack::data::output;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
@@ -170,9 +171,6 @@ async fn main() -> anyhow::Result<()> {
 
                 let mut remote = repo.remote_at(url.clone())?;
 
-                // Implement once option capability is supported
-                let progress = progress::Discard;
-
                 // TODO: use custom transport once commands are implemented
                 let transport =
                     git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
@@ -204,54 +202,57 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("push instructions: {:#?}", push_instructions);
 
-                let ancestors = push_instructions
-                    .map(|(src, dst, allow_non_fast_forward)| {
-                        let mut src_reference = repo.find_reference(*src)?;
-                        let mut dst_reference = repo.find_reference(*dst)?;
 
-                        let src_id = src_reference.peel_to_id_in_place()?;
-                        let dst_id = dst_reference.peel_to_id_in_place()?;
+                // TODO: set_pack_cache?
+                // TODO: prevent_pack_unload?
+                // TODO: ignore_replacements?
+                let handle = repo.objects.into_shared_arc().to_cache_arc();
 
-                        let dst_object = repo.find_object(dst_id)?;
-                        let dst_commit = dst_object.try_into_commit()?;
-                        let dst_commit_time = dst_commit.committer().map(|committer| committer.time.seconds_since_unix_epoch)?;
+                // Implement once option capability is supported
+                let progress = progress::Discard;
 
-                        let mut ancestors = src_id
-                            .ancestors()
-                            .sorting(
-                                git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
-                                    time_in_seconds_since_epoch: dst_commit_time
-                                },
-                            )
-                            // TODO: repo object cache?
-                            .all();
+                let thread_limit = None;
+                let chunk_size = 1000;
+                let input_object_expansion = git_pack::data::output::count::objects::ObjectExpansion::TreeAdditionsComparedToAncestor;
 
-                        // FIXME: this somehow changes the return value of `ancestors`
-                        /*
-                        let (is_fast_forward, force) = match ancestors {
-                            Ok(ref mut commits) => {
-                                let is_fast_forward = commits.any(|commit_id| {
-                                    commit_id.map_or(false, |commit_id| commit_id == dst_id)
-                                });
-                                (is_fast_forward, *allow_non_fast_forward)
-                            }
-                            Err(_) => (false, true),
-                        };
+                for (src, dst, allow_non_fast_forward) in push_instructions {
+                    let mut src_reference = repo.find_reference(*src)?;
+                    let mut dst_reference = repo.find_reference(*dst)?;
 
-                        trace!("is_fast_forward: {:#?}", is_fast_forward);
-                        trace!("force: {:#?}", force);
+                    let src_id = src_reference.peel_to_id_in_place()?;
+                    let dst_id = dst_reference.peel_to_id_in_place()?;
 
-                        if !is_fast_forward && !force {
-                            return Err(anyhow!("failed attempting non fast-forward push without force"))
-                        }
-                        */
+                    let dst_object = repo.find_object(dst_id)?;
+                    let dst_commit = dst_object.try_into_commit()?;
+                    let dst_commit_time = dst_commit.committer().map(|committer| committer.time.seconds_since_unix_epoch)?;
 
-                        let ancestors = ancestors?;
-                        Ok(ancestors.collect::<Vec<_>>())
-                    })
-                    .collect::<Result<Vec<_>, anyhow::Error>>();
+                    let ancestors = src_id
+                        .ancestors()
+                        .sorting(
+                            git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
+                                time_in_seconds_since_epoch: dst_commit_time
+                            },
+                        )
+                        // TODO: repo object cache?
+                        .all()?;
 
-                trace!("ancestors: {:#?}", ancestors);
+                    // trace!("ancestors: {:#?}", ancestors);
+
+                    // TODO: consider using `objects_unthreaded`
+                    let (mut counts, _count_stats) = git_pack::data::output::count::objects(
+                        handle,
+                        ancestors.into(),
+                        progress,
+                        &git_repository::interrupt::IS_INTERRUPTED,
+                        git_pack::data::output::count::objects::Options {
+                            thread_limit,
+                            chunk_size,
+                            input_object_expansion,
+                        },
+                    )?;
+
+                    counts.shrink_to_fit();
+                }
 
                 // TEMP: Don't successfully exit until this command is implemented
 

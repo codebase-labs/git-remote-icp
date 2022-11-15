@@ -14,6 +14,7 @@ bstr = "1.0"
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
 git-features = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14" }
+git-pack = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14" }
 git-protocol = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14", features = ["async-client"] }
 git-refspec = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14" }
 git-repository = { git = "https://github.com/Byron/gitoxide", rev="0c9c48b3b91a1396eb1796f288a2cb10380d1f14", features = ["async-network-client-async-std"] }
