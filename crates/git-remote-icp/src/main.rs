@@ -101,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
 
     let repo_dir = Path::new(&git_dir)
         .parent()
-        .ok_or(anyhow!("failed to get repository directory"))?;
+        .ok_or_else(|| anyhow!("failed to get repository directory"))?;
 
     let repo = git_repository::open(repo_dir)?;
 
