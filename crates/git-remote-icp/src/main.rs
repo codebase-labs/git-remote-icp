@@ -172,18 +172,18 @@ async fn main() -> anyhow::Result<()> {
                 // TODO: use custom transport once commands are implemented
                 let transport = git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
 
-                let ref_spec_refs: Vec<_> = push
+                let instructions: Vec<_> = push
                     .iter()
                     .map(|unparse_ref_spec| {
                         let ref_spec_ref = git_refspec::parse(
                             unparse_ref_spec.as_bytes().as_bstr(),
                             git_refspec::parse::Operation::Push,
                         )?;
-                        Ok(ref_spec_ref)
+                        Ok(ref_spec_ref.instruction())
                     })
                     .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
-                trace!("ref spec refs: {:#?}", ref_spec_refs);
+                trace!("instructions: {:#?}", instructions);
 
                 push.clear();
                 println!();
