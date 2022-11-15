@@ -204,7 +204,7 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("push instructions: {:#?}", push_instructions);
 
-                let ancestors: Vec<_> = push_instructions
+                let ancestors = push_instructions
                     .map(|(src, dst, allow_non_fast_forward)| {
                         let mut src_reference = repo.find_reference(*src)?;
                         let mut dst_reference = repo.find_reference(*dst)?;
@@ -216,7 +216,7 @@ async fn main() -> anyhow::Result<()> {
                         let dst_commit = dst_object.try_into_commit()?;
                         let dst_commit_time = dst_commit.committer().map(|committer| committer.time.seconds_since_unix_epoch)?;
 
-                        let ancestors = src_id
+                        let mut ancestors = src_id
                             .ancestors()
                             .sorting(
                                 git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
@@ -224,11 +224,32 @@ async fn main() -> anyhow::Result<()> {
                                 },
                             )
                             // TODO: repo object cache?
-                            .all()?;
+                            .all();
 
+                        // FIXME: this somehow changes the return value of `ancestors`
+                        /*
+                        let (is_fast_forward, force) = match ancestors {
+                            Ok(ref mut commits) => {
+                                let is_fast_forward = commits.any(|commit_id| {
+                                    commit_id.map_or(false, |commit_id| commit_id == dst_id)
+                                });
+                                (is_fast_forward, *allow_non_fast_forward)
+                            }
+                            Err(_) => (false, true),
+                        };
+
+                        trace!("is_fast_forward: {:#?}", is_fast_forward);
+                        trace!("force: {:#?}", force);
+
+                        if !is_fast_forward && !force {
+                            return Err(anyhow!("failed attempting non fast-forward push without force"))
+                        }
+                        */
+
+                        let ancestors = ancestors?;
                         Ok(ancestors.collect::<Vec<_>>())
                     })
-                    .collect::<Result<Vec<_>, anyhow::Error>>()?;
+                    .collect::<Result<Vec<_>, anyhow::Error>>();
 
                 trace!("ancestors: {:#?}", ancestors);
 
