@@ -1028,6 +1028,8 @@ dependencies = [
  "clap",
  "env_logger",
  "git-features",
+ "git-hash",
+ "git-odb",
  "git-pack",
  "git-protocol",
  "git-refspec",

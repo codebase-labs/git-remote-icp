@@ -4,9 +4,9 @@ use anyhow::{anyhow, Context};
 use bstr::ByteSlice as _;
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_features::progress;
+use git_features::parallel::InOrderIter;
 use git_protocol::fetch;
 use git_protocol::fetch::refs::Ref;
-use git_repository::odb::pack::data::output;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
@@ -233,13 +233,13 @@ async fn main() -> anyhow::Result<()> {
                             // NOTE: this is suboptimal but makes debugging easier
                             .map(|ancestor_commits| ancestor_commits.collect::<Vec<_>>());
 
-                        trace!("ancestors: {:#?}", ancestors);
-
-                        Ok((dst_id, allow_non_fast_forward, ancestors))
+                        Ok((src_id, dst_id, allow_non_fast_forward, ancestors))
                     })
                     .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
-                for (dst_id, allow_non_fast_forward, ancestor_commits) in ancestors {
+                trace!("ancestors: {:#?}", ancestors);
+
+                for (src_id, dst_id, allow_non_fast_forward, ancestor_commits) in ancestors {
                     // FIXME: We need to handle fast-forwards and force pushes.
                     // Ideally we'd fail fast but we can't because figuring out
                     // if a fast-forward is possible consumes the
@@ -266,13 +266,13 @@ async fn main() -> anyhow::Result<()> {
                     // TODO: set_pack_cache?
                     // TODO: prevent_pack_unload?
                     // TODO: ignore_replacements?
-                    let handle = repo.objects.clone();
+                    let db = &*repo.objects;
 
                     let commits = ancestor_commits?;
 
                     let (mut counts, _count_stats) =
                         git_pack::data::output::count::objects_unthreaded(
-                            handle,
+                            db.clone(),
                             commits.into_iter(),
                             // Implement once option capability is supported
                             progress::Discard,
@@ -282,9 +282,38 @@ async fn main() -> anyhow::Result<()> {
 
                     counts.shrink_to_fit();
 
+                    trace!("counts: {:#?}", counts);
+
                     // TODO: in order iter
-                    // TODO: from entries iter
-                    // TODO:
+                    let mut entries_iter = git_pack::data::output::entry::iter_from_counts(
+                        counts,
+                        db.clone(),
+                        progress::Discard,
+                        git_pack::data::output::entry::iter_from_counts::Options {
+                            allow_thin_pack: false,
+                            ..Default::default()
+                        },
+                    );
+
+                    let entries = InOrderIter::from(entries_iter.by_ref())
+                        .collect::<Result<Vec<_>, _>>()?
+                        .into_iter()
+                        .flatten()
+                        .collect::<Vec<_>>();
+
+                    let write_mode = git_transport::client::WriteMode::Binary;
+                    // TODO: determine if this is the correct message kind
+                    let on_into_read = git_transport::client::MessageKind::ResponseEnd;
+                    let pack_file = transport.request(write_mode, on_into_read)?;
+                    let num_entries: u32 = entries.len().try_into()?;
+
+                    let mut pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
+                        std::iter::once(Ok::<_, git_pack::data::output::entry::iter_from_counts::Error<git_odb::store::find::Error>>(entries)),
+                        &mut pack_file,
+                        num_entries,
+                        git_pack::data::Version::V2, // ?
+                        git_hash::Kind::Sha1,
+                    );
                 }
 
                 // TEMP: Don't successfully exit until this command is implemented
