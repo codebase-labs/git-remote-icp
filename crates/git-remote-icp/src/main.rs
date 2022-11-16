@@ -3,8 +3,8 @@
 use anyhow::{anyhow, Context};
 use bstr::ByteSlice as _;
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
-use git_features::progress;
 use git_features::parallel::InOrderIter;
+use git_features::progress;
 use git_protocol::fetch;
 use git_protocol::fetch::refs::Ref;
 use log::trace;
@@ -172,8 +172,9 @@ async fn main() -> anyhow::Result<()> {
                 let mut remote = repo.remote_at(url.clone())?;
 
                 // TODO: use custom transport once commands are implemented
-                let transport =
-                    git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
+                // NOTE: push still uses the v1 protocol so we use that here.
+                let mut transport =
+                    git_transport::connect(url.clone(), git_transport::Protocol::V1).await?;
 
                 let instructions = push
                     .iter()
@@ -302,18 +303,47 @@ async fn main() -> anyhow::Result<()> {
                         .collect::<Vec<_>>();
 
                     let write_mode = git_transport::client::WriteMode::Binary;
-                    // TODO: determine if this is the correct message kind
-                    let on_into_read = git_transport::client::MessageKind::ResponseEnd;
-                    let pack_file = transport.request(write_mode, on_into_read)?;
+                    let on_into_read = git_transport::client::MessageKind::Flush;
+                    let mut writer = transport.request(write_mode, on_into_read)?;
+
+                    // TODO: writer.write_all(b"").await?;
+                    // TODO: writer.write_message(git_transport::client::MessageKind::Flush).await?;
+
+                    let (async_write, async_read) = writer.into_parts();
+                    let mut write = git_protocol::futures_lite::io::BlockOn::new(async_write);
+
                     let num_entries: u32 = entries.len().try_into()?;
 
-                    let mut pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
-                        std::iter::once(Ok::<_, git_pack::data::output::entry::iter_from_counts::Error<git_odb::store::find::Error>>(entries)),
-                        &mut pack_file,
+                    let _pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
+                        std::iter::once(Ok::<
+                            _,
+                            git_pack::data::output::entry::iter_from_counts::Error<
+                                git_odb::store::find::Error,
+                            >,
+                        >(entries)),
+                        &mut write,
                         num_entries,
-                        git_pack::data::Version::V2, // ?
+                        git_pack::data::Version::V2,
                         git_hash::Kind::Sha1,
                     );
+
+                    // TODO: determine if we need a synchronous reader
+                    //
+                    // use std::io::BufRead as _;
+                    // let mut read = git_protocol::futures_lite::io::BlockOn::new(async_read);
+                    // let lines = read.lines();
+
+                    use git_protocol::futures_lite::io::AsyncBufReadExt as _;
+                    let mut lines = async_read.lines();
+
+                    let mut info = vec![];
+                    use git_protocol::futures_lite::StreamExt as _;
+
+                    while let Some(line) = lines.next().await {
+                        info.push(line?)
+                    }
+
+                    trace!("info: {:#?}", info);
                 }
 
                 // TEMP: Don't successfully exit until this command is implemented
