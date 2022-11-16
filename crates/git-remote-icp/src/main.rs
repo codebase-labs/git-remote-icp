@@ -175,7 +175,7 @@ async fn main() -> anyhow::Result<()> {
                 let transport =
                     git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
 
-                let instructions: Vec<_> = push
+                let instructions = push
                     .iter()
                     .map(|unparse_ref_spec| {
                         let ref_spec_ref = git_refspec::parse(
@@ -202,56 +202,87 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("push instructions: {:#?}", push_instructions);
 
-
-                // TODO: set_pack_cache?
-                // TODO: prevent_pack_unload?
-                // TODO: ignore_replacements?
-                let handle = repo.objects.into_shared_arc().to_cache_arc();
-
-                // Implement once option capability is supported
-                let progress = progress::Discard;
-
-                let thread_limit = None;
-                let chunk_size = 1000;
+                // TODO: use Traverse for initial push
                 let input_object_expansion = git_pack::data::output::count::objects::ObjectExpansion::TreeAdditionsComparedToAncestor;
 
-                for (src, dst, allow_non_fast_forward) in push_instructions {
-                    let mut src_reference = repo.find_reference(*src)?;
-                    let mut dst_reference = repo.find_reference(*dst)?;
+                // TODO: consider making this part of the for loop since we
+                // can't clone it anyway.
+                let ancestors = push_instructions
+                    .map(|(src, dst, allow_non_fast_forward)| {
+                        let mut src_reference = repo.find_reference(*src)?;
+                        let mut dst_reference = repo.find_reference(*dst)?;
 
-                    let src_id = src_reference.peel_to_id_in_place()?;
-                    let dst_id = dst_reference.peel_to_id_in_place()?;
+                        let src_id = src_reference.peel_to_id_in_place()?;
+                        let dst_id = dst_reference.peel_to_id_in_place()?;
 
-                    let dst_object = repo.find_object(dst_id)?;
-                    let dst_commit = dst_object.try_into_commit()?;
-                    let dst_commit_time = dst_commit.committer().map(|committer| committer.time.seconds_since_unix_epoch)?;
+                        let dst_object = repo.find_object(dst_id)?;
+                        let dst_commit = dst_object.try_into_commit()?;
+                        let dst_commit_time = dst_commit
+                            .committer()
+                            .map(|committer| committer.time.seconds_since_unix_epoch)?;
 
-                    let ancestors = src_id
-                        .ancestors()
-                        .sorting(
-                            git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
-                                time_in_seconds_since_epoch: dst_commit_time
-                            },
-                        )
-                        // TODO: repo object cache?
-                        .all()?;
+                        let ancestors = src_id
+                            .ancestors()
+                            .sorting(
+                                git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
+                                    time_in_seconds_since_epoch: dst_commit_time
+                                },
+                            )
+                            // TODO: repo object cache?
+                            .all()
+                            // NOTE: this is suboptimal but makes debugging easier
+                            .map(|ancestor_commits| ancestor_commits.collect::<Vec<_>>());
 
-                    // trace!("ancestors: {:#?}", ancestors);
+                        trace!("ancestors: {:#?}", ancestors);
 
-                    // TODO: consider using `objects_unthreaded`
-                    let (mut counts, _count_stats) = git_pack::data::output::count::objects(
-                        handle,
-                        ancestors.into(),
-                        progress,
-                        &git_repository::interrupt::IS_INTERRUPTED,
-                        git_pack::data::output::count::objects::Options {
-                            thread_limit,
-                            chunk_size,
+                        Ok((dst_id, allow_non_fast_forward, ancestors))
+                    })
+                    .collect::<Result<Vec<_>, anyhow::Error>>()?;
+
+                for (dst_id, allow_non_fast_forward, ancestor_commits) in ancestors {
+                    // FIXME: We need to handle fast-forwards and force pushes.
+                    // Ideally we'd fail fast but we can't because figuring out
+                    // if a fast-forward is possible consumes the
+                    // `ancestor_commits` iterator which can't be cloned.
+                    //
+                    // TODO: Investigate if we can do this after we're otherwise
+                    // done with `ancestor_commits`.
+                    let is_fast_forward = match ancestor_commits {
+                        Ok(mut commits) => commits.any(|commit_id| {
+                            commit_id.map_or(false, |commit_id| commit_id == dst_id)
+                        }),
+                        Err(_) => false,
+                    };
+
+                    trace!("is_fast_forward: {:#?}", is_fast_forward);
+                    trace!("allow_non_fast_forward: {:#?}", allow_non_fast_forward);
+
+                    if !is_fast_forward && !allow_non_fast_forward {
+                        return Err(anyhow!("attempted non fast-forward push without force"));
+                    }
+
+                    // TODO: set_pack_cache?
+                    // TODO: prevent_pack_unload?
+                    // TODO: ignore_replacements?
+                    let handle = repo.objects.clone();
+
+                    let commits = ancestor_commits?;
+
+                    let (mut counts, _count_stats) =
+                        git_pack::data::output::count::objects_unthreaded(
+                            handle,
+                            commits.into_iter(),
+                            // Implement once option capability is supported
+                            progress::Discard,
+                            &git_repository::interrupt::IS_INTERRUPTED,
                             input_object_expansion,
-                        },
-                    )?;
+                        )?;
 
                     counts.shrink_to_fit();
+
+                    // TODO: in order iter
+                    // TODO: from entries iter
+                    // TODO:
                 }
 
                 // TEMP: Don't successfully exit until this command is implemented
