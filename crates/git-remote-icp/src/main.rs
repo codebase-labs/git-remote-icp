@@ -265,9 +265,9 @@ async fn main() -> anyhow::Result<()> {
                     */
 
                     // TODO: set_pack_cache?
-                    // TODO: prevent_pack_unload?
                     // TODO: ignore_replacements?
-                    let db = &*repo.objects;
+                    let mut db = repo.objects.clone();
+                    db.prevent_pack_unload();
 
                     let commits = ancestor_commits?;
 
@@ -288,7 +288,7 @@ async fn main() -> anyhow::Result<()> {
                     // TODO: in order iter
                     let mut entries_iter = git_pack::data::output::entry::iter_from_counts(
                         counts,
-                        db.clone(),
+                        db,
                         progress::Discard,
                         git_pack::data::output::entry::iter_from_counts::Options {
                             allow_thin_pack: false,
