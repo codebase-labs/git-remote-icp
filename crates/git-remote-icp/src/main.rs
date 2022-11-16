@@ -247,6 +247,7 @@ async fn main() -> anyhow::Result<()> {
                     //
                     // TODO: Investigate if we can do this after we're otherwise
                     // done with `ancestor_commits`.
+                    /*
                     let is_fast_forward = match ancestor_commits {
                         Ok(mut commits) => commits.any(|commit_id| {
                             commit_id.map_or(false, |commit_id| commit_id == dst_id)
@@ -260,6 +261,7 @@ async fn main() -> anyhow::Result<()> {
                     if !is_fast_forward && !allow_non_fast_forward {
                         return Err(anyhow!("attempted non fast-forward push without force"));
                     }
+                    */
 
                     // TODO: set_pack_cache?
                     // TODO: prevent_pack_unload?
