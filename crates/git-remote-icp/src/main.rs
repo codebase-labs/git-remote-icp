@@ -282,7 +282,9 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("ancestors: {:#?}", ancestors);
 
-                for (_src, dst, _allow_non_fast_forward, src_id, dst_id, ancestor_commits) in ancestors {
+                for (_src, dst, _allow_non_fast_forward, src_id, dst_id, ancestor_commits) in
+                    ancestors
+                {
                     // FIXME: We need to handle fast-forwards and force pushes.
                     // Ideally we'd fail fast but we can't because figuring out
                     // if a fast-forward is possible consumes the
@@ -358,7 +360,10 @@ async fn main() -> anyhow::Result<()> {
                     let mut write = git_protocol::futures_lite::io::BlockOn::new(&mut *async_write);
                     let num_entries: u32 = entries.len().try_into()?;
 
-                    // TODO: ensure that we only send 1 pack per request, this might impact batching
+                    // TODO: ensure that we only send 1 pack per request, this
+                    // might impact batching. Try having the batch loop provide
+                    // all of the entries and moving this outside the batch
+                    // loop.
                     let pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
                         std::iter::once(Ok::<
                             _,
@@ -373,7 +378,7 @@ async fn main() -> anyhow::Result<()> {
                     );
 
                     for write_result in pack_writer {
-                       let _bytes_written = write_result?;
+                        let _bytes_written = write_result?;
                     }
                 }
 
