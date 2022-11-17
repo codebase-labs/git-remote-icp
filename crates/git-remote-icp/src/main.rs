@@ -6,7 +6,7 @@ use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git_features::parallel::InOrderIter;
 use git_features::progress;
 use git_protocol::fetch;
-use git_protocol::fetch::refs::Ref;
+use git_protocol::handshake::Ref;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
@@ -464,14 +464,14 @@ async fn main() -> anyhow::Result<()> {
                 )
                 .await?;
 
-                let refs = fetch::refs(
+                let refs = git_protocol::ls_refs(
                     &mut transport,
-                    outcome.server_protocol_version,
+                    // outcome.server_protocol_version,
                     &outcome.capabilities,
                     // TODO: gain a better understanding of
                     // https://github.com/Byron/gitoxide/blob/da5f63cbc7506990f46d310f8064678decb86928/git-repository/src/remote/connection/ref_map.rs#L153-L168
                     |_capabilities, _arguments, _features| {
-                        Ok(fetch::delegate::LsRefsAction::Continue)
+                        Ok(git_protocol::ls_refs::Action::Continue)
                     },
                     &mut progress,
                 )

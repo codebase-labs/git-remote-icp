@@ -13,17 +13,17 @@ anyhow = "1.0"
 bstr = "1.0"
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
-git-features = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
-git-hash = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
-git-odb = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
-git-pack = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
-git-packetline = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
-git-protocol = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4", features = ["async-client"] }
-git-refspec = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
+git-features = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5" }
+git-hash = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5" }
+git-odb = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5" }
+git-pack = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5" }
+git-packetline = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5" }
+git-protocol = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5", features = ["async-client"] }
+git-refspec = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5" }
 # TODO: remove or feature gate async-std
-git-repository = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4", features = ["async-network-client-async-std"] }
-git-transport = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4", features = ["async-client"] }
-git-traverse = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
+git-repository = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5", features = ["async-network-client-async-std"] }
+git-transport = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5", features = ["async-client"] }
+git-traverse = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5" }
 log = "0.4"
 strum = { version = "0.24", features = ["derive"] }
 tokio = { version = "1.12", features = ["full"] }
