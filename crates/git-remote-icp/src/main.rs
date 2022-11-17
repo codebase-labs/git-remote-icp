@@ -178,8 +178,9 @@ async fn main() -> anyhow::Result<()> {
                 let mut progress = progress::Discard;
                 let extra_parameters = vec![];
 
-                let mut outcome = fetch::handshake(
+                let mut outcome = git_protocol::handshake(
                     &mut transport,
+                    git_transport::Service::ReceivePack,
                     authenticate,
                     extra_parameters,
                     &mut progress,
@@ -192,12 +193,6 @@ async fn main() -> anyhow::Result<()> {
                     .expect("there should always be refs with v1 protocol");
 
                 trace!("remote_refs: {:#?}", remote_refs);
-
-                // HACK: fetch::handshake uses
-                // git_transport::Service::UploadPack instead of ReceivePack so
-                // we need this hack for now.
-                let mut transport =
-                    git_transport::connect(url.clone(), git_transport::Protocol::V1).await?;
 
                 let writer = transport.request(
                     git_transport::client::WriteMode::Binary,
