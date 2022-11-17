@@ -198,6 +198,7 @@ async fn main() -> anyhow::Result<()> {
 
                 let writer = transport.request(
                     git::protocol::transport::client::WriteMode::Binary,
+                    // This is currently redundant because we use `.into_parts()`
                     git::protocol::transport::client::MessageKind::Flush,
                 )?;
 
