@@ -389,6 +389,7 @@ async fn main() -> anyhow::Result<()> {
                 //
                 // See https://github.com/Byron/gitoxide/blob/409b769f088854670176ada93af4f0a1cebed3c5/git-transport/tests/client/git.rs#L169-L179
                 while let Some(line) = lines.next().await {
+                    log::debug!("line: {:#?}", line);
                     info.push(line?)
                 }
 
