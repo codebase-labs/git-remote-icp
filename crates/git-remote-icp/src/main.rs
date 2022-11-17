@@ -199,7 +199,7 @@ async fn main() -> anyhow::Result<()> {
                     git_transport::client::MessageKind::Flush,
                 )?;
 
-                let (mut async_write, mut async_read) = writer.into_parts();
+                let (mut async_writer, async_reader) = writer.into_parts();
 
                 let instructions = push
                     .iter()
@@ -231,55 +231,47 @@ async fn main() -> anyhow::Result<()> {
                 // TODO: use Traverse for initial push
                 let input_object_expansion = git_pack::data::output::count::objects::ObjectExpansion::TreeAdditionsComparedToAncestor;
 
-                // TODO: consider making this part of the for loop since we
-                // can't clone it anyway.
-                let ancestors = push_instructions
-                    .map(|(src, dst, allow_non_fast_forward)| {
-                        // local
-                        let mut src_reference = repo.find_reference(*src)?;
-                        let src_id = src_reference.peel_to_id_in_place()?;
+                // TODO: combine with previous iterations if possible
+                // TODO: for loop instead of map
+                let mut entries = vec![];
 
-                        // remote
-                        let dst_id = remote_refs.iter()
-                            .find_map(|r| {
-                                let (name, target, peeled) = r.unpack();
-                                (name == *dst).then(|| peeled.or(target)).flatten()
-                            })
-                            .map(|x| x.to_owned())
-                            .unwrap_or_else(|| git_hash::Kind::Sha1.null());
+                for (src, dst, _allow_non_fast_forward) in push_instructions {
+                    // local
+                    let mut src_reference = repo.find_reference(*src)?;
+                    let src_id = src_reference.peel_to_id_in_place()?;
 
-                        trace!("dst_id: {:#?}", dst_id);
+                    // remote
+                    let dst_id = remote_refs
+                        .iter()
+                        .find_map(|r| {
+                            let (name, target, peeled) = r.unpack();
+                            (name == *dst).then(|| peeled.or(target)).flatten()
+                        })
+                        .map(|x| x.to_owned())
+                        .unwrap_or_else(|| git_hash::Kind::Sha1.null());
 
-                        let dst_object = repo.find_object(dst_id)?;
-                        let dst_commit = dst_object.try_into_commit()?;
-                        let dst_commit_time = dst_commit
-                            .committer()
-                            .map(|committer| committer.time.seconds_since_unix_epoch)?;
+                    trace!("dst_id: {:#?}", dst_id);
 
-                        let ancestors = src_id
-                            .ancestors()
-                            .sorting(
-                                git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
-                                    time_in_seconds_since_epoch: dst_commit_time
-                                },
-                            )
-                            // TODO: repo object cache?
-                            .all()
-                            // NOTE: this is suboptimal but makes debugging easier
-                            .map(|ancestor_commits| ancestor_commits.collect::<Vec<_>>());
+                    let dst_object = repo.find_object(dst_id)?;
+                    let dst_commit = dst_object.try_into_commit()?;
+                    let dst_commit_time = dst_commit
+                        .committer()
+                        .map(|committer| committer.time.seconds_since_unix_epoch)?;
 
-                        // FIXME: it appears that we want to return the
-                        // references instead of the IDs so that we can later
-                        // use the name in the case of a symbolic reference.
-                        Ok((src, dst, allow_non_fast_forward, src_id, dst_id, ancestors))
-                    })
-                    .collect::<Result<Vec<_>, anyhow::Error>>()?;
+                    let ancestors = src_id
+                        .ancestors()
+                        .sorting(
+                            git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
+                                time_in_seconds_since_epoch: dst_commit_time,
+                            },
+                        )
+                        // TODO: repo object cache?
+                        .all()
+                        // NOTE: this is suboptimal but makes debugging easier
+                        .map(|ancestor_commits| ancestor_commits.collect::<Vec<_>>());
 
-                trace!("ancestors: {:#?}", ancestors);
+                    trace!("ancestors: {:#?}", ancestors);
 
-                for (_src, dst, _allow_non_fast_forward, src_id, dst_id, ancestor_commits) in
-                    ancestors
-                {
                     // FIXME: We need to handle fast-forwards and force pushes.
                     // Ideally we'd fail fast but we can't because figuring out
                     // if a fast-forward is possible consumes the
@@ -308,7 +300,9 @@ async fn main() -> anyhow::Result<()> {
                     let mut db = repo.objects.clone();
                     db.prevent_pack_unload();
 
-                    let commits = ancestor_commits?;
+                    // NOTE: we don't want to short circuit on this Result
+                    // until after we've determined if we can fast-forward.
+                    let commits = ancestors?;
 
                     let (mut counts, _count_stats) =
                         git_pack::data::output::count::objects_unthreaded(
@@ -335,60 +329,65 @@ async fn main() -> anyhow::Result<()> {
                         },
                     );
 
-                    let entries = InOrderIter::from(entries_iter.by_ref())
-                        .collect::<Result<Vec<_>, _>>()?
-                        .into_iter()
-                        .flatten()
-                        .collect::<Vec<_>>();
-
-                    // TODO: writer.write_all(b"").await?;
-                    // writer.write_message(git_transport::client::MessageKind::Flush).await?;
+                    entries.push(
+                        InOrderIter::from(entries_iter.by_ref())
+                            .collect::<Result<Vec<_>, _>>()?
+                            .into_iter()
+                            .flatten()
+                            .collect::<Vec<_>>(),
+                    );
 
                     let chunk = format!("{} {} {}", dst_id.to_hex(), src_id.to_hex(), dst);
                     // let chunk = format!("{} {} {}\0{}", dst, src, dst_name, capabilities);
                     git_packetline::encode::text_to_write(
                         chunk.as_bytes().as_bstr(),
-                        &mut async_write,
+                        &mut async_writer,
                     )
                     .await?;
-
-                    let mut write = git_protocol::futures_lite::io::BlockOn::new(&mut *async_write);
-                    let num_entries: u32 = entries.len().try_into()?;
-
-                    // TODO: ensure that we only send 1 pack per request, this
-                    // might impact batching. Try having the batch loop provide
-                    // all of the entries and moving this outside the batch
-                    // loop.
-                    let pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
-                        std::iter::once(Ok::<
-                            _,
-                            git_pack::data::output::entry::iter_from_counts::Error<
-                                git_odb::store::find::Error,
-                            >,
-                        >(entries)),
-                        &mut write,
-                        num_entries,
-                        git_pack::data::Version::V2,
-                        git_hash::Kind::Sha1,
-                    );
-
-                    for write_result in pack_writer {
-                        let _bytes_written = write_result?;
-                    }
                 }
 
-                git_packetline::encode::flush_to_write(&mut async_write).await?;
+                git_packetline::encode::flush_to_write(&mut async_writer).await?;
+
+                let entries = entries.into_iter().flatten().collect::<Vec<_>>();
+                trace!("entries: {:#?}", entries);
+
+                let num_entries: u32 = entries.len().try_into()?;
+                trace!("num entries: {:#?}", num_entries);
+
+                let mut sync_writer = git_protocol::futures_lite::io::BlockOn::new(async_writer);
+
+                let pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
+                    std::iter::once(Ok::<
+                        _,
+                        git_pack::data::output::entry::iter_from_counts::Error<
+                            git_odb::store::find::Error,
+                        >,
+                    >(entries)),
+                    &mut sync_writer,
+                    num_entries,
+                    git_pack::data::Version::V2,
+                    git_hash::Kind::Sha1,
+                );
+
+                // The pack writer is lazy, so we need to consume it
+                for write_result in pack_writer {
+                    let bytes_written = write_result?;
+                    trace!("bytes written: {:#?}", bytes_written);
+                }
+
+                trace!("finished writing pack");
 
                 use git_protocol::futures_lite::io::AsyncBufReadExt as _;
-                let mut lines = (&mut *async_read).lines();
+                let mut lines = async_reader.lines();
 
                 let mut info = vec![];
                 use git_protocol::futures_lite::StreamExt as _;
 
                 // FIXME: because we don't set up the progress handler, we
                 // will also get sideband (if we tell the server we want
-                // sideband)
-
+                // sideband by sending the capability)
+                //
+                // See https://github.com/Byron/gitoxide/blob/409b769f088854670176ada93af4f0a1cebed3c5/git-transport/tests/client/git.rs#L169-L179
                 while let Some(line) = lines.next().await {
                     info.push(line?)
                 }
