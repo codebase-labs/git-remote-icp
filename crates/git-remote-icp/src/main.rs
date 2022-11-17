@@ -341,14 +341,14 @@ async fn main() -> anyhow::Result<()> {
 
                     let chunk = format!("{} {} {}", dst_id.to_hex(), src_id.to_hex(), dst);
                     // let chunk = format!("{} {} {}\0{}", dst, src, dst_name, capabilities);
-                    git_packetline::encode::text_to_write(
+                    git::protocol::transport::packetline::encode::text_to_write(
                         chunk.as_bytes().as_bstr(),
                         &mut async_writer,
                     )
                     .await?;
                 }
 
-                git_packetline::encode::flush_to_write(&mut async_writer).await?;
+                git::protocol::transport::packetline::encode::flush_to_write(&mut async_writer).await?;
 
                 let entries = entries.into_iter().flatten().collect::<Vec<_>>();
                 trace!("entries: {:#?}", entries);

@@ -1027,7 +1027,6 @@ dependencies = [
  "bstr",
  "clap",
  "env_logger",
- "git-packetline",
  "git-repository",
  "log",
  "strum",

@@ -13,7 +13,6 @@ anyhow = "1.0"
 bstr = "1.0"
 clap = { version = "3.2", features = ["derive"] }
 env_logger = "0.9"
-git-packetline = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5" }
 # TODO: remove or feature gate async-std
 git-repository = { git = "https://github.com/Byron/gitoxide", rev="409b769f088854670176ada93af4f0a1cebed3c5", features = ["async-network-client-async-std"] }
 log = "0.4"
