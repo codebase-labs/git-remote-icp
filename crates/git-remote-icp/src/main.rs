@@ -435,7 +435,8 @@ async fn main() -> anyhow::Result<()> {
             Commands::List { variant } => {
                 match variant {
                     Some(x) => match x {
-                        // TODO: potentially keep the result of the list command for the push command
+                        // TODO: do handshake, keep connection, keep refs for
+                        // the push command
                         ListVariant::ForPush => trace!("list for-push"),
                     },
                     None => {
