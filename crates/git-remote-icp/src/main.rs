@@ -3,10 +3,7 @@
 use anyhow::{anyhow, Context};
 use bstr::ByteSlice as _;
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
-use git_features::parallel::InOrderIter;
-use git_features::progress;
-use git_protocol::fetch;
-use git_protocol::handshake::Ref;
+use git_repository as git;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
@@ -31,7 +28,7 @@ enum Commands {
     Capabilities,
     Fetch {
         #[clap(value_parser)]
-        hash: String, // TODO: git_hash::ObjectId?
+        hash: String, // TODO: git::hash::ObjectId?
 
         #[clap(value_parser)]
         name: String,
@@ -56,7 +53,7 @@ const GIT_DIR: &str = "GIT_DIR";
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
-    git_repository::interrupt::init_handler(move || {})?;
+    git::interrupt::init_handler(move || {})?;
 
     let git_dir = env::var(GIT_DIR).context("failed to get GIT_DIR")?;
 
@@ -104,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
         .parent()
         .ok_or_else(|| anyhow!("failed to get repository directory"))?;
 
-    let repo = git_repository::open(repo_dir)?;
+    let repo = git::open(repo_dir)?;
 
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
@@ -132,26 +129,28 @@ async fn main() -> anyhow::Result<()> {
                 let mut remote = repo.remote_at(url.clone())?;
 
                 for (hash, _name) in &fetch {
-                    remote = remote
-                        .with_refspec(hash.as_bytes(), git_repository::remote::Direction::Fetch)?;
+                    remote = remote.with_refspec(hash.as_bytes(), git::remote::Direction::Fetch)?;
                 }
 
                 // Implement once option capability is supported
-                let progress = progress::Discard;
+                let progress = git::progress::Discard;
 
                 // TODO: use custom transport once commands are implemented
-                let transport =
-                    git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
+                let transport = git::protocol::transport::connect(
+                    url.clone(),
+                    git::protocol::transport::Protocol::V2,
+                )
+                .await?;
 
                 let outcome = remote
                     .to_connection_with_transport(transport, progress)
                     // For pushing we should get the packetline writer here
-                    .prepare_fetch(git_repository::remote::ref_map::Options {
+                    .prepare_fetch(git::remote::ref_map::Options {
                         prefix_from_spec_as_filter_on_remote: true,
                         handshake_parameters: vec![],
                     })
                     .await?
-                    .receive(&git_repository::interrupt::IS_INTERRUPTED)
+                    .receive(&git::interrupt::IS_INTERRUPTED)
                     .await?;
 
                 trace!("outcome: {:#?}", outcome);
@@ -166,21 +165,24 @@ async fn main() -> anyhow::Result<()> {
             if !push.is_empty() {
                 trace!("process push: {:#?}", push);
 
-                use git_refspec::parse::Operation;
-                use git_refspec::{instruction, Instruction};
+                use git::refspec::parse::Operation;
+                use git::refspec::{instruction, Instruction};
 
                 // TODO: use custom transport once commands are implemented
                 // NOTE: push still uses the v1 protocol so we use that here.
-                let mut transport =
-                    git_transport::connect(url.clone(), git_transport::Protocol::V1).await?;
+                let mut transport = git::protocol::transport::connect(
+                    url.clone(),
+                    git::protocol::transport::Protocol::V1,
+                )
+                .await?;
 
                 // Implement once option capability is supported
-                let mut progress = progress::Discard;
+                let mut progress = git::progress::Discard;
                 let extra_parameters = vec![];
 
-                let mut outcome = git_protocol::handshake(
+                let mut outcome = git::protocol::handshake(
                     &mut transport,
-                    git_transport::Service::ReceivePack,
+                    git::protocol::transport::Service::ReceivePack,
                     authenticate,
                     extra_parameters,
                     &mut progress,
@@ -195,8 +197,8 @@ async fn main() -> anyhow::Result<()> {
                 trace!("remote_refs: {:#?}", remote_refs);
 
                 let writer = transport.request(
-                    git_transport::client::WriteMode::Binary,
-                    git_transport::client::MessageKind::Flush,
+                    git::protocol::transport::client::WriteMode::Binary,
+                    git::protocol::transport::client::MessageKind::Flush,
                 )?;
 
                 let (mut async_writer, async_reader) = writer.into_parts();
@@ -204,7 +206,7 @@ async fn main() -> anyhow::Result<()> {
                 let instructions = push
                     .iter()
                     .map(|unparse_ref_spec| {
-                        let ref_spec_ref = git_refspec::parse(
+                        let ref_spec_ref = git::refspec::parse(
                             unparse_ref_spec.as_bytes().as_bstr(),
                             Operation::Push,
                         )?;
@@ -229,7 +231,7 @@ async fn main() -> anyhow::Result<()> {
                 trace!("push instructions: {:#?}", push_instructions);
 
                 // TODO: use Traverse for initial push
-                let input_object_expansion = git_pack::data::output::count::objects::ObjectExpansion::TreeAdditionsComparedToAncestor;
+                let input_object_expansion = git::odb::pack::data::output::count::objects::ObjectExpansion::TreeAdditionsComparedToAncestor;
 
                 // TODO: combine with previous iterations if possible
                 // TODO: for loop instead of map
@@ -248,7 +250,7 @@ async fn main() -> anyhow::Result<()> {
                             (name == *dst).then(|| peeled.or(target)).flatten()
                         })
                         .map(|x| x.to_owned())
-                        .unwrap_or_else(|| git_hash::Kind::Sha1.null());
+                        .unwrap_or_else(|| git::hash::Kind::Sha1.null());
 
                     trace!("dst_id: {:#?}", dst_id);
 
@@ -261,7 +263,7 @@ async fn main() -> anyhow::Result<()> {
                     let ancestors = src_id
                         .ancestors()
                         .sorting(
-                            git_traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
+                            git::traverse::commit::Sorting::ByCommitTimeNewestFirstCutoffOlderThan {
                                 time_in_seconds_since_epoch: dst_commit_time,
                             },
                         )
@@ -305,12 +307,12 @@ async fn main() -> anyhow::Result<()> {
                     let commits = ancestors?;
 
                     let (mut counts, _count_stats) =
-                        git_pack::data::output::count::objects_unthreaded(
+                        git::odb::pack::data::output::count::objects_unthreaded(
                             db.clone(),
                             commits.into_iter(),
                             // Implement once option capability is supported
-                            progress::Discard,
-                            &git_repository::interrupt::IS_INTERRUPTED,
+                            git::progress::Discard,
+                            &git::interrupt::IS_INTERRUPTED,
                             input_object_expansion,
                         )?;
 
@@ -319,18 +321,18 @@ async fn main() -> anyhow::Result<()> {
                     trace!("counts: {:#?}", counts);
 
                     // TODO: in order iter
-                    let mut entries_iter = git_pack::data::output::entry::iter_from_counts(
+                    let mut entries_iter = git::odb::pack::data::output::entry::iter_from_counts(
                         counts,
                         db,
-                        progress::Discard,
-                        git_pack::data::output::entry::iter_from_counts::Options {
+                        git::progress::Discard,
+                        git::odb::pack::data::output::entry::iter_from_counts::Options {
                             allow_thin_pack: false,
                             ..Default::default()
                         },
                     );
 
                     entries.push(
-                        InOrderIter::from(entries_iter.by_ref())
+                        git::parallel::InOrderIter::from(entries_iter.by_ref())
                             .collect::<Result<Vec<_>, _>>()?
                             .into_iter()
                             .flatten()
@@ -354,19 +356,19 @@ async fn main() -> anyhow::Result<()> {
                 let num_entries: u32 = entries.len().try_into()?;
                 trace!("num entries: {:#?}", num_entries);
 
-                let mut sync_writer = git_protocol::futures_lite::io::BlockOn::new(async_writer);
+                let mut sync_writer = git::protocol::futures_lite::io::BlockOn::new(async_writer);
 
-                let pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
+                let pack_writer = git::odb::pack::data::output::bytes::FromEntriesIter::new(
                     std::iter::once(Ok::<
                         _,
-                        git_pack::data::output::entry::iter_from_counts::Error<
-                            git_odb::store::find::Error,
+                        git::odb::pack::data::output::entry::iter_from_counts::Error<
+                            git::odb::store::find::Error,
                         >,
                     >(entries)),
                     &mut sync_writer,
                     num_entries,
-                    git_pack::data::Version::V2,
-                    git_hash::Kind::Sha1,
+                    git::odb::pack::data::Version::V2,
+                    git::hash::Kind::Sha1,
                 );
 
                 // The pack writer is lazy, so we need to consume it
@@ -377,11 +379,11 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("finished writing pack");
 
-                use git_protocol::futures_lite::io::AsyncBufReadExt as _;
+                use git::protocol::futures_lite::io::AsyncBufReadExt as _;
                 let mut lines = async_reader.lines();
 
                 let mut info = vec![];
-                use git_protocol::futures_lite::StreamExt as _;
+                use git::protocol::futures_lite::StreamExt as _;
 
                 // FIXME: because we don't set up the progress handler, we
                 // will also get sideband (if we tell the server we want
@@ -444,14 +446,17 @@ async fn main() -> anyhow::Result<()> {
                 }
 
                 // TODO: use custom transport once commands are implemented
-                let mut transport =
-                    git_transport::connect(url.clone(), git_transport::Protocol::V2).await?;
+                let mut transport = git::protocol::transport::connect(
+                    url.clone(),
+                    git::protocol::transport::Protocol::V2,
+                )
+                .await?;
 
                 // Implement once option capability is supported
-                let mut progress = progress::Discard;
+                let mut progress = git::progress::Discard;
                 let extra_parameters = vec![];
 
-                let outcome = fetch::handshake(
+                let outcome = git::protocol::fetch::handshake(
                     &mut transport,
                     authenticate,
                     extra_parameters,
@@ -459,14 +464,14 @@ async fn main() -> anyhow::Result<()> {
                 )
                 .await?;
 
-                let refs = git_protocol::ls_refs(
+                let refs = git::protocol::ls_refs(
                     &mut transport,
                     // outcome.server_protocol_version,
                     &outcome.capabilities,
                     // TODO: gain a better understanding of
                     // https://github.com/Byron/gitoxide/blob/da5f63cbc7506990f46d310f8064678decb86928/git-repository/src/remote/connection/ref_map.rs#L153-L168
                     |_capabilities, _arguments, _features| {
-                        Ok(git_protocol::ls_refs::Action::Continue)
+                        Ok(git::protocol::ls_refs::Action::Continue)
                     },
                     &mut progress,
                 )
@@ -486,7 +491,9 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-fn ref_to_string(r: &Ref) -> String {
+fn ref_to_string(r: &git::protocol::handshake::Ref) -> String {
+    use git::protocol::handshake::Ref;
+
     match r {
         Ref::Peeled {
             full_ref_name,
