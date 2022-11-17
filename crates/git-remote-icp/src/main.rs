@@ -8,9 +8,9 @@ use git_features::progress;
 use git_protocol::fetch;
 use git_protocol::fetch::refs::Ref;
 use log::trace;
-use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
+use std::{collections::BTreeSet, io::Read};
 use strum::{EnumVariantNames, VariantNames as _};
 
 #[derive(Parser)]
@@ -176,6 +176,31 @@ async fn main() -> anyhow::Result<()> {
                 let mut transport =
                     git_transport::connect(url.clone(), git_transport::Protocol::V1).await?;
 
+                // Implement once option capability is supported
+                let mut progress = progress::Discard;
+                let extra_parameters = vec![];
+
+                let mut outcome = fetch::handshake(
+                    &mut transport,
+                    authenticate,
+                    extra_parameters,
+                    &mut progress,
+                )
+                .await?;
+
+                let remote_refs = outcome
+                    .refs
+                    .take()
+                    .expect("there should always be refs with v1 protocol");
+
+                trace!("remote_refs: {:#?}", remote_refs);
+
+                // HACK: fetch::handshake uses
+                // git_transport::Service::UploadPack instead of ReceivePack so
+                // we need this hack for now.
+                let mut transport =
+                    git_transport::connect(url.clone(), git_transport::Protocol::V1).await?;
+
                 let writer = transport.request(
                     git_transport::client::WriteMode::Binary,
                     git_transport::client::MessageKind::Flush,
@@ -217,18 +242,20 @@ async fn main() -> anyhow::Result<()> {
                 // can't clone it anyway.
                 let ancestors = push_instructions
                     .map(|(src, dst, allow_non_fast_forward)| {
+                        // local
                         let mut src_reference = repo.find_reference(*src)?;
-                        let mut dst_reference = repo.find_reference(*dst)?;
-
-                        // FIXME: these IDs are the same when they are expected
-                        // to be different.
-                        //
-                        // * Do we need to use a different `repo` for `src`?
-                        //
-                        // * Do we need to add refspecs to the `remote` using
-                        // `with_refspec` like we do for the fetch command?
                         let src_id = src_reference.peel_to_id_in_place()?;
-                        let dst_id = dst_reference.peel_to_id_in_place()?;
+
+                        // remote
+                        let dst_id = remote_refs.iter()
+                            .find_map(|r| {
+                                let (name, target, peeled) = r.unpack();
+                                (name == *dst).then(|| peeled.or(target)).flatten()
+                            })
+                            .map(|x| x.to_owned())
+                            .unwrap_or_else(|| git_hash::Kind::Sha1.null());
+
+                        trace!("dst_id: {:#?}", dst_id);
 
                         let dst_object = repo.find_object(dst_id)?;
                         let dst_commit = dst_object.try_into_commit()?;
@@ -251,13 +278,13 @@ async fn main() -> anyhow::Result<()> {
                         // FIXME: it appears that we want to return the
                         // references instead of the IDs so that we can later
                         // use the name in the case of a symbolic reference.
-                        Ok((src_id, dst_id, allow_non_fast_forward, ancestors))
+                        Ok((src, dst, allow_non_fast_forward, src_id, dst_id, ancestors))
                     })
                     .collect::<Result<Vec<_>, anyhow::Error>>()?;
 
                 trace!("ancestors: {:#?}", ancestors);
 
-                for (src_id, dst_id, allow_non_fast_forward, ancestor_commits) in ancestors {
+                for (_src, dst, _allow_non_fast_forward, src_id, dst_id, ancestor_commits) in ancestors {
                     // FIXME: We need to handle fast-forwards and force pushes.
                     // Ideally we'd fail fast but we can't because figuring out
                     // if a fast-forward is possible consumes the
@@ -322,14 +349,19 @@ async fn main() -> anyhow::Result<()> {
                     // TODO: writer.write_all(b"").await?;
                     // writer.write_message(git_transport::client::MessageKind::Flush).await?;
 
-                    let chunk = format!("FIXME");
-                    git_packetline::encode::text_to_write(chunk.as_bytes().as_bstr(), &mut async_write).await?;
-                    git_packetline::encode::flush_to_write(&mut async_write).await?;
+                    let chunk = format!("{} {} {}", dst_id.to_hex(), src_id.to_hex(), dst);
+                    // let chunk = format!("{} {} {}\0{}", dst, src, dst_name, capabilities);
+                    git_packetline::encode::text_to_write(
+                        chunk.as_bytes().as_bstr(),
+                        &mut async_write,
+                    )
+                    .await?;
 
                     let mut write = git_protocol::futures_lite::io::BlockOn::new(&mut *async_write);
                     let num_entries: u32 = entries.len().try_into()?;
 
-                    let _pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
+                    // TODO: ensure that we only send 1 pack per request, this might impact batching
+                    let pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
                         std::iter::once(Ok::<
                             _,
                             git_pack::data::output::entry::iter_from_counts::Error<
@@ -342,24 +374,28 @@ async fn main() -> anyhow::Result<()> {
                         git_hash::Kind::Sha1,
                     );
 
-                    // TODO: determine if we need a synchronous reader
-                    //
-                    // use std::io::BufRead as _;
-                    // let mut read = git_protocol::futures_lite::io::BlockOn::new(async_read);
-                    // let lines = read.lines();
-
-                    use git_protocol::futures_lite::io::AsyncBufReadExt as _;
-                    let mut lines = (&mut *async_read).lines();
-
-                    let mut info = vec![];
-                    use git_protocol::futures_lite::StreamExt as _;
-
-                    while let Some(line) = lines.next().await {
-                        info.push(line?)
+                    for write_result in pack_writer {
+                       let _bytes_written = write_result?;
                     }
-
-                    trace!("info: {:#?}", info);
                 }
+
+                git_packetline::encode::flush_to_write(&mut async_write).await?;
+
+                use git_protocol::futures_lite::io::AsyncBufReadExt as _;
+                let mut lines = (&mut *async_read).lines();
+
+                let mut info = vec![];
+                use git_protocol::futures_lite::StreamExt as _;
+
+                // FIXME: because we don't set up the progress handler, we
+                // will also get sideband (if we tell the server we want
+                // sideband)
+
+                while let Some(line) = lines.next().await {
+                    info.push(line?)
+                }
+
+                trace!("info: {:#?}", info);
 
                 // TEMP: Don't successfully exit until this command is implemented
 
@@ -399,6 +435,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::List { variant } => {
                 match variant {
                     Some(x) => match x {
+                        // TODO: potentially keep the result of the list command for the push command
                         ListVariant::ForPush => trace!("list for-push"),
                     },
                     None => {
