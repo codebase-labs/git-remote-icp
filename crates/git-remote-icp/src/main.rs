@@ -220,6 +220,13 @@ async fn main() -> anyhow::Result<()> {
                         let mut src_reference = repo.find_reference(*src)?;
                         let mut dst_reference = repo.find_reference(*dst)?;
 
+                        // FIXME: these IDs are the same when they are expected
+                        // to be different.
+                        //
+                        // * Do we need to use a different `repo` for `src`?
+                        //
+                        // * Do we need to add refspecs to the `remote` using
+                        // `with_refspec` like we do for the fetch command?
                         let src_id = src_reference.peel_to_id_in_place()?;
                         let dst_id = dst_reference.peel_to_id_in_place()?;
 
@@ -241,6 +248,9 @@ async fn main() -> anyhow::Result<()> {
                             // NOTE: this is suboptimal but makes debugging easier
                             .map(|ancestor_commits| ancestor_commits.collect::<Vec<_>>());
 
+                        // FIXME: it appears that we want to return the
+                        // references instead of the IDs so that we can later
+                        // use the name in the case of a symbolic reference.
                         Ok((src_id, dst_id, allow_non_fast_forward, ancestors))
                     })
                     .collect::<Result<Vec<_>, anyhow::Error>>()?;
