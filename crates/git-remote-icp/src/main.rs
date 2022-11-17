@@ -169,8 +169,6 @@ async fn main() -> anyhow::Result<()> {
                 use git_refspec::parse::Operation;
                 use git_refspec::{instruction, Instruction};
 
-                let mut remote = repo.remote_at(url.clone())?;
-
                 // TODO: use custom transport once commands are implemented
                 // NOTE: push still uses the v1 protocol so we use that here.
                 let mut transport =
