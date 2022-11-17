@@ -176,6 +176,13 @@ async fn main() -> anyhow::Result<()> {
                 let mut transport =
                     git_transport::connect(url.clone(), git_transport::Protocol::V1).await?;
 
+                let writer = transport.request(
+                    git_transport::client::WriteMode::Binary,
+                    git_transport::client::MessageKind::Flush,
+                )?;
+
+                let (mut async_write, mut async_read) = writer.into_parts();
+
                 let instructions = push
                     .iter()
                     .map(|unparse_ref_spec| {
@@ -302,16 +309,14 @@ async fn main() -> anyhow::Result<()> {
                         .flatten()
                         .collect::<Vec<_>>();
 
-                    let write_mode = git_transport::client::WriteMode::Binary;
-                    let on_into_read = git_transport::client::MessageKind::Flush;
-                    let mut writer = transport.request(write_mode, on_into_read)?;
-
                     // TODO: writer.write_all(b"").await?;
-                    // TODO: writer.write_message(git_transport::client::MessageKind::Flush).await?;
+                    // writer.write_message(git_transport::client::MessageKind::Flush).await?;
 
-                    let (async_write, async_read) = writer.into_parts();
-                    let mut write = git_protocol::futures_lite::io::BlockOn::new(async_write);
+                    let chunk = format!("FIXME");
+                    git_packetline::encode::text_to_write(chunk.as_bytes().as_bstr(), &mut async_write).await?;
+                    git_packetline::encode::flush_to_write(&mut async_write).await?;
 
+                    let mut write = git_protocol::futures_lite::io::BlockOn::new(&mut *async_write);
                     let num_entries: u32 = entries.len().try_into()?;
 
                     let _pack_writer = git_pack::data::output::bytes::FromEntriesIter::new(
@@ -334,7 +339,7 @@ async fn main() -> anyhow::Result<()> {
                     // let lines = read.lines();
 
                     use git_protocol::futures_lite::io::AsyncBufReadExt as _;
-                    let mut lines = async_read.lines();
+                    let mut lines = (&mut *async_read).lines();
 
                     let mut info = vec![];
                     use git_protocol::futures_lite::StreamExt as _;

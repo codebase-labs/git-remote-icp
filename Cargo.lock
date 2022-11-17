@@ -1031,6 +1031,7 @@ dependencies = [
  "git-hash",
  "git-odb",
  "git-pack",
+ "git-packetline",
  "git-protocol",
  "git-refspec",
  "git-repository",

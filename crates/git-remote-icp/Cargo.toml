@@ -17,6 +17,7 @@ git-features = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd8
 git-hash = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
 git-odb = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
 git-pack = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
+git-packetline = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
 git-protocol = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4", features = ["async-client"] }
 git-refspec = { git = "https://github.com/Byron/gitoxide", rev="42356abf9d08dd86ce464fa48e25bbcc98ceefd4" }
 # TODO: remove or feature gate async-std
