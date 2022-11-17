@@ -8,9 +8,9 @@ use git_features::progress;
 use git_protocol::fetch;
 use git_protocol::fetch::refs::Ref;
 use log::trace;
+use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
-use std::{collections::BTreeSet, io::Read};
 use strum::{EnumVariantNames, VariantNames as _};
 
 #[derive(Parser)]
