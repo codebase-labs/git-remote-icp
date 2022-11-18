@@ -165,6 +165,38 @@
               git -C test-repo-icp commit -m "Add trailing newline"
               git -C test-repo-icp push origin main
 
+              GIT_LOG_TCP_REMOTE=$(git -C test-repo-tcp log origin/main)
+              GIT_LOG_ICP_REMOTE=$(git -C test-repo-icp log origin/main)
+
+              if [ "$GIT_LOG_TCP_REMOTE" == "$GIT_LOG_ICP_REMOTE" ]; then
+                echo "GIT_LOG_TCP_REMOTE == GIT_LOG_ICP_REMOTE"
+              else
+                echo "GIT_LOG_TCP_REMOTE != GIT_LOG_ICP_REMOTE"
+                echo "<<<<<<< GIT_LOG_TCP_REMOTE"
+                echo "$GIT_LOG_TCP_REMOTE"
+                echo "======="
+                echo "$GIT_LOG_ICP_REMOTE"
+                echo ">>>>>>> GIT_LOG_ICP_REMOTE"
+
+                exit 1
+              fi
+
+              GIT_DIFF_TCP_REMOTE=$(git -C test-repo-tcp diff origin/main origin/main)
+              GIT_DIFF_ICP_REMOTE=$(git -C test-repo-icp diff orign/main remotes/test-repo-tcp/main)
+
+              if [ "$GIT_DIFF_TCP_REMOTE" == "$GIT_DIFF_ICP_REMOTE" ]; then
+                echo "GIT_DIFF_TCP_REMOTE == GIT_DIFF_ICP_REMOTE"
+              else
+                echo "GIT_DIFF_TCP_REMOTE != GIT_DIFF_ICP_REMOTE"
+                echo "<<<<<<< GIT_DIFF_TCP_REMOTE"
+                echo "$GIT_DIFF_TCP_REMOTE"
+                echo "======="
+                echo "$GIT_DIFF_ICP_REMOTE"
+                echo ">>>>>>> GIT_DIFF_ICP_REMOTE"
+
+                exit 1
+              fi
+
 
               # Exit cleanly
 
