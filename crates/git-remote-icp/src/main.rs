@@ -384,13 +384,13 @@ async fn main() -> anyhow::Result<()> {
                 let mut lines = async_reader.lines();
 
                 let mut info = vec![];
-                use git::protocol::futures_lite::StreamExt as _;
 
                 // FIXME: because we don't set up the progress handler, we
                 // will also get sideband (if we tell the server we want
                 // sideband by sending the capability)
                 //
                 // See https://github.com/Byron/gitoxide/blob/409b769f088854670176ada93af4f0a1cebed3c5/git-transport/tests/client/git.rs#L169-L179
+                use git::protocol::futures_lite::StreamExt as _;
                 while let Some(line) = lines.next().await {
                     log::debug!("line: {:#?}", line);
                     info.push(line?)
