@@ -426,15 +426,15 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("info: {:#?}", info);
 
-                // TEMP: Don't successfully exit until this command is implemented
-
                 // FIXME: output one or more `ok <dst>` or `error <dst> <why>?`
                 // lines to indicate success or failure of each pushed ref. The
                 // status report output is terminated by a blank line.
 
-                // push.clear();
+                push.clear();
 
                 // Terminate the status report output
+
+                // TEMP: Don't successfully exit until this command is implemented
                 // println!();
             }
 
