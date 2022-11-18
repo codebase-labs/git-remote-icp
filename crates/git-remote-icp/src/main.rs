@@ -433,6 +433,8 @@ async fn main() -> anyhow::Result<()> {
                 // status report output is terminated by a blank line.
 
                 // push.clear();
+
+                // Terminate the status report output
                 // println!();
             }
 
