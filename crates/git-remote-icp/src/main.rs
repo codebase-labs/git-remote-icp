@@ -196,13 +196,11 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("remote_refs: {:#?}", remote_refs);
 
-                let writer = transport.request(
+                let mut writer = transport.request(
                     git::protocol::transport::client::WriteMode::Binary,
                     // This is currently redundant because we use `.into_parts()`
                     git::protocol::transport::client::MessageKind::Flush,
                 )?;
-
-                let (mut async_writer, async_reader) = writer.into_parts();
 
                 let instructions = push
                     .iter()
@@ -342,14 +340,14 @@ async fn main() -> anyhow::Result<()> {
 
                     let chunk = format!("{} {} {}", dst_id.to_hex(), src_id.to_hex(), dst);
                     // let chunk = format!("{} {} {}\0{}", dst, src, dst_name, capabilities);
-                    git::protocol::transport::packetline::encode::text_to_write(
-                        chunk.as_bytes().as_bstr(),
-                        &mut async_writer,
-                    )
-                    .await?;
+
+                    use git::protocol::futures_lite::io::AsyncWriteExt as _;
+                    writer.write_all(chunk.as_bytes().as_bstr()).await?;
                 }
 
-                git::protocol::transport::packetline::encode::flush_to_write(&mut async_writer).await?;
+                writer
+                    .write_message(git::protocol::transport::client::MessageKind::Flush)
+                    .await?;
 
                 let entries = entries.into_iter().flatten().collect::<Vec<_>>();
                 trace!("entries: {:#?}", entries);
@@ -357,7 +355,10 @@ async fn main() -> anyhow::Result<()> {
                 let num_entries: u32 = entries.len().try_into()?;
                 trace!("num entries: {:#?}", num_entries);
 
-                let mut sync_writer = git::protocol::futures_lite::io::BlockOn::new(async_writer);
+                let (mut async_writer, async_reader) = writer.into_parts();
+
+                let mut sync_writer =
+                    git::protocol::futures_lite::io::BlockOn::new(&mut async_writer);
 
                 let pack_writer = git::odb::pack::data::output::bytes::FromEntriesIter::new(
                     std::iter::once(Ok::<
