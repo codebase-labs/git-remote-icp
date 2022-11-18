@@ -428,6 +428,10 @@ async fn main() -> anyhow::Result<()> {
 
                 // TEMP: Don't successfully exit until this command is implemented
 
+                // FIXME: output one or more `ok <dst>` or `error <dst> <why>?`
+                // lines to indicate success or failure of each pushed ref. The
+                // status report output is terminated by a blank line.
+
                 // push.clear();
                 // println!();
             }
