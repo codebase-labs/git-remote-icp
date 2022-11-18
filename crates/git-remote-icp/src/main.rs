@@ -192,7 +192,7 @@ async fn main() -> anyhow::Result<()> {
                 let remote_refs = outcome
                     .refs
                     .take()
-                    .expect("there should always be refs with v1 protocol");
+                    .ok_or_else(|| anyhow!("failed to take remote refs"))?;
 
                 trace!("remote_refs: {:#?}", remote_refs);
 
