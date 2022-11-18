@@ -338,8 +338,9 @@ async fn main() -> anyhow::Result<()> {
                             .collect::<Vec<_>>(),
                     );
 
-                    let chunk = format!("{} {} {}", dst_id.to_hex(), src_id.to_hex(), dst);
-                    // let chunk = format!("{} {} {}\0{}", dst, src, dst_name, capabilities);
+                    // See comments on reading the `receive-pack` response as to
+                    // why we send the sideband capability.
+                    let chunk = format!("{} {} {}\0 side-band-64k", dst_id.to_hex(), src_id.to_hex(), dst);
 
                     use git::protocol::futures_lite::io::AsyncWriteExt as _;
                     writer.write_all(chunk.as_bytes().as_bstr()).await?;
@@ -355,7 +356,7 @@ async fn main() -> anyhow::Result<()> {
                 let num_entries: u32 = entries.len().try_into()?;
                 trace!("num entries: {:#?}", num_entries);
 
-                let (mut async_writer, async_reader) = writer.into_parts();
+                let (mut async_writer, mut async_reader) = writer.into_parts();
 
                 let mut sync_writer =
                     git::protocol::futures_lite::io::BlockOn::new(&mut async_writer);
@@ -381,16 +382,35 @@ async fn main() -> anyhow::Result<()> {
 
                 trace!("finished writing pack");
 
+                // If we don't send any sideband capabilities, we get
+                // `Some(Err(Kind(UnexpectedEof)))` in the `AsyncBufRead`
+                // implementation for `WithSidebands` here when trying to read
+                // the `receive-pack` response:
+                // https://github.com/paulyoung/gitoxide/blob/93f2dd8f7db87afc04a523458faaa46f9b33f21a/git-packetline/src/read/sidebands/async_io.rs#L213
+                //
+                // So, we send `side-band-64k` to address that. Even though we
+                // currently don't support reporting any progress, we set a
+                // progress handler to keep the sideband information separate
+                // from the response we care about.
+                use std::ops::Deref as _;
+                use std::sync::{Arc, Mutex};
+                let messages = Arc::new(Mutex::new(Vec::<String>::new()));
+                async_reader.set_progress_handler(Some(Box::new({
+                    let sb = messages.clone();
+                    move |is_err, data| {
+                        assert!(!is_err);
+                        sb.deref()
+                            .lock()
+                            .expect("no panic in other threads")
+                            .push(std::str::from_utf8(data).expect("valid utf8").to_owned())
+                    }
+                })));
+
                 use git::protocol::futures_lite::io::AsyncBufReadExt as _;
                 let mut lines = async_reader.lines();
 
                 let mut info = vec![];
 
-                // FIXME: because we don't set up the progress handler, we
-                // will also get sideband (if we tell the server we want
-                // sideband by sending the capability)
-                //
-                // See https://github.com/Byron/gitoxide/blob/409b769f088854670176ada93af4f0a1cebed3c5/git-transport/tests/client/git.rs#L169-L179
                 use git::protocol::futures_lite::StreamExt as _;
                 while let Some(line) = lines.next().await {
                     log::debug!("line: {:#?}", line);
