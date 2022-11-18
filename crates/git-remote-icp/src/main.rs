@@ -338,9 +338,16 @@ async fn main() -> anyhow::Result<()> {
                             .collect::<Vec<_>>(),
                     );
 
-                    // See comments on reading the `receive-pack` response as to
-                    // why we send the sideband capability.
-                    let chunk = format!("{} {} {}\0 side-band-64k", dst_id.to_hex(), src_id.to_hex(), dst);
+                    // NOTE
+                    //
+                    // * We send `report-status-v2` so that we receive a
+                    //   response that includes a status report. We parse this
+                    //   and write a status report to stdout in the format that
+                    //   remote helpers are expected to produce.
+                    //
+                    // * See comments on reading the `receive-pack` response as
+                    //   to why we send the sideband capability.
+                    let chunk = format!("{} {} {}\0 report-status-v2 side-band-64k", dst_id.to_hex(), src_id.to_hex(), dst);
 
                     use git::protocol::futures_lite::io::AsyncWriteExt as _;
                     writer.write_all(chunk.as_bytes().as_bstr()).await?;
