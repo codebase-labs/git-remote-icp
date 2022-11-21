@@ -1028,7 +1028,9 @@ dependencies = [
  "clap",
  "env_logger",
  "git-repository",
+ "git-validate",
  "log",
+ "nom",
  "strum",
  "tokio",
 ]

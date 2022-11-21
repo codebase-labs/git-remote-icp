@@ -1,8 +1,11 @@
 #![deny(rust_2018_idioms)]
 
+mod report_status_v2;
+
 use anyhow::{anyhow, Context};
-use bstr::ByteSlice as _;
+// use bstr::ByteSlice as _;
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
+use git::bstr::ByteSlice as _;
 use git_repository as git;
 use log::trace;
 use std::collections::BTreeSet;
@@ -347,7 +350,12 @@ async fn main() -> anyhow::Result<()> {
                     //
                     // * See comments on reading the `receive-pack` response as
                     //   to why we send the sideband capability.
-                    let chunk = format!("{} {} {}\0 report-status-v2 side-band-64k", dst_id.to_hex(), src_id.to_hex(), dst);
+                    let chunk = format!(
+                        "{} {} {}\0 report-status-v2 side-band-64k",
+                        dst_id.to_hex(),
+                        src_id.to_hex(),
+                        dst
+                    );
 
                     use git::protocol::futures_lite::io::AsyncWriteExt as _;
                     writer.write_all(chunk.as_bytes().as_bstr()).await?;
@@ -413,18 +421,21 @@ async fn main() -> anyhow::Result<()> {
                     }
                 })));
 
-                use git::protocol::futures_lite::io::AsyncBufReadExt as _;
-                let mut lines = async_reader.lines();
+                // use git::protocol::futures_lite::io::AsyncBufReadExt as _;
+                // let mut lines = async_reader.lines();
 
-                let mut info = vec![];
+                // let mut report = vec![];
 
-                use git::protocol::futures_lite::StreamExt as _;
-                while let Some(line) = lines.next().await {
-                    log::debug!("line: {:#?}", line);
-                    info.push(line?)
-                }
+                // use git::protocol::futures_lite::StreamExt as _;
+                // while let Some(line) = lines.next().await {
+                //     log::debug!("line: {:#?}", line);
+                //     report.push(line?)
+                // }
 
-                trace!("info: {:#?}", info);
+                // trace!("report: {:#?}", report);
+
+                // let mut buf = String::new();
+                // let report_status = report_status_v2::parse(&mut async_reader, &mut buf).await?;
 
                 // FIXME: output one or more `ok <dst>` or `error <dst> <why>?`
                 // lines to indicate success or failure of each pushed ref. The
