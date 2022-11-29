@@ -411,10 +411,9 @@ async fn main() -> anyhow::Result<()> {
                 use std::sync::{Arc, Mutex};
                 let messages = Arc::new(Mutex::new(Vec::<String>::new()));
                 async_reader.set_progress_handler(Some(Box::new({
-                    let sb = messages.clone();
                     move |is_err, data| {
                         assert!(!is_err);
-                        sb.deref()
+                        messages.deref()
                             .lock()
                             .expect("no panic in other threads")
                             .push(std::str::from_utf8(data).expect("valid utf8").to_owned())
