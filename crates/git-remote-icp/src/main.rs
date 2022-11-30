@@ -53,6 +53,7 @@ enum ListVariant {
 
 const GIT_DIR: &str = "GIT_DIR";
 
+// TODO: modules for each command
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -104,6 +105,7 @@ async fn main() -> anyhow::Result<()> {
         .parent()
         .ok_or_else(|| anyhow!("failed to get repository directory"))?;
 
+    // TODO: `repo.config_snapshot().string(“icp.privateKey”)`
     let repo = git::open(repo_dir)?;
 
     let authenticate =
@@ -433,8 +435,7 @@ async fn main() -> anyhow::Result<()> {
 
                 // trace!("report: {:#?}", report);
 
-                // let mut buf = String::new();
-                // let report_status = report_status_v2::parse(&mut async_reader, &mut buf).await?;
+                let report_status = report_status_v2::parse(&mut async_reader).await?;
 
                 // FIXME: output one or more `ok <dst>` or `error <dst> <why>?`
                 // lines to indicate success or failure of each pushed ref. The
