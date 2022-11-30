@@ -11,7 +11,7 @@ use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1};
 use nom::character::complete::char;
 use nom::combinator::{eof, opt};
-// use nom::error::context;
+use nom::error::context;
 use nom::IResult;
 
 pub type ReportStatusV2 = (UnpackResult, Vec<CommandStatusV2>);
@@ -38,46 +38,6 @@ pub enum OptionLine {
 pub struct ErrorMsg(BString);
 
 pub struct RefName(BString);
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ParseError<I> {
-    ErrorMsgIsOk,
-    FailedToReadUnpackStatus,
-    Io(String),
-    Nom(I, nom::error::ErrorKind),
-    PacketLineDecode(String),
-    UnexpectedFlush,
-    UnexpectedDelimiter,
-    UnexpectedResponseEnd,
-}
-
-impl<I> std::fmt::Display for ParseError<I> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let msg = match self {
-            Self::ErrorMsgIsOk => "error msg is \"ok\"".to_string(),
-            Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
-            Self::Io(err) => format!("IO error: {}", err),
-            Self::Nom(_input, error_kind) => format!("nom error: {}", error_kind.description()),
-            Self::PacketLineDecode(err) => err.to_string(),
-            Self::UnexpectedFlush => "unexpected flush packet".to_string(),
-            Self::UnexpectedDelimiter => "unexpected delimiter".to_string(),
-            Self::UnexpectedResponseEnd => "unexpected response end".to_string(),
-        };
-        write!(f, "{}", msg)
-    }
-}
-
-impl<I> std::error::Error for ParseError<I> where I: std::fmt::Debug {}
-
-impl<I> nom::error::ParseError<I> for ParseError<I> {
-    fn from_error_kind(input: I, kind: nom::error::ErrorKind) -> Self {
-        ParseError::Nom(input, kind)
-    }
-
-    fn append(_: I, _: nom::error::ErrorKind, other: Self) -> Self {
-        other
-    }
-}
 
 pub async fn parse<'a>(
     input: &mut (dyn ExtendedBufRead + Unpin + 'a),
@@ -148,139 +108,133 @@ pub async fn parse<'a>(
     Ok((unpack_result, command_statuses))
 }
 
-fn parse_unpack_status<'a, Error: nom::error::ParseError<&'a [u8]>>(
-    input: &'a [u8],
-) -> IResult<&'a [u8], UnpackResult, Error> {
-    let (next_input, _unpack) = tag(b"unpack")(input)?;
-    let (next_input, _space) = char(' ')(next_input)?;
-    let (next_input, unpack_result) = parse_unpack_result(next_input)?;
-    let (next_input, _newline) = opt(char('\n'))(next_input)?;
-    let (next_input, _) = eof(next_input)?;
-    Ok((next_input, unpack_result))
+fn parse_unpack_status<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], UnpackResult, E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context("unpack-status", |input| {
+        let (next_input, _unpack) = tag(b"unpack")(input)?;
+        let (next_input, _space) = char(' ')(next_input)?;
+        let (next_input, unpack_result) = parse_unpack_result(next_input)?;
+        let (next_input, _newline) = opt(char('\n'))(next_input)?;
+        let (next_input, _) = eof(next_input)?;
+        Ok((next_input, unpack_result))
+    })(input)
 }
 
-fn parse_unpack_result<'a, Error: nom::error::ParseError<&'a [u8]>>(
-    input: &'a [u8],
-) -> IResult<&'a [u8], UnpackResult, Error> {
-    alt((
-        nom::combinator::map(tag(b"ok"), |_| UnpackResult::Ok),
-        nom::combinator::map(parse_error_msg, UnpackResult::ErrorMsg),
-    ))(input)
+fn parse_unpack_result<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], UnpackResult, E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context(
+        "unpack-result",
+        alt((
+            nom::combinator::map(tag(b"ok"), |_| UnpackResult::Ok),
+            nom::combinator::map(parse_error_msg, UnpackResult::ErrorMsg),
+        )),
+    )(input)
 }
 
 // TODO: send commit without tree to trigger error for test case
-/*
-fn parse_error_msg<'a, Error: nom::error::ParseError<&'a [u8]>>(
-    input: &'a [u8],
-) -> IResult<&'a [u8], ErrorMsg, Error> {
-    // FIXME: this should be 1*(OCTET)
-    let (next_input, error_msg) =
-        nom::combinator::verify(nom::combinator::rest, |bytes: &[u8]| bytes != b"ok")(input)?;
+fn parse_error_msg<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], ErrorMsg, E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context("error-msg", |input| {
+        // FIXME: this should be 1*(OCTET)
+        let (next_input, error_msg) =
+            nom::combinator::verify(nom::combinator::rest, |bytes: &[u8]| bytes != b"ok")(input)?;
 
-    Ok((next_input, ErrorMsg(BString::from(error_msg))))
-}
-*/
-
-fn parse_error_msg<'a, Error: nom::error::ParseError<&'a [u8]>>(
-    input: &'a [u8]
-) -> IResult<&'a [u8], ErrorMsg, Error> {
-    todo!()
-    // if input != B("ok") {
-    //     let (next_input, error_msg) = take_while1(is_octet)(input)?;
-    //     Ok((next_input, ErrorMsg(BString::from(error_msg))))
-    // } else {
-    //     Err(nom::Err::Failure(ParseError::ErrorMsgIsOk))
-    // }
+        Ok((next_input, ErrorMsg(BString::from(error_msg))))
+    })(input)
 }
 
-fn is_octet(chr: u8) -> bool {
-    chr >= 0x00 && chr <= 0xFF
-    // true
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_unpack_status_ok() {
+        let input = b"unpack ok";
+        let result = parse_unpack_status::<nom::error::Error<_>>(input);
+        assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok");
+    }
+
+    #[test]
+    fn test_parse_unpack_status_ok_newline() {
+        let input = b"unpack ok\n";
+        let result = parse_unpack_status::<nom::error::Error<_>>(input);
+        assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok");
+    }
+
+    #[test]
+    fn test_parse_unpack_status_error_msg() {
+        let input = b"unpack some error message";
+        let result = parse_unpack_status::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok(UnpackResult::ErrorMsg(ErrorMsg(BString::new(
+                b"some error message".to_vec()
+            )))),
+            "error msg"
+        );
+    }
+
+    #[test]
+    fn test_parse_unpack_status_error_msg_newline() {
+        let input = b"unpack some error message\n";
+        let result = parse_unpack_status::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok(UnpackResult::ErrorMsg(ErrorMsg(BString::new(
+                b"some error message\n".to_vec()
+            )))),
+            "error msg"
+        );
+    }
+
+    #[test]
+    fn test_parse_unpack_result_ok() {
+        let input = b"ok";
+        let result = parse_unpack_result::<nom::error::Error<_>>(input);
+        assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok");
+    }
+
+    #[test]
+    fn test_parse_unpack_result_error_msg() {
+        let input = b"some error message";
+        let result = parse_unpack_result::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok(UnpackResult::ErrorMsg(ErrorMsg(BString::new(
+                input.to_vec()
+            )))),
+            "error msg"
+        );
+    }
+
+    #[test]
+    fn test_parse_error_msg_not_ok() {
+        let input = b"some error message";
+        let result = parse_error_msg::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok(ErrorMsg(BString::new(input.to_vec()))),
+            "error msg not ok"
+        );
+    }
+
+    #[test]
+    fn test_parse_error_msg_ok() {
+        let input = b"ok";
+        let result = parse_error_msg::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Err(nom::Err::Error(nom::error::Error {
+                input: vec![111, 107].as_slice(),
+                code: nom::error::ErrorKind::Verify
+            })),
+            "error msg is ok"
+        );
+    }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn test_parse_unpack_status_ok() {
-//         let input = b"unpack ok";
-//         let result = parse_unpack_status(input);
-//         assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok");
-//     }
-
-//     #[test]
-//     fn test_parse_unpack_status_ok_newline() {
-//         let input = b"unpack ok\n";
-//         let result = parse_unpack_status(input);
-//         assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok");
-//     }
-
-//     #[test]
-//     fn test_parse_unpack_status_error_msg() {
-//         let input = b"unpack some error message";
-//         let result = parse_unpack_status(input);
-//         assert_eq!(
-//             result.map(|x| x.1),
-//             Ok(UnpackResult::ErrorMsg(ErrorMsg(BString::new(
-//                 b"some error message".to_vec()
-//             )))),
-//             "error msg"
-//         );
-//     }
-
-//     #[test]
-//     fn test_parse_unpack_status_error_msg_newline() {
-//         let input = b"unpack some error message\n";
-//         let result = parse_unpack_status(input);
-//         assert_eq!(
-//             result.map(|x| x.1),
-//             Ok(UnpackResult::ErrorMsg(ErrorMsg(BString::new(
-//                 b"some error message\n".to_vec()
-//             )))),
-//             "error msg"
-//         );
-//     }
-
-//     #[test]
-//     fn test_parse_unpack_result_ok() {
-//         let input = b"ok";
-//         let result = parse_unpack_result(input);
-//         assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok");
-//     }
-
-//     #[test]
-//     fn test_parse_unpack_result_error_msg() {
-//         let input = b"some error message";
-//         let result = parse_unpack_result(input);
-//         assert_eq!(
-//             result.map(|x| x.1),
-//             Ok(UnpackResult::ErrorMsg(ErrorMsg(BString::new(
-//                 input.to_vec()
-//             )))),
-//             "error msg"
-//         );
-//     }
-
-//     #[test]
-//     fn test_parse_error_msg_not_ok() {
-//         let input = b"some error message";
-//         let result = parse_error_msg(input);
-//         assert_eq!(
-//             result.map(|x| x.1),
-//             Ok(ErrorMsg(BString::new(input.to_vec()))),
-//             "error msg not ok"
-//         );
-//     }
-
-//     #[test]
-//     fn test_parse_error_msg_ok() {
-//         let input = b"ok";
-//         let result = parse_error_msg(input);
-//         assert_eq!(
-//             result,
-//             Err(nom::Err::Failure(ParseError::ErrorMsgIsOk)),
-//             "error msg is ok"
-//         );
-//     }
-// }
