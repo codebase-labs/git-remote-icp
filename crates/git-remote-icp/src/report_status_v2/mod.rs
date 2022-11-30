@@ -168,7 +168,19 @@ fn parse_unpack_result<'a, Error: nom::error::ParseError<&'a [u8]>>(
     ))(input)
 }
 
-// TODO: send commit without tree to trigger error
+// TODO: send commit without tree to trigger error for test case
+/*
+fn parse_error_msg<'a, Error: nom::error::ParseError<&'a [u8]>>(
+    input: &'a [u8],
+) -> IResult<&'a [u8], ErrorMsg, Error> {
+    // FIXME: this should be 1*(OCTET)
+    let (next_input, error_msg) =
+        nom::combinator::verify(nom::combinator::rest, |bytes: &[u8]| bytes != b"ok")(input)?;
+
+    Ok((next_input, ErrorMsg(BString::from(error_msg))))
+}
+*/
+
 fn parse_error_msg<'a, Error: nom::error::ParseError<&'a [u8]>>(
     input: &'a [u8]
 ) -> IResult<&'a [u8], ErrorMsg, Error> {
