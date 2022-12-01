@@ -3,9 +3,9 @@
 // use git::protocol::futures_io::AsyncRead;
 use git::protocol::futures_lite::AsyncBufReadExt as _;
 // use git::protocol::futures_lite::AsyncReadExt as _;
-// use git::protocol::transport::packetline;
 use git::bstr::{BString, B};
 use git::protocol::transport::client::ExtendedBufRead;
+use git::protocol::transport::packetline;
 use git_repository as git;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1};
@@ -40,16 +40,29 @@ pub struct ErrorMsg(BString);
 pub struct RefName(BString);
 
 pub async fn parse<'a>(
-    input: &mut (dyn ExtendedBufRead + Unpin + 'a),
+    input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
 ) -> anyhow::Result<ReportStatusV2> {
-    let mut buf = String::new();
-
     // TODO: consider input.fail_on_err_lines(true);
-    let _bytes_read = input.read_line(&mut buf).await?;
+    let unpack_result = match input.readline().await {
+        Some(line) => {
+            let line = line
+                .map_err(|err| ParseError::Io(err.to_string()))?
+                .map_err(|err| ParseError::PacketLineDecode(err.to_string()))?;
 
-    let (_next_input, unpack_result) = parse_unpack_status::<'_, ()>(&buf.into_bytes())?;
+            // Similar to line.as_slice() but with a custom error
+            let line = match line {
+                packetline::PacketLineRef::Data(data) => Ok(data),
+                packetline::PacketLineRef::Flush => Err(ParseError::UnexpectedFlush),
+                packetline::PacketLineRef::Delimiter => Err(ParseError::UnexpectedDelimiter),
+                packetline::PacketLineRef::ResponseEnd => Err(ParseError::UnexpectedResponseEnd),
+            }?;
 
-    // TODO: confirm that we don't need to call buf.clear() because into_bytes() consumes the buf
+            parse_unpack_status(line).map(|x| x.1).map_err(
+                |err: nom::Err<(_, nom::error::ErrorKind)>| ParseError::Nom(err.to_string()),
+            )
+        }
+        None => Err(ParseError::FailedToReadUnpackStatus),
+    }?;
 
     // TODO: parse the next line also using read_line with the command_status_v2 parser
     // TODO: parse the remaining lines in a loop with the command_status_v2 parser
@@ -75,35 +88,7 @@ pub async fn parse<'a>(
     // TEMP
     let command_statuses = Vec::new();
 
-    // TODO: let refname = git_validate::reference::name()?;
-
-    /*
-    let unpack_status = match iter.read_line().await {
-        Some(line) => {
-            let line = line
-               .map_err(|err| nom::Err::Failure(ParseError::Io(err.to_string())))?
-                .map_err(|err| nom::Err::Failure(ParseError::PacketLineDecode(err.to_string())))?;
-
-            // Similar to line.as_slice() but with a custom error
-            let line = match line {
-                packetline::PacketLineRef::Data(data) => Ok(data),
-                packetline::PacketLineRef::Flush => {
-                    Err(nom::Err::Failure(ParseError::UnexpectedFlush))
-                }
-                packetline::PacketLineRef::Delimiter => {
-                    Err(nom::Err::Failure(ParseError::UnexpectedDelimiter))
-                }
-                packetline::PacketLineRef::ResponseEnd => {
-                    Err(nom::Err::Failure(ParseError::UnexpectedResponseEnd))
-                }
-            }?;
-
-            parse_unpack_status(line)
-            // Err(nom::Err::Failure(ParseError::FailedToReadUnpackStatus))
-        }
-        None => Err(nom::Err::Failure(ParseError::FailedToReadUnpackStatus)),
-    }?;
-    */
+    // TODO: let refname = git_validate::reference::name()?; or use with nom::combinator::verify
 
     Ok((unpack_result, command_statuses))
 }
@@ -149,22 +134,57 @@ where
     })(input)
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ParseError {
+    ErrorMsgIsOk,
+    FailedToReadUnpackStatus,
+    Io(String),
+    Nom(String),
+    PacketLineDecode(String),
+    UnexpectedFlush,
+    UnexpectedDelimiter,
+    UnexpectedResponseEnd,
+}
+
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let msg = match self {
+            Self::ErrorMsgIsOk => "error msg is \"ok\"".to_string(),
+            Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
+            Self::Io(err) => format!("IO error: {}", err),
+            Self::Nom(err) => format!("nom error: {}", err),
+            Self::PacketLineDecode(err) => err.to_string(),
+            Self::UnexpectedFlush => "unexpected flush packet".to_string(),
+            Self::UnexpectedDelimiter => "unexpected delimiter".to_string(),
+            Self::UnexpectedResponseEnd => "unexpected response end".to_string(),
+        };
+        write!(f, "{}", msg)
+    }
+}
+
+impl std::error::Error for ParseError {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    fn test_parse() {
+        assert!(false)
+    }
+
+    #[test]
     fn test_parse_unpack_status_ok() {
         let input = b"unpack ok";
         let result = parse_unpack_status::<nom::error::Error<_>>(input);
-        assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok");
+        assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok")
     }
 
     #[test]
     fn test_parse_unpack_status_ok_newline() {
         let input = b"unpack ok\n";
         let result = parse_unpack_status::<nom::error::Error<_>>(input);
-        assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok");
+        assert_eq!(result.map(|x| x.1), Ok(UnpackResult::Ok), "ok")
     }
 
     #[test]
@@ -177,7 +197,7 @@ mod tests {
                 b"some error message".to_vec()
             )))),
             "error msg"
-        );
+        )
     }
 
     #[test]
@@ -190,7 +210,7 @@ mod tests {
                 b"some error message\n".to_vec()
             )))),
             "error msg"
-        );
+        )
     }
 
     #[test]
@@ -210,7 +230,7 @@ mod tests {
                 input.to_vec()
             )))),
             "error msg"
-        );
+        )
     }
 
     #[test]
@@ -221,7 +241,7 @@ mod tests {
             result.map(|x| x.1),
             Ok(ErrorMsg(BString::new(input.to_vec()))),
             "error msg not ok"
-        );
+        )
     }
 
     #[test]
@@ -235,6 +255,6 @@ mod tests {
                 code: nom::error::ErrorKind::Verify
             })),
             "error msg is ok"
-        );
+        )
     }
 }
