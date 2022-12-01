@@ -264,7 +264,7 @@ mod tests {
         assert_eq!(
             result.map(|x| x.1),
             Err(nom::Err::Error(nom::error::Error {
-                input: vec![111, 107].as_slice(),
+                input: input.as_bytes(),
                 code: nom::error::ErrorKind::Verify
             })),
             "error msg is ok"
