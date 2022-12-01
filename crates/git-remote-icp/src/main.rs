@@ -53,6 +53,7 @@ enum ListVariant {
 
 const GIT_DIR: &str = "GIT_DIR";
 
+// TODO: investigate using clap multicall to provide git-remote-tcp and git-remote-icp
 // TODO: modules for each command
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
