@@ -123,7 +123,9 @@ where
     context("error-msg", |input| {
         // FIXME: this should be 1*(OCTET)
         let (next_input, error_msg) =
-            nom::combinator::verify(nom::combinator::rest, |bytes: &[u8]| bytes != b"ok")(input)?;
+            nom::combinator::verify(nom::combinator::rest, |bytes: &[u8]| {
+                bytes.len() > 0 && bytes != b"ok"
+            })(input)?;
 
         Ok((next_input, ErrorMsg(BString::from(error_msg))))
     })(input)
@@ -162,6 +164,7 @@ impl std::error::Error for ParseError {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use git::bstr::ByteSlice;
 
     #[test]
     fn test_parse() {
@@ -265,6 +268,20 @@ mod tests {
                 code: nom::error::ErrorKind::Verify
             })),
             "error msg is ok"
+        )
+    }
+
+    #[test]
+    fn test_parse_error_msg_empty() {
+        let input = b"";
+        let result = parse_error_msg::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Err(nom::Err::Error(nom::error::Error {
+                input: input.as_bytes(),
+                code: nom::error::ErrorKind::Verify
+            })),
+            "error msg is empty"
         )
     }
 }
