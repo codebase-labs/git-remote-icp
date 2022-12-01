@@ -1,4 +1,3 @@
-// use anyhow::{anyhow, Context};
 // use git::bstr::{BStr, BString, ByteSlice as _, B};
 // use git::protocol::futures_io::AsyncRead;
 use git::protocol::futures_lite::AsyncBufReadExt as _;
@@ -41,7 +40,7 @@ pub struct RefName(BString);
 
 pub async fn parse<'a>(
     input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
-) -> anyhow::Result<ReportStatusV2> {
+) -> Result<ReportStatusV2, ParseError> {
     // TODO: consider input.fail_on_err_lines(true);
     let unpack_result = match input.readline().await {
         Some(line) => {
