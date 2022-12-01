@@ -34,51 +34,54 @@ pub struct ErrorMsg(BString);
 
 pub struct RefName(BString);
 
+async fn parse_data_line<'a, Ok, E>(
+    input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
+    mut parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
+    readline_none_err: ParseError,
+) -> Result<Ok, ParseError>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    match input.readline().await {
+        Some(line) => {
+            let line = line
+                .map_err(|err| ParseError::Io(err.to_string()))?
+                .map_err(|err| ParseError::PacketLineDecode(err.to_string()))?;
+
+            // Similar to line.as_slice() but with a custom error
+            let line = match line {
+                packetline::PacketLineRef::Data(data) => Ok(data),
+                packetline::PacketLineRef::Flush => Err(ParseError::UnexpectedFlush),
+                packetline::PacketLineRef::Delimiter => Err(ParseError::UnexpectedDelimiter),
+                packetline::PacketLineRef::ResponseEnd => Err(ParseError::UnexpectedResponseEnd),
+            }?;
+
+            parser(line)
+                .map(|x| x.1)
+                .map_err(|err| ParseError::Nom(err.to_string()))
+        }
+        None => Err(readline_none_err),
+    }
+}
+
 pub async fn parse<'a>(
     input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
 ) -> Result<ReportStatusV2, ParseError> {
     // TODO: consider input.fail_on_err_lines(true);
-    let unpack_result = match input.readline().await {
-        Some(line) => {
-            let line = line
-                .map_err(|err| ParseError::Io(err.to_string()))?
-                .map_err(|err| ParseError::PacketLineDecode(err.to_string()))?;
 
-            // Similar to line.as_slice() but with a custom error
-            let line = match line {
-                packetline::PacketLineRef::Data(data) => Ok(data),
-                packetline::PacketLineRef::Flush => Err(ParseError::UnexpectedFlush),
-                packetline::PacketLineRef::Delimiter => Err(ParseError::UnexpectedDelimiter),
-                packetline::PacketLineRef::ResponseEnd => Err(ParseError::UnexpectedResponseEnd),
-            }?;
+    let unpack_result = parse_data_line::<_, nom::error::Error<_>>(
+        input,
+        parse_unpack_status,
+        ParseError::FailedToReadUnpackStatus,
+    )
+    .await?;
 
-            parse_unpack_status(line).map(|x| x.1).map_err(
-                |err: nom::Err<(_, nom::error::ErrorKind)>| ParseError::Nom(err.to_string()),
-            )
-        }
-        None => Err(ParseError::FailedToReadUnpackStatus),
-    }?;
-
-    let first_command_status = match input.readline().await {
-        Some(line) => {
-            let line = line
-                .map_err(|err| ParseError::Io(err.to_string()))?
-                .map_err(|err| ParseError::PacketLineDecode(err.to_string()))?;
-
-            // Similar to line.as_slice() but with a custom error
-            let line = match line {
-                packetline::PacketLineRef::Data(data) => Ok(data),
-                packetline::PacketLineRef::Flush => Err(ParseError::UnexpectedFlush),
-                packetline::PacketLineRef::Delimiter => Err(ParseError::UnexpectedDelimiter),
-                packetline::PacketLineRef::ResponseEnd => Err(ParseError::UnexpectedResponseEnd),
-            }?;
-
-            parse_command_status_v2(line).map(|x| x.1).map_err(
-                |err: nom::Err<(_, nom::error::ErrorKind)>| ParseError::Nom(err.to_string()),
-            )
-        }
-        None => Err(ParseError::FailedToReadCommandStatus),
-    }?;
+    let first_command_status = parse_data_line::<_, nom::error::Error<_>>(
+        input,
+        parse_command_status_v2,
+        ParseError::FailedToReadCommandStatus,
+    )
+    .await?;
 
     // TODO: parse the remaining lines in a loop with the command_status_v2 parser
 
