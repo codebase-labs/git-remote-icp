@@ -1,13 +1,9 @@
-// use git::bstr::{BStr, BString, ByteSlice as _, B};
-// use git::protocol::futures_io::AsyncRead;
-use git::protocol::futures_lite::AsyncBufReadExt as _;
-// use git::protocol::futures_lite::AsyncReadExt as _;
-use git::bstr::{BString, B};
+use git::bstr::BString;
 use git::protocol::transport::client::ExtendedBufRead;
 use git::protocol::transport::packetline;
 use git_repository as git;
 use nom::branch::alt;
-use nom::bytes::complete::{tag, take_while1};
+use nom::bytes::complete::tag;
 use nom::character::complete::char;
 use nom::combinator::{eof, opt};
 use nom::error::context;
