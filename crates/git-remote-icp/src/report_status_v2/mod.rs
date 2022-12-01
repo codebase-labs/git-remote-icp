@@ -168,21 +168,17 @@ mod tests {
 
     #[test]
     fn test_parse() {
-        let input = vec![
-            "000dunpack ok",
-            "0016ok refs/heads/main",
-            "0000",
-        ].join("").into_bytes();
+        let input = vec!["000dunpack ok", "0016ok refs/heads/main", "0000"]
+            .join("")
+            .into_bytes();
         assert!(false)
     }
 
     #[test]
     fn test_parse_newlines() {
-        let input = vec![
-            "000eunpack ok\n",
-            "0017ok refs/heads/main\n",
-            "0000",
-        ].join("").into_bytes();
+        let input = vec!["000eunpack ok\n", "0017ok refs/heads/main\n", "0000"]
+            .join("")
+            .into_bytes();
         assert!(false)
     }
 
