@@ -133,7 +133,6 @@ where
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParseError {
-    ErrorMsgIsOk,
     FailedToReadUnpackStatus,
     Io(String),
     Nom(String),
@@ -146,7 +145,6 @@ pub enum ParseError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let msg = match self {
-            Self::ErrorMsgIsOk => "error msg is \"ok\"".to_string(),
             Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
             Self::Io(err) => format!("IO error: {}", err),
             Self::Nom(err) => format!("nom error: {}", err),
