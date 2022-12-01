@@ -59,7 +59,27 @@ pub async fn parse<'a>(
         None => Err(ParseError::FailedToReadUnpackStatus),
     }?;
 
-    // TODO: parse the next line also using read_line with the command_status_v2 parser
+    let first_command_status = match input.readline().await {
+        Some(line) => {
+            let line = line
+                .map_err(|err| ParseError::Io(err.to_string()))?
+                .map_err(|err| ParseError::PacketLineDecode(err.to_string()))?;
+
+            // Similar to line.as_slice() but with a custom error
+            let line = match line {
+                packetline::PacketLineRef::Data(data) => Ok(data),
+                packetline::PacketLineRef::Flush => Err(ParseError::UnexpectedFlush),
+                packetline::PacketLineRef::Delimiter => Err(ParseError::UnexpectedDelimiter),
+                packetline::PacketLineRef::ResponseEnd => Err(ParseError::UnexpectedResponseEnd),
+            }?;
+
+            parse_command_status_v2(line).map(|x| x.1).map_err(
+                |err: nom::Err<(_, nom::error::ErrorKind)>| ParseError::Nom(err.to_string()),
+            )
+        }
+        None => Err(ParseError::FailedToReadCommandStatus),
+    }?;
+
     // TODO: parse the remaining lines in a loop with the command_status_v2 parser
 
     /*
@@ -131,8 +151,16 @@ where
     })(input)
 }
 
+fn parse_command_status_v2<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], CommandStatusV2, E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context("command-status-v2", |input| todo!())(input)
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParseError {
+    FailedToReadCommandStatus,
     FailedToReadUnpackStatus,
     Io(String),
     Nom(String),
@@ -145,6 +173,7 @@ pub enum ParseError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let msg = match self {
+            Self::FailedToReadCommandStatus => "failed to read command status".to_string(),
             Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
             Self::Io(err) => format!("IO error: {}", err),
             Self::Nom(err) => format!("nom error: {}", err),
