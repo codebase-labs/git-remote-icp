@@ -37,21 +37,21 @@ pub struct ErrorMsg(BString);
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RefName(BString);
 
-pub async fn read_and_parse<'a, T>(input: &'a mut T) -> Result<ReportStatusV2, ParseError>
+pub async fn read_and_parse<'a, T>(buf: &'a mut T) -> Result<ReportStatusV2, ParseError>
 where
     T: ExtendedBufRead + Unpin + 'a,
 {
     // TODO: consider input.fail_on_err_lines(true);
 
     let unpack_result = read_and_parse_data_line::<_, nom::error::Error<_>>(
-        input,
+        buf,
         parse_unpack_status,
         ParseError::FailedToReadUnpackStatus,
     )
     .await?;
 
     let first_command_status =
-        read_and_parse_command_status_v2::<nom::error::Error<_>>(input).await?;
+        read_and_parse_command_status_v2::<nom::error::Error<_>>(buf).await?;
 
     // TODO: parse the remaining lines in a loop with read_and_parse_command_status_v2
 
@@ -117,14 +117,14 @@ where
 }
 
 async fn read_and_parse_command_status_v2<'a, E>(
-    input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
+    buf: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
 ) -> Result<CommandStatusV2, ParseError>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
 {
-    let line = read_data_line(input, ParseError::FailedToReadCommandStatusV2).await?;
+    let line = read_data_line(buf, ParseError::FailedToReadCommandStatusV2).await?;
 
-    let parser = context("command-status-v2", |line| {
+    let parser = context("command-status-v2", |input| {
         //
         todo!()
     });
@@ -133,13 +133,13 @@ where
 }
 
 async fn read_and_parse_command_ok_v2<'a, E>(
-    input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
+    buf: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
 ) -> Result<CommandStatusV2, ParseError>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
 {
     let ref_name = read_and_parse_data_line::<_, nom::error::Error<_>>(
-        input,
+        buf,
         parse_command_ok,
         ParseError::FailedToReadCommandOkV2,
     )
@@ -147,8 +147,8 @@ where
 
     let mut option_lines = Vec::new();
 
-    while let Some(line) = input.readline().await {
-        let line = as_slice(line)?;
+    while let Some(outcome) = buf.readline().await {
+        let line = as_slice(outcome)?;
         let option_line = parse_with(parse_option_line, line)?;
         option_lines.push(option_line);
     }
