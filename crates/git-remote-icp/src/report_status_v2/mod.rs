@@ -160,7 +160,7 @@ where
 {
     let line = read_data_line(input, ParseError::FailedToReadCommandStatusV2).await?;
 
-    let parse_result: IResult<_, _, E> = context("command-stauts-v2", |line| {
+    let parse_result: IResult<_, _, E> = context("command-status-v2", |line| {
         //
         todo!()
     })(line);
