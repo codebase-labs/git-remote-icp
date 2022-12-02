@@ -253,7 +253,7 @@ impl std::error::Error for ParseError {}
 
 async fn read_and_parse_data_line<'a, Ok, E>(
     input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
-    mut parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
+    parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
     read_err: ParseError,
 ) -> Result<Ok, ParseError>
 where
