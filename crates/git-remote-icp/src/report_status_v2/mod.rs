@@ -60,12 +60,12 @@ async fn read_data_line<'a>(
 async fn parse_data_line<'a, Ok, E>(
     input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
     mut parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
-    readline_none_err: ParseError,
+    read_err: ParseError,
 ) -> Result<Ok, ParseError>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
 {
-    let line = read_data_line(input, readline_none_err).await?;
+    let line = read_data_line(input, read_err).await?;
     parser(line)
         .map(|x| x.1)
         .map_err(|err| ParseError::Nom(err.to_string()))
