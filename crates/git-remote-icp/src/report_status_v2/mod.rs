@@ -19,7 +19,7 @@ pub enum UnpackResult {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CommandStatusV2 {
-    Ok(RefName, Option<OptionLine>),
+    Ok(RefName, Vec<OptionLine>),
     Fail(RefName, ErrorMsg),
 }
 
@@ -176,16 +176,27 @@ async fn read_and_parse_command_ok_v2<'a, E>(
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
 {
-    let line = read_data_line(input, ParseError::FailedToReadCommandOkV2).await?;
+    let ref_name = read_and_parse_data_line::<_, nom::error::Error<_>>(
+        input,
+        parse_command_ok,
+        ParseError::FailedToReadCommandOkV2,
+    )
+    .await?;
 
-    let parse_result: IResult<_, _, E> = context("command-ok-v2", |line| {
-        //
-        todo!()
-    })(line);
+    let mut option_lines = Vec::new();
 
-    parse_result
-        .map(|x| x.1)
-        .map_err(|err| ParseError::Nom(err.to_string()))
+    while let Some(line) = input.readline().await {
+        let option_line = read_and_parse_data_line::<_, nom::error::Error<_>>(
+            input,
+            parse_option_line,
+            ParseError::FailedToReadOptionLine,
+        )
+        .await?;
+
+        option_lines.push(option_line);
+    }
+
+    Ok(CommandStatusV2::Ok(ref_name, option_lines))
 }
 
 fn parse_command_ok<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], RefName, E>
@@ -221,7 +232,7 @@ where
 // NOTE
 // * This parser is intentionally overly-permissive for now since we treat
 //   refnames as opaque values anyway.
-// * `git_validate::reference::name` doesn't cover all of the validation cases
+// * `git_validate::refname` doesn't cover all of the validation cases
 //    described in documentation.
 fn parse_refname<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], RefName, E>
 where
@@ -233,7 +244,7 @@ where
                 0o040 <= chr
                     && !vec![0o177, b' ', b'~', b'^', b':', b'?', b'*', b'['].contains(&chr)
             }),
-            |refname: &[u8]| git_validate::reference::name(refname.into()).is_ok(),
+            |refname: &[u8]| git_validate::refname(refname.into()).is_ok(),
         );
         nom::combinator::map(parser, |refname: &[u8]| {
             RefName(BString::new(refname.to_vec()))
@@ -241,10 +252,21 @@ where
     })(input)
 }
 
+fn parse_option_line<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], OptionLine, E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context("option-line", |input| {
+        // TODO
+        todo!()
+    })(input)
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParseError {
     FailedToReadCommandOkV2,
     FailedToReadCommandStatusV2,
+    FailedToReadOptionLine,
     FailedToReadUnpackStatus,
     Io(String),
     Nom(String),
@@ -259,6 +281,7 @@ impl std::fmt::Display for ParseError {
         let msg = match self {
             Self::FailedToReadCommandOkV2 => "failed to read command ok v2".to_string(),
             Self::FailedToReadCommandStatusV2 => "failed to read command status v2".to_string(),
+            Self::FailedToReadOptionLine => "failed to read option line".to_string(),
             Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
             Self::Io(err) => format!("IO error: {}", err),
             Self::Nom(err) => format!("nom error: {}", err),
@@ -363,7 +386,7 @@ mod tests {
             result.map(|x| x.1),
             Ok(CommandStatusV2::Ok(
                 RefName(BString::new(b"refs/heads/main".to_vec())),
-                None
+                Vec::new(),
             )),
             "command-status-v2"
         )
@@ -377,7 +400,7 @@ mod tests {
             result.map(|x| x.1),
             Ok(CommandStatusV2::Ok(
                 RefName(BString::new(b"refs/heads/main".to_vec())),
-                None
+                Vec::new(),
             )),
             "command-status-v2"
         )
