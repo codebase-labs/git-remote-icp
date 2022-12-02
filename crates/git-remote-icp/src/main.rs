@@ -436,7 +436,7 @@ async fn main() -> anyhow::Result<()> {
 
                 // trace!("report: {:#?}", report);
 
-                let report_status = report_status_v2::parse(&mut async_reader).await?;
+                let report_status = report_status_v2::read_and_parse(&mut async_reader).await?;
 
                 // FIXME: output one or more `ok <dst>` or `error <dst> <why>?`
                 // lines to indicate success or failure of each pushed ref. The

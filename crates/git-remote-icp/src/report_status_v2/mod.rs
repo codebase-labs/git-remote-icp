@@ -17,11 +17,13 @@ pub enum UnpackResult {
     ErrorMsg(ErrorMsg),
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CommandStatusV2 {
     Ok(RefName, Option<OptionLine>),
     Fail(RefName, ErrorMsg),
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OptionLine {
     OptionRefName(RefName),
     OptionOldOid(git::hash::ObjectId),
@@ -57,7 +59,7 @@ async fn read_data_line<'a>(
     }
 }
 
-async fn parse_data_line<'a, Ok, E>(
+async fn read_and_parse_data_line<'a, Ok, E>(
     input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
     mut parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
     read_err: ParseError,
@@ -71,40 +73,27 @@ where
         .map_err(|err| ParseError::Nom(err.to_string()))
 }
 
-pub async fn parse<'a>(
-    input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
-) -> Result<ReportStatusV2, ParseError> {
+pub async fn read_and_parse<'a, T>(input: &'a mut T) -> Result<ReportStatusV2, ParseError>
+where
+    T: ExtendedBufRead + Unpin + 'a,
+{
     // TODO: consider input.fail_on_err_lines(true);
 
-    let unpack_result = parse_data_line::<_, nom::error::Error<_>>(
+    let unpack_result = read_and_parse_data_line::<_, nom::error::Error<_>>(
         input,
         parse_unpack_status,
         ParseError::FailedToReadUnpackStatus,
     )
     .await?;
 
-    let first_command_status = parse_data_line::<_, nom::error::Error<_>>(
-        input,
-        parse_command_status_v2,
-        ParseError::FailedToReadCommandStatus,
-    )
-    .await?;
+    let first_command_status =
+        read_and_parse_command_status_v2::<nom::error::Error<_>>(input).await?;
 
-    // TODO: parse the remaining lines in a loop with the command_status_v2 parser
+    // TODO: parse the remaining lines in a loop with read_and_parse_command_status_v2
 
     /*
     while let Some(line) = iter.read_line().await {
-        let line = line
-            .map_err(|_| {
-                // FIXME: IoError(std::io::Error)
-                nom::Err::Failure(ParseError::FailedToReadUnpackStatus)
-            })?
-            .map_err(|_| {
-                // FIXME: PacketLineDecodeError(packetline::decode::Error)
-                nom::Err::Failure(ParseError::FailedToReadUnpackStatus)
-            })?;
-        // let line = line.as_slice()
-        log::debug!("line: {:#?}", line.as_bstr());
+        // TODO
     }
     */
 
@@ -163,13 +152,41 @@ where
     })(input)
 }
 
-fn parse_command_status_v2<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], CommandStatusV2, E>
+async fn read_and_parse_command_status_v2<'a, E>(
+    input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
+) -> Result<CommandStatusV2, ParseError>
 where
-    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
 {
-    context("command-status-v2", |input| todo!())(input)
+    let line = read_data_line(input, ParseError::FailedToReadCommandStatusV2).await?;
+
+    let parse_result: IResult<_, _, E> = context("command-stauts-v2", |line| {
+        //
+        todo!()
+    })(line);
+
+    parse_result
+        .map(|x| x.1)
+        .map_err(|err| ParseError::Nom(err.to_string()))
 }
 
+async fn read_and_parse_command_ok_v2<'a, E>(
+    input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
+) -> Result<CommandStatusV2, ParseError>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
+{
+    let line = read_data_line(input, ParseError::FailedToReadCommandOkV2).await?;
+
+    let parse_result: IResult<_, _, E> = context("command-ok-v2", |line| {
+        //
+        todo!()
+    })(line);
+
+    parse_result
+        .map(|x| x.1)
+        .map_err(|err| ParseError::Nom(err.to_string()))
+}
 
 fn parse_command_ok<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], RefName, E>
 where
@@ -226,7 +243,8 @@ where
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParseError {
-    FailedToReadCommandStatus,
+    FailedToReadCommandOkV2,
+    FailedToReadCommandStatusV2,
     FailedToReadUnpackStatus,
     Io(String),
     Nom(String),
@@ -239,7 +257,8 @@ pub enum ParseError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let msg = match self {
-            Self::FailedToReadCommandStatus => "failed to read command status".to_string(),
+            Self::FailedToReadCommandOkV2 => "failed to read command ok v2".to_string(),
+            Self::FailedToReadCommandStatusV2 => "failed to read command status v2".to_string(),
             Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
             Self::Io(err) => format!("IO error: {}", err),
             Self::Nom(err) => format!("nom error: {}", err),
@@ -260,7 +279,7 @@ mod tests {
     use git::bstr::ByteSlice;
 
     #[test]
-    fn test_parse() {
+    fn test_read_and_parse() {
         let input = vec!["000dunpack ok", "0016ok refs/heads/main", "0000"]
             .join("")
             .into_bytes();
@@ -268,7 +287,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_newlines() {
+    fn test_read_and_parse_newlines() {
         let input = vec!["000eunpack ok\n", "0017ok refs/heads/main\n", "0000"]
             .join("")
             .into_bytes();
@@ -335,6 +354,60 @@ mod tests {
         )
     }
 
+    /*
+    #[test]
+    fn test_read_and_parse_command_status_v2_ok() {
+        let input = b"0016ok refs/heads/main"
+        let result = parse_command_status_v2::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok(CommandStatusV2::Ok(
+                RefName(BString::new(b"refs/heads/main".to_vec())),
+                None
+            )),
+            "command-status-v2"
+        )
+    }
+
+    #[test]
+    fn test_read_and_parse_command_status_v2_ok_newline() {
+        let input = b"0017ok refs/heads/main\n";
+        let result = parse_command_status_v2::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok(CommandStatusV2::Ok(
+                RefName(BString::new(b"refs/heads/main".to_vec())),
+                None
+            )),
+            "command-status-v2"
+        )
+    }
+    */
+
+    #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_0() {
+        assert!(false)
+    }
+
+    #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_1() {
+        assert!(false)
+    }
+
+    #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_3() {
+        assert!(false)
+    }
+
+    #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_4() {
+        assert!(false)
+    }
+
+    #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_2() {
+        assert!(false)
+    }
 
     #[test]
     fn test_parse_command_ok() {
