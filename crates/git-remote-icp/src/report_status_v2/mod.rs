@@ -39,7 +39,7 @@ pub struct RefName(BString);
 
 pub async fn read_and_parse<'a, T>(reader: &'a mut T) -> Result<ReportStatusV2, ParseError>
 where
-    T: ReadlineBufRead + Unpin + 'a,
+    T: ReadlineBufRead + 'a,
 {
     // TODO: consider input.fail_on_err_lines(true);
 
@@ -117,7 +117,7 @@ where
 }
 
 async fn read_and_parse_command_status_v2<'a, E>(
-    reader: &'a mut (dyn ReadlineBufRead + Unpin + 'a),
+    reader: &'a mut (dyn ReadlineBufRead + 'a),
 ) -> Result<CommandStatusV2, ParseError>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
@@ -133,7 +133,7 @@ where
 }
 
 async fn read_and_parse_command_ok_v2<'a, E>(
-    reader: &'a mut (dyn ReadlineBufRead + Unpin + 'a),
+    reader: &'a mut (dyn ReadlineBufRead + 'a),
 ) -> Result<CommandStatusV2, ParseError>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
@@ -252,7 +252,7 @@ impl std::fmt::Display for ParseError {
 impl std::error::Error for ParseError {}
 
 async fn read_and_parse_data_line<'a, Ok, E>(
-    input: &'a mut (dyn ReadlineBufRead + Unpin + 'a),
+    input: &'a mut (dyn ReadlineBufRead + 'a),
     parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
     read_err: ParseError,
 ) -> Result<Ok, ParseError>
@@ -273,7 +273,7 @@ fn parse_with<'a, Ok>(
 }
 
 async fn read_data_line<'a>(
-    input: &'a mut (dyn ReadlineBufRead + Unpin + 'a),
+    input: &'a mut (dyn ReadlineBufRead + 'a),
     err: ParseError,
 ) -> Result<&'a [u8], ParseError> {
     match input.readline().await {
