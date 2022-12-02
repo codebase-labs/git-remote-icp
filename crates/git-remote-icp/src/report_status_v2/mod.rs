@@ -3,7 +3,7 @@ use git::protocol::transport::client::ExtendedBufRead;
 use git::protocol::transport::packetline;
 use git_repository as git;
 use nom::branch::alt;
-use nom::bytes::complete::tag;
+use nom::bytes::complete::{tag, take_while1};
 use nom::character::complete::char;
 use nom::combinator::{eof, opt};
 use nom::error::context;
@@ -32,6 +32,7 @@ pub enum OptionLine {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ErrorMsg(BString);
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RefName(BString);
 
 async fn parse_data_line<'a, Ok, E>(
@@ -106,8 +107,6 @@ pub async fn parse<'a>(
     // TEMP
     let command_statuses = Vec::new();
 
-    // TODO: let refname = git_validate::reference::name()?; or use with nom::combinator::verify
-
     Ok((unpack_result, command_statuses))
 }
 
@@ -159,6 +158,42 @@ where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
 {
     context("command-status-v2", |input| todo!())(input)
+}
+
+
+fn parse_command_ok<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], RefName, E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context("command-ok", |input| {
+        let (next_input, _unpack) = tag(b"ok")(input)?;
+        let (next_input, _space) = char(' ')(next_input)?;
+        let (next_input, refname) = parse_refname(next_input)?;
+        let (next_input, _newline) = opt(char('\n'))(next_input)?;
+        let (next_input, _) = eof(next_input)?;
+        Ok((next_input, refname))
+    })(input)
+}
+// NOTE
+// * This parser is intentionally overly-permissive for now since we treat
+//   refnames as opaque values anyway.
+// * `git_validate::reference::name` doesn't cover all of the validation cases
+//    described in documentation.
+fn parse_refname<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], RefName, E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context("refname", |input| {
+        let parser = nom::combinator::verify(
+            take_while1(|chr| {
+                chr >= 0o040 && !vec![0o177, b'~', b'^', b':', b'?', b'*', b'['].contains(&chr)
+            }),
+            |refname: &[u8]| git_validate::reference::name(refname.into()).is_ok(),
+        );
+        nom::combinator::map(parser, |refname: &[u8]| {
+            RefName(BString::new(refname.to_vec()))
+        })(input)
+    })(input)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -272,6 +307,28 @@ mod tests {
         )
     }
 
+
+    #[test]
+    fn test_parse_command_ok() {
+        let input = b"ok refs/heads/main";
+        let result = parse_command_ok::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok(RefName(BString::new(b"refs/heads/main".to_vec()))),
+            "command-ok"
+        )
+    }
+
+    #[test]
+    fn test_parse_command_ok_newline() {
+        let input = b"ok refs/heads/main\n";
+        let result = parse_command_ok::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok(RefName(BString::new(b"refs/heads/main".to_vec()))),
+            "command-ok"
+        )
+    }
     #[test]
     fn test_parse_error_msg_not_ok() {
         let input = b"some error message";
