@@ -143,8 +143,12 @@ where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
 {
     context("error-msg", |input| {
-        // FIXME: this should be 1*(OCTET)
         let (next_input, error_msg) =
+            // The core rules for the ABNF standard define OCTET as %x00-FF.
+            //
+            // However, representing this accurately with `take_while1(|chr|
+            // 0x00 <= chr && chr <= 0xFF)` exceeds the limits of the u8 type,
+            // so we use `rest` instead.
             nom::combinator::verify(nom::combinator::rest, |bytes: &[u8]| {
                 bytes.len() > 0 && bytes != b"ok"
             })(input)?;
