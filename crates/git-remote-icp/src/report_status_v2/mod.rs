@@ -35,6 +35,28 @@ pub struct ErrorMsg(BString);
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RefName(BString);
 
+async fn read_data_line<'a>(
+    input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
+    err: ParseError,
+) -> Result<&'a [u8], ParseError> {
+    match input.readline().await {
+        Some(line) => {
+            let line = line
+                .map_err(|err| ParseError::Io(err.to_string()))?
+                .map_err(|err| ParseError::PacketLineDecode(err.to_string()))?;
+
+            // Similar to line.as_slice() but with a custom error
+            match line {
+                packetline::PacketLineRef::Data(data) => Ok(data),
+                packetline::PacketLineRef::Flush => Err(ParseError::UnexpectedFlush),
+                packetline::PacketLineRef::Delimiter => Err(ParseError::UnexpectedDelimiter),
+                packetline::PacketLineRef::ResponseEnd => Err(ParseError::UnexpectedResponseEnd),
+            }
+        }
+        None => Err(err),
+    }
+}
+
 async fn parse_data_line<'a, Ok, E>(
     input: &'a mut (dyn ExtendedBufRead + Unpin + 'a),
     mut parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
@@ -43,26 +65,10 @@ async fn parse_data_line<'a, Ok, E>(
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
 {
-    match input.readline().await {
-        Some(line) => {
-            let line = line
-                .map_err(|err| ParseError::Io(err.to_string()))?
-                .map_err(|err| ParseError::PacketLineDecode(err.to_string()))?;
-
-            // Similar to line.as_slice() but with a custom error
-            let line = match line {
-                packetline::PacketLineRef::Data(data) => Ok(data),
-                packetline::PacketLineRef::Flush => Err(ParseError::UnexpectedFlush),
-                packetline::PacketLineRef::Delimiter => Err(ParseError::UnexpectedDelimiter),
-                packetline::PacketLineRef::ResponseEnd => Err(ParseError::UnexpectedResponseEnd),
-            }?;
-
-            parser(line)
-                .map(|x| x.1)
-                .map_err(|err| ParseError::Nom(err.to_string()))
-        }
-        None => Err(readline_none_err),
-    }
+    let line = read_data_line(input, readline_none_err).await?;
+    parser(line)
+        .map(|x| x.1)
+        .map_err(|err| ParseError::Nom(err.to_string()))
 }
 
 pub async fn parse<'a>(
