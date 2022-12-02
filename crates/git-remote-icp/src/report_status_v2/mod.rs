@@ -178,6 +178,23 @@ where
         Ok((next_input, refname))
     })(input)
 }
+
+fn parse_command_fail<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], (RefName, ErrorMsg), E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context("command-fail", |input| {
+        let (next_input, _unpack) = tag(b"ng")(input)?;
+        let (next_input, _space) = char(' ')(next_input)?;
+        let (next_input, refname) = parse_refname(next_input)?;
+        let (next_input, _space) = char(' ')(next_input)?;
+        let (next_input, error_msg) = parse_error_msg(next_input)?;
+        let (next_input, _newline) = opt(char('\n'))(next_input)?;
+        let (next_input, _) = eof(next_input)?;
+        Ok((next_input, (refname, error_msg)))
+    })(input)
+}
+
 // NOTE
 // * This parser is intentionally overly-permissive for now since we treat
 //   refnames as opaque values anyway.
@@ -334,6 +351,35 @@ mod tests {
             "command-ok"
         )
     }
+
+    #[test]
+    fn test_parse_command_fail() {
+        let input = b"ng refs/heads/main some error message";
+        let result = parse_command_fail::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok((
+                RefName(BString::new(b"refs/heads/main".to_vec())),
+                ErrorMsg(BString::new(b"some error message".to_vec())),
+            )),
+            "command-fail"
+        )
+    }
+
+    #[test]
+    fn test_parse_command_fail_newline() {
+        let input = b"ng refs/heads/main some error message\n";
+        let result = parse_command_fail::<nom::error::Error<_>>(input);
+        assert_eq!(
+            result.map(|x| x.1),
+            Ok((
+                RefName(BString::new(b"refs/heads/main".to_vec())),
+                ErrorMsg(BString::new(b"some error message\n".to_vec())),
+            )),
+            "command-fail"
+        )
+    }
+
     #[test]
     fn test_parse_error_msg_not_ok() {
         let input = b"some error message";
