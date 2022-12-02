@@ -190,7 +190,8 @@ where
     context("refname", |input| {
         let parser = nom::combinator::verify(
             take_while1(|chr| {
-                chr >= 0o040 && !vec![0o177, b'~', b'^', b':', b'?', b'*', b'['].contains(&chr)
+                0o040 <= chr
+                    && !vec![0o177, b' ', b'~', b'^', b':', b'?', b'*', b'['].contains(&chr)
             }),
             |refname: &[u8]| git_validate::reference::name(refname.into()).is_ok(),
         );
