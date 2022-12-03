@@ -352,20 +352,22 @@ mod tests {
         }
     }
 
+    #[ignore]
     #[test]
     fn test_read_and_parse() {
         let input = vec!["000dunpack ok", "0016ok refs/heads/main", "0000"]
             .join("")
             .into_bytes();
-        assert!(false)
+        todo!()
     }
 
+    #[ignore]
     #[test]
     fn test_read_and_parse_newlines() {
         let input = vec!["000eunpack ok\n", "0017ok refs/heads/main\n", "0000"]
             .join("")
             .into_bytes();
-        assert!(false)
+        todo!()
     }
 
     #[test]
@@ -458,44 +460,52 @@ mod tests {
         )
     }
 
-    #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_1() {
-        assert!(false)
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_ok_v2_option_lines_1() {
+        todo!()
     }
 
-    #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_1_newline() {
-        assert!(false)
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_ok_v2_option_lines_1_newline() {
+        todo!()
     }
 
-    #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_2() {
-        assert!(false)
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_ok_v2_option_lines_2() {
+        todo!()
     }
 
-    #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_2_newline() {
-        assert!(false)
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_ok_v2_option_lines_2_newline() {
+        todo!()
     }
 
-    #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_3() {
-        assert!(false)
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_ok_v2_option_lines_3() {
+        todo!()
     }
 
-    #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_3_newline() {
-        assert!(false)
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_ok_v2_option_lines_3_newline() {
+        todo!()
     }
 
-    #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_4() {
-        assert!(false)
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_ok_v2_option_lines_4() {
+        todo!()
     }
 
-    #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_4_newline() {
-        assert!(false)
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_ok_v2_option_lines_4_newline() {
+        todo!()
     }
 
     #[test]
