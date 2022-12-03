@@ -464,7 +464,27 @@ mod tests {
     }
 
     #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_1_newline() {
+        assert!(false)
+    }
+
+    #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_2() {
+        assert!(false)
+    }
+
+    #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_2_newline() {
+        assert!(false)
+    }
+
+    #[test]
     fn test_read_and_parse_command_ok_v2_option_lines_3() {
+        assert!(false)
+    }
+
+    #[test]
+    fn test_read_and_parse_command_ok_v2_option_lines_3_newline() {
         assert!(false)
     }
 
@@ -474,7 +494,7 @@ mod tests {
     }
 
     #[test]
-    fn test_read_and_parse_command_ok_v2_option_lines_2() {
+    fn test_read_and_parse_command_ok_v2_option_lines_4_newline() {
         assert!(false)
     }
 
