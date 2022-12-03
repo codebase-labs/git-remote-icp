@@ -432,7 +432,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_and_parse_command_ok_v2_option_lines_0() {
-        let input = b"0016ok refs/heads/main";
+        let input = b"ok refs/heads/main";
         let mut reader = Fixture(input);
         let result = read_and_parse_command_ok_v2::<nom::error::Error<_>>(&mut reader).await;
         assert_eq!(
@@ -447,7 +447,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_and_parse_command_ok_v2_option_lines_0_newline() {
-        let input = b"0017ok refs/heads/main\n";
+        let input = b"ok refs/heads/main\n";
         let mut reader = Fixture(input);
         let result = read_and_parse_command_ok_v2::<nom::error::Error<_>>(&mut reader).await;
         assert_eq!(
