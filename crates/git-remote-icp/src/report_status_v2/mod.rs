@@ -51,6 +51,8 @@ where
     let first_command_status =
         read_and_parse_command_status_v2::<nom::error::Error<_>>(reader).await?;
 
+    let mut command_statuses = vec![first_command_status];
+
     // TODO: parse the remaining lines in a loop with read_and_parse_command_status_v2
 
     /*
@@ -58,9 +60,6 @@ where
         // TODO
     }
     */
-
-    // TEMP
-    let command_statuses = Vec::new();
 
     Ok((unpack_result, command_statuses))
 }
