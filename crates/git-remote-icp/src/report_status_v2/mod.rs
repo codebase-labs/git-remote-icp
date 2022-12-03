@@ -343,22 +343,74 @@ mod tests {
         }
     }
 
-    #[ignore]
-    #[test]
-    fn test_read_and_parse() {
-        let input = vec!["000dunpack ok", "0016ok refs/heads/main", "0000"]
-            .join("")
+    #[tokio::test]
+    async fn test_read_and_parse_ok_1_ok_command_status_v2() {
+        let mut input = vec!["unpack ok", "ok refs/heads/main"]
+            .join("\n")
             .into_bytes();
-        todo!()
+        let mut reader = Fixture(&mut input);
+        let result = read_and_parse(&mut reader).await;
+        assert_eq!(
+            result,
+            Ok((
+                UnpackResult::Ok,
+                vec![CommandStatusV2::Ok(
+                    RefName(BString::new(b"refs/heads/main".to_vec())),
+                    Vec::new(),
+                ),]
+            )),
+            "report-status-v2"
+        )
     }
 
-    #[ignore]
-    #[test]
-    fn test_read_and_parse_newlines() {
-        let input = vec!["000eunpack ok\n", "0017ok refs/heads/main\n", "0000"]
-            .join("")
+    #[tokio::test]
+    async fn test_read_and_parse_ok_1_fail_command_status_v2() {
+        let mut input = vec!["unpack ok", "ng refs/heads/some-branch some error message"]
+            .join("\n")
             .into_bytes();
-        todo!()
+        let mut reader = Fixture(&mut input);
+        let result = read_and_parse(&mut reader).await;
+        assert_eq!(
+            result,
+            Ok((
+                UnpackResult::Ok,
+                vec![CommandStatusV2::Fail(
+                    RefName(BString::new(b"refs/heads/main".to_vec())),
+                    ErrorMsg(BString::new(b"some error message".to_vec()))
+                ),]
+            )),
+            "report-status-v2"
+        )
+    }
+
+    #[tokio::test]
+    async fn test_read_and_parse_ok_2_command_status_v2() {
+        let mut input = vec![
+            "unpack ok",
+            "ok refs/heads/main",
+            "ng refs/heads/some-branch some error message",
+        ]
+        .join("\n")
+        .into_bytes();
+        let mut reader = Fixture(&mut input);
+        let result = read_and_parse(&mut reader).await;
+        assert_eq!(
+            result,
+            Ok((
+                UnpackResult::Ok,
+                vec![
+                    CommandStatusV2::Ok(
+                        RefName(BString::new(b"refs/heads/main".to_vec())),
+                        Vec::new(),
+                    ),
+                    CommandStatusV2::Fail(
+                        RefName(BString::new(b"refs/heads/main".to_vec())),
+                        ErrorMsg(BString::new(b"some error message".to_vec()))
+                    ),
+                ]
+            )),
+            "report-status-v2"
+        )
     }
 
     #[test]
