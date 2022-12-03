@@ -441,7 +441,7 @@ mod tests {
                 RefName(BString::new(b"refs/heads/main".to_vec())),
                 Vec::new(),
             )),
-            "command-ok-v2"
+            "command-status-v2"
         )
     }
 
@@ -456,7 +456,7 @@ mod tests {
                 RefName(BString::new(b"refs/heads/main".to_vec())),
                 Vec::new(),
             )),
-            "command-ok-v2"
+            "command-status-v2"
         )
     }
 
