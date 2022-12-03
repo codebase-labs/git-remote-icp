@@ -128,10 +128,13 @@ where
         CommandStatusV2::Fail(ref_name, error_msg)
     });
 
-    let first_line_parser = context("command-status-v2", alt((ok_parser, fail_parser)));
-    let without_option_lines = parse_with(first_line_parser, first_line)?;
+    let command_status_v2_first_line_parser =
+        context("command-status-v2", alt((ok_parser, fail_parser)));
 
-    let command_status_v2 = match without_option_lines {
+    let command_status_v2_first_line_parse_result =
+        parse_with(command_status_v2_first_line_parser, first_line)?;
+
+    let command_status_v2 = match command_status_v2_first_line_parse_result {
         CommandStatusV2::Ok(ref_name, _) => {
             let mut option_lines = Vec::new();
 
