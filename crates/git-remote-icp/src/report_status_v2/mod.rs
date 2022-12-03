@@ -422,7 +422,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_0() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_0_option_lines() {
         let input = b"ok refs/heads/main";
         let mut reader = Fixture(input);
         let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
@@ -437,7 +437,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_0_newline() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_0_option_lines_newline() {
         let input = b"ok refs/heads/main\n";
         let mut reader = Fixture(input);
         let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
@@ -453,49 +453,49 @@ mod tests {
 
     #[ignore]
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_1() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_1_option_lines() {
         todo!()
     }
 
     #[ignore]
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_1_newline() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_1_option_lines_newline() {
         todo!()
     }
 
     #[ignore]
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_2() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_2_option_lines() {
         todo!()
     }
 
     #[ignore]
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_2_newline() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_2_option_lines_newline() {
         todo!()
     }
 
     #[ignore]
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_3() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_3_option_lines() {
         todo!()
     }
 
     #[ignore]
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_3_newline() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_3_option_lines_newline() {
         todo!()
     }
 
     #[ignore]
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_4() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_4_option_lines() {
         todo!()
     }
 
     #[ignore]
     #[tokio::test]
-    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_4_newline() {
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_4_option_lines_newline() {
         todo!()
     }
 
