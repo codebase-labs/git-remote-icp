@@ -431,6 +431,94 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_0() {
+        let input = b"ok refs/heads/main";
+        let mut reader = Fixture(input);
+        let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
+        assert_eq!(
+            result,
+            Ok(CommandStatusV2::Ok(
+                RefName(BString::new(b"refs/heads/main".to_vec())),
+                Vec::new(),
+            )),
+            "command-ok-v2"
+        )
+    }
+
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_0_newline() {
+        let input = b"ok refs/heads/main\n";
+        let mut reader = Fixture(input);
+        let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
+        assert_eq!(
+            result,
+            Ok(CommandStatusV2::Ok(
+                RefName(BString::new(b"refs/heads/main".to_vec())),
+                Vec::new(),
+            )),
+            "command-ok-v2"
+        )
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_1() {
+        todo!()
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_1_newline() {
+        todo!()
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_2() {
+        todo!()
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_2_newline() {
+        todo!()
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_3() {
+        todo!()
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_3_newline() {
+        todo!()
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_4() {
+        todo!()
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_ok_v2_option_lines_4_newline() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_fail() {
+        todo!()
+    }
+
+    #[tokio::test]
+    async fn test_read_and_parse_command_status_v2_command_fail_newline() {
+        todo!()
+    }
+
+    #[tokio::test]
     async fn test_read_and_parse_command_ok_v2_option_lines_0() {
         let input = b"ok refs/heads/main";
         let mut reader = Fixture(input);
