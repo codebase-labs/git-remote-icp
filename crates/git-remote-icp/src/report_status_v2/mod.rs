@@ -122,38 +122,35 @@ async fn read_and_parse_command_status_v2<'a, E>(
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
 {
-    let line = read_data_line(reader, ParseError::FailedToReadCommandStatusV2).await?;
+    let first_line = read_data_line(reader, ParseError::FailedToReadCommandStatusV2).await?;
 
-    let parser = context("command-status-v2", |input| {
-        //
-        todo!()
+    let ok_parser = nom::combinator::map(parse_command_ok, |ref_name| {
+        CommandStatusV2::Ok(ref_name, Vec::new())
     });
 
-    parse_with(parser, line)
-}
+    let fail_parser = nom::combinator::map(parse_command_fail, |(ref_name, error_msg)| {
+        CommandStatusV2::Fail(ref_name, error_msg)
+    });
 
-async fn read_and_parse_command_ok_v2<'a, E>(
-    reader: &'a mut (dyn ReadlineBufRead + 'a),
-) -> Result<CommandStatusV2, ParseError>
-where
-    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
-{
-    let ref_name = read_and_parse_data_line::<_, nom::error::Error<_>>(
-        reader,
-        parse_command_ok,
-        ParseError::FailedToReadCommandOkV2,
-    )
-    .await?;
+    let first_line_parser = context("command-status-v2", alt((ok_parser, fail_parser)));
+    let without_option_lines = parse_with(first_line_parser, first_line)?;
 
-    let mut option_lines = Vec::new();
+    let command_status_v2 = match without_option_lines {
+        CommandStatusV2::Ok(ref_name, _) => {
+            let mut option_lines = Vec::new();
 
-    while let Some(outcome) = reader.readline().await {
-        let line = as_slice(outcome)?;
-        let option_line = parse_with(parse_option_line, line)?;
-        option_lines.push(option_line);
-    }
+            while let Some(outcome) = reader.readline().await {
+                let line = as_slice(outcome)?;
+                let option_line = parse_with(parse_option_line, line)?;
+                option_lines.push(option_line);
+            }
 
-    Ok(CommandStatusV2::Ok(ref_name, option_lines))
+            CommandStatusV2::Ok(ref_name, option_lines)
+        }
+        CommandStatusV2::Fail(ref_name, error_msg) => CommandStatusV2::Fail(ref_name, error_msg),
+    };
+
+    Ok(command_status_v2)
 }
 
 fn parse_command_ok<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], RefName, E>
@@ -221,7 +218,6 @@ where
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParseError {
-    FailedToReadCommandOkV2,
     FailedToReadCommandStatusV2,
     FailedToReadUnpackStatus,
     Io(String),
@@ -235,7 +231,6 @@ pub enum ParseError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let msg = match self {
-            Self::FailedToReadCommandOkV2 => "failed to read command ok v2".to_string(),
             Self::FailedToReadCommandStatusV2 => "failed to read command status v2".to_string(),
             Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
             Self::Io(err) => format!("IO error: {}", err),
@@ -510,90 +505,32 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_and_parse_command_status_v2_command_fail() {
-        todo!()
+        let input = b"ng refs/heads/main some error message";
+        let mut reader = Fixture(input);
+        let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
+        assert_eq!(
+            result,
+            Ok(CommandStatusV2::Fail(
+                RefName(BString::new(b"refs/heads/main".to_vec())),
+                ErrorMsg(BString::new(b"some error message".to_vec())),
+            )),
+            "command-status-v2"
+        )
     }
 
     #[tokio::test]
     async fn test_read_and_parse_command_status_v2_command_fail_newline() {
-        todo!()
-    }
-
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_0() {
-        let input = b"ok refs/heads/main";
+        let input = b"ng refs/heads/main some error message\n";
         let mut reader = Fixture(input);
-        let result = read_and_parse_command_ok_v2::<nom::error::Error<_>>(&mut reader).await;
+        let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
         assert_eq!(
             result,
-            Ok(CommandStatusV2::Ok(
+            Ok(CommandStatusV2::Fail(
                 RefName(BString::new(b"refs/heads/main".to_vec())),
-                Vec::new(),
+                ErrorMsg(BString::new(b"some error message".to_vec())),
             )),
-            "command-ok-v2"
+            "command-status-v2"
         )
-    }
-
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_0_newline() {
-        let input = b"ok refs/heads/main\n";
-        let mut reader = Fixture(input);
-        let result = read_and_parse_command_ok_v2::<nom::error::Error<_>>(&mut reader).await;
-        assert_eq!(
-            result,
-            Ok(CommandStatusV2::Ok(
-                RefName(BString::new(b"refs/heads/main".to_vec())),
-                Vec::new(),
-            )),
-            "command-ok-v2"
-        )
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_1() {
-        todo!()
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_1_newline() {
-        todo!()
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_2() {
-        todo!()
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_2_newline() {
-        todo!()
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_3() {
-        todo!()
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_3_newline() {
-        todo!()
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_4() {
-        todo!()
-    }
-
-    #[ignore]
-    #[tokio::test]
-    async fn test_read_and_parse_command_ok_v2_option_lines_4_newline() {
-        todo!()
     }
 
     #[test]
