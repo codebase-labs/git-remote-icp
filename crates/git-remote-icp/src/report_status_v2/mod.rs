@@ -368,7 +368,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_and_parse_ok_1_fail_command_status_v2() {
-        let mut input = vec!["unpack ok", "ng refs/heads/some-branch some error message"]
+        let mut input = vec!["unpack ok", "ng refs/heads/main some error message"]
             .join("\n")
             .into_bytes();
         let mut reader = Fixture(&mut input);
