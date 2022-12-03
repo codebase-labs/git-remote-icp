@@ -41,8 +41,6 @@ pub async fn read_and_parse<'a, T>(reader: &'a mut T) -> Result<ReportStatusV2, 
 where
     T: ReadlineBufRead + 'a,
 {
-    // TODO: consider input.fail_on_err_lines(true);
-
     let unpack_result = read_and_parse_data_line::<_, nom::error::Error<_>>(
         reader,
         parse_unpack_status,
@@ -60,8 +58,6 @@ where
         // TODO
     }
     */
-
-    // TODO: .stopped_at() == Some(packetline::PacketLineRef::Flush)
 
     // TEMP
     let command_statuses = Vec::new();
