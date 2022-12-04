@@ -24,6 +24,12 @@ pub enum CommandStatusV2 {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CommandStatusV2FirstLine {
+    Ok(RefName),
+    Fail(RefName, ErrorMsg),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum OptionLine {
     OptionRefName(RefName),
     OptionOldOid(git::hash::ObjectId),
@@ -37,29 +43,25 @@ pub struct ErrorMsg(BString);
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RefName(BString);
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SubsequentLine {
+    OptionLine(OptionLine),
+    CommandStatusV2FirstLine(CommandStatusV2FirstLine),
+}
+
 pub async fn read_and_parse<'a, T>(reader: &'a mut T) -> Result<ReportStatusV2, ParseError>
 where
     T: ReadlineBufRead + 'a,
 {
-    let unpack_result = read_and_parse_data_line::<_, nom::error::Error<_>>(
+    let unpack_result = read_data_line_and_parse_with::<_, nom::error::Error<_>>(
         reader,
         parse_unpack_status,
         ParseError::FailedToReadUnpackStatus,
     )
     .await?;
 
-    let first_command_status =
-        read_and_parse_command_status_v2::<nom::error::Error<_>>(reader).await?;
-
-    let mut command_statuses = vec![first_command_status];
-
-    // TODO: parse the remaining lines in a loop with read_and_parse_command_status_v2
-
-    /*
-    while let Some(line) = iter.read_line().await {
-        // TODO
-    }
-    */
+    let command_statuses =
+        read_and_parse_command_statuses_v2::<nom::error::Error<_>>(reader).await?;
 
     Ok((unpack_result, command_statuses))
 }
@@ -111,44 +113,76 @@ where
     })(input)
 }
 
-async fn read_and_parse_command_status_v2<'a, E>(
+async fn read_and_parse_command_statuses_v2<'a, E>(
     reader: &'a mut (dyn ReadlineBufRead + 'a),
-) -> Result<CommandStatusV2, ParseError>
+) -> Result<Vec<CommandStatusV2>, ParseError>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
 {
-    let first_line = read_data_line(reader, ParseError::FailedToReadCommandStatusV2).await?;
+    let mut command_statuses_v2 = Vec::new();
 
-    let ok_parser = nom::combinator::map(parse_command_ok, |ref_name| {
-        CommandStatusV2::Ok(ref_name, Vec::new())
-    });
+    match read_and_parse_command_status_v2_first_line::<nom::error::Error<_>>(reader).await? {
+        CommandStatusV2FirstLine::Ok(ref_name) => {
+            let subsequent_line_parser = alt((
+                nom::combinator::map(parse_option_line, SubsequentLine::OptionLine),
+                nom::combinator::map(
+                    parse_command_status_v2_first_line::<nom::error::Error<_>>,
+                    SubsequentLine::CommandStatusV2FirstLine,
+                ),
+            ));
 
-    let fail_parser = nom::combinator::map(parse_command_fail, |(ref_name, error_msg)| {
-        CommandStatusV2::Fail(ref_name, error_msg)
-    });
-
-    let command_status_v2_first_line_parser =
-        context("command-status-v2", alt((ok_parser, fail_parser)));
-
-    let command_status_v2_first_line_parse_result =
-        parse_with(command_status_v2_first_line_parser, first_line)?;
-
-    let command_status_v2 = match command_status_v2_first_line_parse_result {
-        CommandStatusV2::Ok(ref_name, _) => {
             let mut option_lines = Vec::new();
 
+            // FIXME: the next line may be an option-line OR a command-status-v2.
             while let Some(outcome) = reader.readline().await {
                 let line = as_slice(outcome)?;
                 let option_line = parse_with(parse_option_line, line)?;
                 option_lines.push(option_line);
             }
 
-            CommandStatusV2::Ok(ref_name, option_lines)
+            command_statuses_v2.push(CommandStatusV2::Ok(ref_name, option_lines));
         }
-        CommandStatusV2::Fail(ref_name, error_msg) => CommandStatusV2::Fail(ref_name, error_msg),
+        CommandStatusV2FirstLine::Fail(ref_name, error_msg) => {
+            // FIXME: even if we fail on the first line, we need to continue reading
+            command_statuses_v2.push(CommandStatusV2::Fail(ref_name, error_msg));
+        }
     };
 
-    Ok(command_status_v2)
+    Ok(command_statuses_v2)
+}
+
+async fn read_and_parse_command_status_v2_first_line<'a, E>(
+    reader: &'a mut (dyn ReadlineBufRead + 'a),
+) -> Result<CommandStatusV2FirstLine, ParseError>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
+{
+    let first_line = read_data_line(
+        reader,
+        ParseError::FailedToReadCommandStatusV2, /*FirstLine*/
+    )
+    .await?;
+
+    parse_with(parse_command_status_v2_first_line, first_line)
+}
+
+fn parse_command_status_v2_first_line<'a, E>(
+    input: &'a [u8],
+) -> IResult<&'a [u8], CommandStatusV2FirstLine, E>
+where
+    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
+{
+    context(
+        "command-status-v2 (first line)",
+        alt((
+            nom::combinator::map(parse_command_ok, |ref_name| {
+                CommandStatusV2FirstLine::Ok(ref_name)
+            }),
+            nom::combinator::map(parse_command_fail, |(ref_name, error_msg)| {
+                CommandStatusV2FirstLine::Fail(ref_name, error_msg)
+            }),
+        )),
+    )(input)
 }
 
 fn parse_command_ok<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], RefName, E>
@@ -244,7 +278,7 @@ impl std::fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
-async fn read_and_parse_data_line<'a, Ok, E>(
+async fn read_data_line_and_parse_with<'a, Ok, E>(
     input: &'a mut (dyn ReadlineBufRead + 'a),
     parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
     read_err: ParseError,
@@ -386,7 +420,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_and_parse_ok_2_command_status_v2() {
+    async fn test_read_and_parse_ok_2_command_statuses_v2() {
         let mut input = vec![
             "unpack ok",
             "ok refs/heads/main",
@@ -479,13 +513,13 @@ mod tests {
     async fn test_read_and_parse_command_status_v2_command_ok_v2_0_option_lines() {
         let input = b"ok refs/heads/main";
         let mut reader = Fixture(input);
-        let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
+        let result = read_and_parse_command_statuses_v2::<nom::error::Error<_>>(&mut reader).await;
         assert_eq!(
             result,
-            Ok(CommandStatusV2::Ok(
+            Ok(vec![CommandStatusV2::Ok(
                 RefName(BString::new(b"refs/heads/main".to_vec())),
                 Vec::new(),
-            )),
+            )]),
             "command-status-v2"
         )
     }
@@ -494,13 +528,13 @@ mod tests {
     async fn test_read_and_parse_command_status_v2_command_ok_v2_0_option_lines_newline() {
         let input = b"ok refs/heads/main\n";
         let mut reader = Fixture(input);
-        let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
+        let result = read_and_parse_command_statuses_v2::<nom::error::Error<_>>(&mut reader).await;
         assert_eq!(
             result,
-            Ok(CommandStatusV2::Ok(
+            Ok(vec![CommandStatusV2::Ok(
                 RefName(BString::new(b"refs/heads/main".to_vec())),
                 Vec::new(),
-            )),
+            )]),
             "command-status-v2"
         )
     }
@@ -557,13 +591,13 @@ mod tests {
     async fn test_read_and_parse_command_status_v2_command_fail() {
         let input = b"ng refs/heads/main some error message";
         let mut reader = Fixture(input);
-        let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
+        let result = read_and_parse_command_statuses_v2::<nom::error::Error<_>>(&mut reader).await;
         assert_eq!(
             result,
-            Ok(CommandStatusV2::Fail(
+            Ok(vec![CommandStatusV2::Fail(
                 RefName(BString::new(b"refs/heads/main".to_vec())),
                 ErrorMsg(BString::new(b"some error message".to_vec())),
-            )),
+            )]),
             "command-status-v2"
         )
     }
@@ -572,13 +606,13 @@ mod tests {
     async fn test_read_and_parse_command_status_v2_command_fail_newline() {
         let input = b"ng refs/heads/main some error message\n";
         let mut reader = Fixture(input);
-        let result = read_and_parse_command_status_v2::<nom::error::Error<_>>(&mut reader).await;
+        let result = read_and_parse_command_statuses_v2::<nom::error::Error<_>>(&mut reader).await;
         assert_eq!(
             result,
-            Ok(CommandStatusV2::Fail(
+            Ok(vec![CommandStatusV2::Fail(
                 RefName(BString::new(b"refs/heads/main".to_vec())),
                 ErrorMsg(BString::new(b"some error message".to_vec())),
-            )),
+            )]),
             "command-status-v2"
         )
     }
