@@ -8,6 +8,7 @@ use nom::character::complete::char;
 use nom::combinator::{eof, opt};
 use nom::error::context;
 use nom::IResult;
+use std::cell::Cell;
 
 pub type ReportStatusV2 = (UnpackResult, Vec<CommandStatusV2>);
 
@@ -24,9 +25,10 @@ pub enum CommandStatusV2 {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum CommandStatusV2FirstLine {
+pub enum CommandStatusV2Line {
     Ok(RefName),
     Fail(RefName, ErrorMsg),
+    OptionLine(OptionLine),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -43,12 +45,6 @@ pub struct ErrorMsg(BString);
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RefName(BString);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SubsequentLine {
-    OptionLine(OptionLine),
-    CommandStatusV2FirstLine(CommandStatusV2FirstLine),
-}
-
 pub async fn read_and_parse<'a, T>(reader: &'a mut T) -> Result<ReportStatusV2, ParseError>
 where
     T: ReadlineBufRead + 'a,
@@ -60,10 +56,10 @@ where
     )
     .await?;
 
-    let command_statuses =
+    let command_statuses_v2 =
         read_and_parse_command_statuses_v2::<nom::error::Error<_>>(reader).await?;
 
-    Ok((unpack_result, command_statuses))
+    Ok((unpack_result, command_statuses_v2))
 }
 
 fn parse_unpack_status<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], UnpackResult, E>
@@ -119,68 +115,130 @@ async fn read_and_parse_command_statuses_v2<'a, E>(
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
 {
-    let mut command_statuses_v2 = Vec::new();
+    let candidate: Cell<Option<CommandStatusV2>> = Cell::new(None);
+    let mut command_statuses_v2: Vec<CommandStatusV2> = Vec::new();
 
-    match read_and_parse_command_status_v2_first_line::<nom::error::Error<_>>(reader).await? {
-        CommandStatusV2FirstLine::Ok(ref_name) => {
-            let subsequent_line_parser = alt((
-                nom::combinator::map(parse_option_line, SubsequentLine::OptionLine),
-                nom::combinator::map(
-                    parse_command_status_v2_first_line::<nom::error::Error<_>>,
-                    SubsequentLine::CommandStatusV2FirstLine,
-                ),
-            ));
+    while let Some(outcome) = reader.readline().await {
+        let line = as_slice(outcome)?;
+        let command_status_v2_line = parse_with(parse_command_status_v2_line, line)?;
 
-            let mut option_lines = Vec::new();
-
-            // FIXME: the next line may be an option-line OR a command-status-v2.
-            while let Some(outcome) = reader.readline().await {
-                let line = as_slice(outcome)?;
-                let option_line = parse_with(parse_option_line, line)?;
-                option_lines.push(option_line);
+        match (candidate.take(), command_status_v2_line) {
+            // No `command-ok` candidate for adding `option-line`s to, followed
+            // by a `command-ok` status line. For well-behaved input, this is
+            // either the first line or a the line after a `command-fail` line.
+            //
+            // Set the line as a candidate for adding `option-lines` to.
+            (None, CommandStatusV2Line::Ok(ref_name)) => {
+                candidate.set(Some(CommandStatusV2::Ok(ref_name, Vec::new())));
             }
+            // No `command-ok` candidate for adding `option-line`s to, followed
+            // by a `command-fail` status line. For well-behaved input, this is
+            // either the first line or a the line after a `command-fail` line.
+            //
+            // Immediately promote the line to `command-status-v2` since
+            // `option-line` doesn't apply to `command-fail`.
+            (None, CommandStatusV2Line::Fail(ref_name, error_msg)) => {
+                command_statuses_v2.push(CommandStatusV2::Fail(ref_name, error_msg));
+            }
+            // A `command-ok` status line followed by a `command-ok` status
+            // line.
+            //
+            // Promote the previous candidate to `command-status-v2` and set the
+            // current line as the new candidate.
+            (Some(command_status_v2), CommandStatusV2Line::Ok(ref_name)) => {
+                command_statuses_v2.push(command_status_v2.clone());
+                let new_candidate = CommandStatusV2::Ok(ref_name, Vec::new());
+                candidate.set(Some(new_candidate));
+            }
+            // A `command-ok` status line followed by a `command-fail` status line.
+            //
+            // Promote both the previous candidate and the current line to
+            // `command-status-v2`, and reset the candidate since `option-line`
+            // doesn't apply to `command-fail`.
+            (Some(command_status_v2), CommandStatusV2Line::Fail(ref_name, error_msg)) => {
+                command_statuses_v2.push(command_status_v2.clone());
+                command_statuses_v2.push(CommandStatusV2::Fail(ref_name, error_msg));
+                // This should be redundant because `std::cell::Cell::take()`
+                // should leave `Default::default()`.
+                candidate.set(None);
+            }
+            // No `command-ok` candidate for adding `option-line`s to, followed
+            // by an `option-line`.
+            //
+            // This is invalid since we don't have a canidate `command-ok` line
+            // to add `option-line`s to.
+            (None, CommandStatusV2Line::OptionLine(_)) => {
+                return Err(ParseError::UnexpectedOptionLine)
+            }
+            // A `command-ok` line followed by an `option-line`.
+            //
+            // Add the `option-line` to the `command-ok` and set it as the new
+            // candidate in case the next line is also an `option-line`.
+            (
+                Some(CommandStatusV2::Ok(ref_name, mut option_lines)),
+                CommandStatusV2Line::OptionLine(option_line),
+            ) => {
+                option_lines.push(option_line);
+                let new_candidate = CommandStatusV2::Ok(ref_name, option_lines);
+                candidate.set(Some(new_candidate));
+            }
+            // A `command-fail` line followed by an `option-line`.
+            //
+            // This is invalid since we don't have a canidate `command-ok` line
+            // to add `option-line`s to.
+            (Some(CommandStatusV2::Fail(_, _)), CommandStatusV2Line::OptionLine(_)) => {
+                return Err(ParseError::UnexpectedOptionLine)
+            }
+        }
+    }
 
+    // The last line of the input produced a candidate which we need to
+    // promote to a `command-status-v2`.
+    match candidate.take() {
+        // A `command-ok` line. This is the only valid candidate at this stage.
+        //
+        // Promote the candidate to `command-status-v2`.
+        Some(CommandStatusV2::Ok(ref_name, option_lines)) => {
             command_statuses_v2.push(CommandStatusV2::Ok(ref_name, option_lines));
         }
-        CommandStatusV2FirstLine::Fail(ref_name, error_msg) => {
-            // FIXME: even if we fail on the first line, we need to continue reading
-            command_statuses_v2.push(CommandStatusV2::Fail(ref_name, error_msg));
-        }
-    };
+        // A `command-fail` line. This is an invalid candidate.
+        Some(CommandStatusV2::Fail(_, _)) => return Err(ParseError::UnexpectedCommandFailLine),
+        None => (),
+    }
 
+    // TODO: verify that there's at least one command status: 1*(command-status-v2)
     Ok(command_statuses_v2)
 }
 
-async fn read_and_parse_command_status_v2_first_line<'a, E>(
+async fn read_and_parse_command_status_v2_lines<'a, E>(
     reader: &'a mut (dyn ReadlineBufRead + 'a),
-) -> Result<CommandStatusV2FirstLine, ParseError>
+) -> Result<Vec<CommandStatusV2Line>, ParseError>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
 {
-    let first_line = read_data_line(
-        reader,
-        ParseError::FailedToReadCommandStatusV2, /*FirstLine*/
-    )
-    .await?;
+    let mut command_status_v2_lines = Vec::new();
 
-    parse_with(parse_command_status_v2_first_line, first_line)
+    while let Some(outcome) = reader.readline().await {
+        let line = as_slice(outcome)?;
+        let command_status_v2_line = parse_with(parse_command_status_v2_line, line)?;
+        command_status_v2_lines.push(command_status_v2_line)
+    }
+
+    Ok(command_status_v2_lines)
 }
 
-fn parse_command_status_v2_first_line<'a, E>(
-    input: &'a [u8],
-) -> IResult<&'a [u8], CommandStatusV2FirstLine, E>
+fn parse_command_status_v2_line<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], CommandStatusV2Line, E>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
 {
     context(
-        "command-status-v2 (first line)",
+        "command-status-v2 line",
         alt((
-            nom::combinator::map(parse_command_ok, |ref_name| {
-                CommandStatusV2FirstLine::Ok(ref_name)
-            }),
+            nom::combinator::map(parse_command_ok, CommandStatusV2Line::Ok),
             nom::combinator::map(parse_command_fail, |(ref_name, error_msg)| {
-                CommandStatusV2FirstLine::Fail(ref_name, error_msg)
+                CommandStatusV2Line::Fail(ref_name, error_msg)
             }),
+            nom::combinator::map(parse_option_line, CommandStatusV2Line::OptionLine),
         )),
     )(input)
 }
@@ -255,8 +313,10 @@ pub enum ParseError {
     Io(String),
     Nom(String),
     PacketLineDecode(String),
+    UnexpectedCommandFailLine,
     UnexpectedFlush,
     UnexpectedDelimiter,
+    UnexpectedOptionLine,
     UnexpectedResponseEnd,
 }
 
@@ -268,8 +328,10 @@ impl std::fmt::Display for ParseError {
             Self::Io(err) => format!("IO error: {}", err),
             Self::Nom(err) => format!("nom error: {}", err),
             Self::PacketLineDecode(err) => err.to_string(),
+            Self::UnexpectedCommandFailLine => "unexpected command fail line".to_string(),
             Self::UnexpectedFlush => "unexpected flush packet".to_string(),
             Self::UnexpectedDelimiter => "unexpected delimiter".to_string(),
+            Self::UnexpectedOptionLine => "unexpected option line".to_string(),
             Self::UnexpectedResponseEnd => "unexpected response end".to_string(),
         };
         write!(f, "{}", msg)
@@ -380,7 +442,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_and_parse_ok_1_ok_command_status_v2() {
+    async fn test_read_and_parse_ok_1_command_status_v2_ok() {
         let mut input = vec!["unpack ok", "ok refs/heads/main"]
             .join("\n")
             .into_bytes();
@@ -400,7 +462,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_and_parse_ok_1_fail_command_status_v2() {
+    async fn test_read_and_parse_ok_1_command_status_v2_fail() {
         let mut input = vec!["unpack ok", "ng refs/heads/main some error message"]
             .join("\n")
             .into_bytes();
@@ -420,11 +482,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_read_and_parse_ok_2_command_statuses_v2() {
+    async fn test_read_and_parse_ok_2_command_statuses_v2_ok_fail() {
         let mut input = vec![
             "unpack ok",
-            "ok refs/heads/main",
-            "ng refs/heads/some-branch some error message",
+            "ok refs/heads/debug",
+            "ng refs/heads/main non-fast-forward",
         ]
         .join("\n")
         .into_bytes();
@@ -436,12 +498,42 @@ mod tests {
                 UnpackResult::Ok,
                 vec![
                     CommandStatusV2::Ok(
-                        RefName(BString::new(b"refs/heads/main".to_vec())),
+                        RefName(BString::new(b"refs/heads/debug".to_vec())),
                         Vec::new(),
                     ),
                     CommandStatusV2::Fail(
                         RefName(BString::new(b"refs/heads/main".to_vec())),
-                        ErrorMsg(BString::new(b"some error message".to_vec()))
+                        ErrorMsg(BString::new(b"non-fast-forward".to_vec()))
+                    ),
+                ]
+            )),
+            "report-status-v2"
+        )
+    }
+
+    #[tokio::test]
+    async fn test_read_and_parse_ok_2_command_statuses_v2_fail_ok() {
+        let mut input = vec![
+            "unpack ok",
+            "ng refs/heads/main non-fast-forward",
+            "ok refs/heads/debug",
+        ]
+        .join("\n")
+        .into_bytes();
+        let mut reader = Fixture(&mut input);
+        let result = read_and_parse(&mut reader).await;
+        assert_eq!(
+            result,
+            Ok((
+                UnpackResult::Ok,
+                vec![
+                    CommandStatusV2::Fail(
+                        RefName(BString::new(b"refs/heads/main".to_vec())),
+                        ErrorMsg(BString::new(b"non-fast-forward".to_vec()))
+                    ),
+                    CommandStatusV2::Ok(
+                        RefName(BString::new(b"refs/heads/debug".to_vec())),
+                        Vec::new(),
                     ),
                 ]
             )),
