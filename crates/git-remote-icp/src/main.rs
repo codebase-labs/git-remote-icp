@@ -443,7 +443,7 @@ async fn main() -> anyhow::Result<()> {
                             println!("ok {}", ref_name);
                         }
                         report_status_v2::CommandStatusV2::Fail(ref_name, error_msg) => {
-                            println!("error {} {}", ref_name, error_msg);
+                            println!("error {} {}\0", ref_name, error_msg);
                         }
                     }
                 });
