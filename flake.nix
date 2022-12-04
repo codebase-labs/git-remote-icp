@@ -182,7 +182,7 @@
               fi
 
               GIT_DIFF_TCP_REMOTE=$(git -C test-repo-tcp diff origin/main origin/main)
-              GIT_DIFF_ICP_REMOTE=$(git -C test-repo-icp diff orign/main remotes/test-repo-tcp/main)
+              GIT_DIFF_ICP_REMOTE=$(git -C test-repo-icp diff origin/main remotes/test-repo-tcp/main)
 
               if [ "$GIT_DIFF_TCP_REMOTE" == "$GIT_DIFF_ICP_REMOTE" ]; then
                 echo "GIT_DIFF_TCP_REMOTE == GIT_DIFF_ICP_REMOTE"
