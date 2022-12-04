@@ -206,8 +206,11 @@ where
         None => (),
     }
 
-    // TODO: verify that there's at least one command status: 1*(command-status-v2)
-    Ok(command_statuses_v2)
+    if command_statuses_v2.is_empty() {
+        Err(ParseError::ExpectedOneOrMoreCommandStatusV2)
+    } else {
+        Ok(command_statuses_v2)
+    }
 }
 
 async fn read_and_parse_command_status_v2_lines<'a, E>(
@@ -308,9 +311,9 @@ where
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ParseError {
-    FailedToReadCommandStatusV2,
     FailedToReadUnpackStatus,
     Io(String),
+    ExpectedOneOrMoreCommandStatusV2,
     Nom(String),
     PacketLineDecode(String),
     UnexpectedCommandFailLine,
@@ -323,9 +326,9 @@ pub enum ParseError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let msg = match self {
-            Self::FailedToReadCommandStatusV2 => "failed to read command status v2".to_string(),
             Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
             Self::Io(err) => format!("IO error: {}", err),
+            Self::ExpectedOneOrMoreCommandStatusV2 => "expected one or more command status v2".to_string(),
             Self::Nom(err) => format!("nom error: {}", err),
             Self::PacketLineDecode(err) => err.to_string(),
             Self::UnexpectedCommandFailLine => "unexpected command fail line".to_string(),
@@ -439,6 +442,20 @@ mod tests {
             self.0 = lines.as_bytes();
             Some(Ok(Ok(packetline::PacketLineRef::Data(res))))
         }
+    }
+
+    #[tokio::test]
+    async fn test_read_and_parse_ok_0_command_status_v2() {
+        let mut input = vec!["unpack ok"]
+            .join("\n")
+            .into_bytes();
+        let mut reader = Fixture(&mut input);
+        let result = read_and_parse(&mut reader).await;
+        assert_eq!(
+            result,
+            Err(ParseError::ExpectedOneOrMoreCommandStatusV2),
+            "report-status-v2"
+        )
     }
 
     #[tokio::test]
