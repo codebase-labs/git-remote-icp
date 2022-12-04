@@ -440,10 +440,14 @@ async fn main() -> anyhow::Result<()> {
                     trace!("{:#?}", command_status);
                     match command_status {
                         report_status_v2::CommandStatusV2::Ok(ref_name, _option_lines) => {
-                            println!("ok {}", ref_name);
+                            let output = format!("ok {}", ref_name);
+                            trace!("output: {}", output);
+                            println!("{}", output);
                         }
                         report_status_v2::CommandStatusV2::Fail(ref_name, error_msg) => {
-                            println!("error {} {}\0", ref_name, error_msg);
+                            let output = format!("error {} {}\0", ref_name, error_msg);
+                            trace!("output: {}", output);
+                            println!("{}", output);
                         }
                     }
                 });
