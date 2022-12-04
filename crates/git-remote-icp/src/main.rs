@@ -423,24 +423,21 @@ async fn main() -> anyhow::Result<()> {
                     }
                 })));
 
-                // use git::protocol::futures_lite::io::AsyncBufReadExt as _;
-                // let mut lines = async_reader.lines();
+                let mut streaming_peekable_iter =
+                    git::protocol::transport::packetline::StreamingPeekableIter::new(
+                        async_reader,
+                        &[git::protocol::transport::packetline::PacketLineRef::Flush],
+                    );
 
-                // let mut report = vec![];
+                streaming_peekable_iter.fail_on_err_lines(true);
+                let mut reader = streaming_peekable_iter.as_read();
 
-                // use git::protocol::futures_lite::StreamExt as _;
-                // while let Some(line) = lines.next().await {
-                //     log::debug!("line: {:#?}", line);
-                //     report.push(line?)
-                // }
+                let (_unpack_result, command_statuses) =
+                    report_status_v2::read_and_parse(&mut reader).await?;
 
-                // trace!("report: {:#?}", report);
-
-                let report_status = report_status_v2::read_and_parse(&mut async_reader).await?;
-
-                // FIXME: output one or more `ok <dst>` or `error <dst> <why>?`
-                // lines to indicate success or failure of each pushed ref. The
-                // status report output is terminated by a blank line.
+                command_statuses.iter().for_each(|command_status| {
+                    trace!("{:#?}", command_status);
+                });
 
                 push.clear();
 
