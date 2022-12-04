@@ -158,8 +158,6 @@
               git -C test-repo-tcp commit -m "Add trailing newline"
               git -C test-repo-tcp push origin main
 
-              git -C test-repo reset HEAD~1 --hard
-
               echo "\n" >> test-repo-icp/README.md
               git -C test-repo-icp add .
               git -C test-repo-icp commit -m "Add trailing newline"
