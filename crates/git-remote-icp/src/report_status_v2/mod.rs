@@ -102,7 +102,7 @@ where
             // 0x00 <= chr && chr <= 0xFF)` exceeds the limits of the u8 type,
             // so we use `rest` instead.
             nom::combinator::verify(nom::combinator::rest, |bytes: &[u8]| {
-                bytes.len() > 0 && bytes != b"ok"
+                !bytes.is_empty() && bytes != b"ok"
             })(input)?;
 
         Ok((next_input, ErrorMsg(BString::from(error_msg))))
