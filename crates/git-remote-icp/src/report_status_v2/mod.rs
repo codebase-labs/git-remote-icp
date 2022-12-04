@@ -1,3 +1,4 @@
+use derive_more::Display;
 use git::bstr::BString;
 use git::protocol::transport::client::ReadlineBufRead;
 use git::protocol::transport::packetline;
@@ -39,10 +40,10 @@ pub enum OptionLine {
     OptionForce,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Display, Eq, PartialEq)]
 pub struct ErrorMsg(BString);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Display, Eq, PartialEq)]
 pub struct RefName(BString);
 
 pub async fn read_and_parse<'a, T>(reader: &'a mut T) -> Result<ReportStatusV2, ParseError>
