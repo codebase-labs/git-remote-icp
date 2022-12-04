@@ -438,14 +438,20 @@ async fn main() -> anyhow::Result<()> {
 
                 command_statuses.iter().for_each(|command_status| {
                     trace!("{:#?}", command_status);
+                    match command_status {
+                        report_status_v2::CommandStatusV2::Ok(ref_name, _option_lines) => {
+                            println!("ok {}", ref_name);
+                        }
+                        report_status_v2::CommandStatusV2::Fail(ref_name, error_msg) => {
+                            println!("error {} {}", ref_name, error_msg);
+                        }
+                    }
                 });
 
                 push.clear();
 
                 // Terminate the status report output
-
-                // TEMP: Don't successfully exit until this command is implemented
-                // println!();
+                println!();
             }
 
             // continue; // Useful to inspect .git directory before it disappears
