@@ -213,23 +213,6 @@ where
     }
 }
 
-async fn read_and_parse_command_status_v2_lines<'a, E>(
-    reader: &'a mut (dyn ReadlineBufRead + 'a),
-) -> Result<Vec<CommandStatusV2Line>, ParseError>
-where
-    E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]> + std::fmt::Debug,
-{
-    let mut command_status_v2_lines = Vec::new();
-
-    while let Some(outcome) = reader.readline().await {
-        let line = as_slice(outcome)?;
-        let command_status_v2_line = parse_with(parse_command_status_v2_line, line)?;
-        command_status_v2_lines.push(command_status_v2_line)
-    }
-
-    Ok(command_status_v2_lines)
-}
-
 fn parse_command_status_v2_line<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], CommandStatusV2Line, E>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
