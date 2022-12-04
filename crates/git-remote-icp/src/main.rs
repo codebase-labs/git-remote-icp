@@ -416,7 +416,8 @@ async fn main() -> anyhow::Result<()> {
                 async_reader.set_progress_handler(Some(Box::new({
                     move |is_err, data| {
                         assert!(!is_err);
-                        messages.deref()
+                        messages
+                            .deref()
                             .lock()
                             .expect("no panic in other threads")
                             .push(std::str::from_utf8(data).expect("valid utf8").to_owned())
