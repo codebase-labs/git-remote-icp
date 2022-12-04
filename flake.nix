@@ -179,6 +179,7 @@
                 exit 1
               fi
 
+              git -C test-repo-icp remote update
               GIT_DIFF_TCP_REMOTE=$(git -C test-repo-tcp diff origin/main origin/main)
               GIT_DIFF_ICP_REMOTE=$(git -C test-repo-icp diff origin/main remotes/test-repo-tcp/main)
 
