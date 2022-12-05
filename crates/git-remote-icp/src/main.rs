@@ -1,5 +1,6 @@
 #![deny(rust_2018_idioms)]
 
+mod commands;
 mod git;
 
 use git::service::receive_pack;
@@ -129,7 +130,7 @@ async fn main() -> anyhow::Result<()> {
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
 
-    let mut fetch: BTreeSet<(String, String)> = BTreeSet::new();
+    let mut fetch: commands::fetch::Batch = BTreeSet::new();
     let mut push: BTreeSet<String> = BTreeSet::new();
 
     loop {
@@ -147,46 +148,7 @@ async fn main() -> anyhow::Result<()> {
         if input.is_empty() {
             trace!("terminated with a blank line");
 
-            if !fetch.is_empty() {
-                trace!("process fetch: {:#?}", fetch);
-
-                let mut remote = repo.remote_at(url.clone())?;
-
-                for (hash, _name) in &fetch {
-                    remote = remote.with_refspec(hash.as_bytes(), gitoxide::remote::Direction::Fetch)?;
-                }
-
-                // Implement once option capability is supported
-                let progress = gitoxide::progress::Discard;
-
-                // FIXME: match on `remote_helper`
-
-                // TODO: use custom transport once commands are implemented
-                let transport = gitoxide::protocol::transport::connect(
-                    url.clone(),
-                    gitoxide::protocol::transport::Protocol::V2,
-                )
-                .await?;
-
-                let outcome = remote
-                    .to_connection_with_transport(transport, progress)
-                    // For pushing we should get the packetline writer here
-                    .prepare_fetch(gitoxide::remote::ref_map::Options {
-                        prefix_from_spec_as_filter_on_remote: true,
-                        handshake_parameters: vec![],
-                    })
-                    .await?
-                    .receive(&gitoxide::interrupt::IS_INTERRUPTED)
-                    .await?;
-
-                trace!("outcome: {:#?}", outcome);
-
-                // TODO: delete .keep files by outputting: lock <file>
-                // TODO: determine if gitoxide handles this for us yet
-
-                fetch.clear();
-                println!();
-            }
+            commands::fetch::process(&repo, &url, &mut fetch).await?;
 
             if !push.is_empty() {
                 trace!("process push: {:#?}", push);
