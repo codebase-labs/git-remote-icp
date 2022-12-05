@@ -17,10 +17,8 @@ use strum::VariantNames as _;
 #[clap(multicall(true))]
 #[clap(about, version)]
 enum RemoteHelper {
-    #[clap(name = "git-remote-icp")]
-    ICP(Args),
-    #[clap(name = "git-remote-tcp")]
-    TCP(Args),
+    GitRemoteIcp(Args),
+    GitRemoteTcp(Args),
 }
 
 #[derive(Debug, Parser)]
@@ -45,8 +43,8 @@ async fn main() -> anyhow::Result<()> {
     let remote_helper = RemoteHelper::parse();
 
     let (external_transport_protocol, internal_transport_protocol, args) = match remote_helper {
-        RemoteHelper::ICP(args) => ("icp", "https", args),
-        RemoteHelper::TCP(args) => ("tcp", "git", args),
+        RemoteHelper::GitRemoteIcp(args) => ("icp", "https", args),
+        RemoteHelper::GitRemoteTcp(args) => ("tcp", "git", args),
     };
 
     trace!(
