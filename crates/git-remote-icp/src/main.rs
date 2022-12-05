@@ -3,7 +3,7 @@
 mod report_status_v2;
 
 use anyhow::{anyhow, Context};
-use clap::{Command, FromArgMatches as _, Parser, Subcommand, ValueEnum};
+use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
 use git::bstr::ByteSlice as _;
 use git_repository as git;
 use log::trace;
@@ -34,8 +34,7 @@ struct Args {
     url: String,
 }
 
-#[derive(Debug, EnumVariantNames, Eq, Ord, PartialEq, PartialOrd, Subcommand)]
-// #[command(multicall(true))]
+#[derive(Debug, EnumVariantNames, Eq, Ord, PartialEq, PartialOrd, Parser)]
 #[strum(serialize_all = "kebab_case")]
 enum Commands {
     Capabilities,
