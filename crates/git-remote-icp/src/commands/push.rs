@@ -7,28 +7,21 @@ use std::collections::BTreeSet;
 
 pub type Batch = BTreeSet<String>;
 
-pub async fn process<AuthFn>(
+pub async fn process<AuthFn, T>(
+    mut transport: T,
     repo: &git::Repository,
-    url: &str,
     authenticate: AuthFn,
     batch: &mut Batch,
 ) -> anyhow::Result<()>
 where
     AuthFn: FnMut(git::credentials::helper::Action) -> git::credentials::protocol::Result,
+    T: git::protocol::transport::client::Transport,
 {
     if !batch.is_empty() {
         trace!("process push: {:#?}", batch);
 
         use git::refspec::parse::Operation;
         use git::refspec::{instruction, Instruction};
-
-        // FIXME: match on `remote_helper`
-
-        // TODO: use custom transport once commands are implemented
-        // NOTE: push still uses the v1 protocol so we use that here.
-        let mut transport =
-            git::protocol::transport::connect(url, git::protocol::transport::Protocol::V1)
-                .await?;
 
         // Implement once option capability is supported
         let mut progress = git::progress::Discard;

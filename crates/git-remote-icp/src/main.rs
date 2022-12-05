@@ -124,8 +124,30 @@ async fn main() -> anyhow::Result<()> {
 
         if input.is_empty() {
             trace!("terminated with a blank line");
-            commands::fetch::process(&repo, &url, &mut fetch).await?;
-            commands::push::process(&repo, &url, authenticate, &mut push).await?;
+
+            // FIXME: match on `remote_helper`
+
+            // TODO: use custom transport once commands are implemented
+            let fetch_transport = gitoxide::protocol::transport::connect(
+                url.clone(),
+                gitoxide::protocol::transport::Protocol::V2,
+            )
+            .await?;
+
+            commands::fetch::process(fetch_transport, &repo, &url, &mut fetch).await?;
+
+            // FIXME: match on `remote_helper`
+
+            // TODO: use custom transport once commands are implemented
+            // NOTE: push still uses the v1 protocol so we use that here.
+            let mut push_transport = gitoxide::protocol::transport::connect(
+                url.clone(),
+                gitoxide::protocol::transport::Protocol::V1,
+            )
+            .await?;
+
+            commands::push::process(&mut push_transport, &repo, authenticate, &mut push).await?;
+
             // continue; // Useful to inspect .git directory before it disappears
             break Ok(());
         }
@@ -156,7 +178,16 @@ async fn main() -> anyhow::Result<()> {
                 let _ = fetch.insert((hash, name));
             }
             Commands::List { variant } => {
-                commands::list::execute(&url, authenticate, &variant).await?
+                // FIXME: match on `remote_helper`
+
+                // TODO: use custom transport once commands are implemented
+                let mut transport = gitoxide::protocol::transport::connect(
+                    url.clone(),
+                    gitoxide::protocol::transport::Protocol::V2,
+                )
+                .await?;
+
+                commands::list::execute(&mut transport, authenticate, &variant).await?
             }
             Commands::Push { src_dst } => {
                 trace!("batch push {}", src_dst);

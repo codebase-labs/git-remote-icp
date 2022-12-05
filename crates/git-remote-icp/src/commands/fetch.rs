@@ -4,7 +4,15 @@ use std::collections::BTreeSet;
 
 pub type Batch = BTreeSet<(String, String)>;
 
-pub async fn process(repo: &git::Repository, url: &str, batch: &mut Batch) -> anyhow::Result<()> {
+pub async fn process<T>(
+    transport: T,
+    repo: &git::Repository,
+    url: &str,
+    batch: &mut Batch
+) -> anyhow::Result<()>
+where
+    T: git::protocol::transport::client::Transport,
+{
     if !batch.is_empty() {
         trace!("process fetch: {:#?}", batch);
 
@@ -16,13 +24,6 @@ pub async fn process(repo: &git::Repository, url: &str, batch: &mut Batch) -> an
 
         // Implement once option capability is supported
         let progress = git::progress::Discard;
-
-        // FIXME: match on `remote_helper`
-
-        // TODO: use custom transport once commands are implemented
-        let transport =
-            git::protocol::transport::connect(url, git::protocol::transport::Protocol::V2)
-                .await?;
 
         let outcome = remote
             .to_connection_with_transport(transport, progress)

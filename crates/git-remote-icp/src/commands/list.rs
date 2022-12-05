@@ -7,13 +7,14 @@ pub enum ListVariant {
     ForPush,
 }
 
-pub async fn execute<AuthFn>(
-    url: &str,
+pub async fn execute<AuthFn, T>(
+    mut transport: T,
     authenticate: AuthFn,
     variant: &Option<ListVariant>,
 ) -> anyhow::Result<()>
 where
     AuthFn: FnMut(git::credentials::helper::Action) -> git::credentials::protocol::Result,
+    T: git::protocol::transport::client::Transport,
 {
     match variant {
         Some(x) => match x {
@@ -23,15 +24,6 @@ where
             trace!("list");
         }
     }
-
-    // FIXME: match on `remote_helper`
-
-    // TODO: use custom transport once commands are implemented
-    let mut transport = git::protocol::transport::connect(
-        url,
-        git::protocol::transport::Protocol::V2,
-    )
-    .await?;
 
     // Implement once option capability is supported
     let mut progress = git::progress::Discard;
