@@ -28,7 +28,7 @@ enum RemoteHelper {
 struct Args {
     /// A remote repository; either the name of a configured remote or a URL
     #[clap(value_parser)]
-    repository: String, // TODO: BString
+    repository: String,
 
     /// A URL of the form icp://<address> or icp::<transport>://<address>
     #[clap(value_parser)]
