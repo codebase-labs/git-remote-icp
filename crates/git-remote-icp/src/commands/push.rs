@@ -27,7 +27,7 @@ where
         // TODO: use custom transport once commands are implemented
         // NOTE: push still uses the v1 protocol so we use that here.
         let mut transport =
-            git::protocol::transport::connect(url.clone(), git::protocol::transport::Protocol::V1)
+            git::protocol::transport::connect(url, git::protocol::transport::Protocol::V1)
                 .await?;
 
         // Implement once option capability is supported

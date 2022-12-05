@@ -28,7 +28,7 @@ where
 
     // TODO: use custom transport once commands are implemented
     let mut transport = git::protocol::transport::connect(
-        url.clone(),
+        url,
         git::protocol::transport::Protocol::V2,
     )
     .await?;

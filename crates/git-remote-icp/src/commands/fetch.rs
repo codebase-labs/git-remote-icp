@@ -8,7 +8,7 @@ pub async fn process(repo: &git::Repository, url: &str, batch: &mut Batch) -> an
     if !batch.is_empty() {
         trace!("process fetch: {:#?}", batch);
 
-        let mut remote = repo.remote_at(url.clone())?;
+        let mut remote = repo.remote_at(url)?;
 
         for (hash, _name) in batch.iter() {
             remote = remote.with_refspec(hash.as_bytes(), git::remote::Direction::Fetch)?;
@@ -21,7 +21,7 @@ pub async fn process(repo: &git::Repository, url: &str, batch: &mut Batch) -> an
 
         // TODO: use custom transport once commands are implemented
         let transport =
-            git::protocol::transport::connect(url.clone(), git::protocol::transport::Protocol::V2)
+            git::protocol::transport::connect(url, git::protocol::transport::Protocol::V2)
                 .await?;
 
         let outcome = remote
