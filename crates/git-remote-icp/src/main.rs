@@ -51,6 +51,10 @@ async fn main() -> anyhow::Result<()> {
         "external_transport_protocol: {:?}",
         external_transport_protocol
     );
+    trace!(
+        "internal_transport_protocol: {:?}",
+        internal_transport_protocol
+    );
     trace!("args.repository: {:?}", args.repository);
     trace!("args.url: {:?}", args.url);
 
