@@ -3,16 +3,15 @@
 mod commands;
 mod git;
 
-use git::service::receive_pack;
 use anyhow::{anyhow, Context};
-use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
-use gitoxide::bstr::ByteSlice as _;
+use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
+use commands::Commands;
 use git_repository as gitoxide;
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
-use strum::{EnumVariantNames, VariantNames as _};
+use strum::VariantNames as _;
 
 #[derive(Debug, Parser)]
 #[clap(multicall(true))]
@@ -36,32 +35,6 @@ struct Args {
     url: String,
 }
 
-#[derive(Debug, EnumVariantNames, Eq, Ord, PartialEq, PartialOrd, Parser)]
-#[strum(serialize_all = "kebab_case")]
-enum Commands {
-    Capabilities,
-    Fetch {
-        #[clap(value_parser)]
-        hash: String, // TODO: gitoxide::hash::ObjectId?
-
-        #[clap(value_parser)]
-        name: String,
-    },
-    List {
-        #[clap(arg_enum, value_parser)]
-        variant: Option<ListVariant>,
-    },
-    Push {
-        #[clap(value_parser)]
-        src_dst: String,
-    },
-}
-
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, ValueEnum)]
-enum ListVariant {
-    ForPush,
-}
-
 const GIT_DIR: &str = "GIT_DIR";
 
 // TODO: modules for each command
@@ -76,7 +49,10 @@ async fn main() -> anyhow::Result<()> {
         RemoteHelper::TCP(args) => ("tcp", "git", args),
     };
 
-    trace!("external_transport_protocol: {:?}", external_transport_protocol);
+    trace!(
+        "external_transport_protocol: {:?}",
+        external_transport_protocol
+    );
     trace!("args.repository: {:?}", args.repository);
     trace!("args.url: {:?}", args.url);
 
@@ -109,7 +85,10 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: read icp.keyId from git config
 
-    let url: String = match args.url.strip_prefix(&format!("{}://", external_transport_protocol)) {
+    let url: String = match args
+        .url
+        .strip_prefix(&format!("{}://", external_transport_protocol))
+    {
         // The supplied URL was of the form `icp://<address>` so we change it to
         // `https://<address>`.
         Some(address) => format!("{}://{}", internal_transport_protocol, address),
@@ -179,97 +158,12 @@ async fn main() -> anyhow::Result<()> {
                 let _ = fetch.insert((hash, name));
             }
             Commands::List { variant } => {
-                match variant {
-                    Some(x) => match x {
-                        ListVariant::ForPush => trace!("list for-push"),
-                    },
-                    None => {
-                        trace!("list");
-                    }
-                }
-
-                // FIXME: match on `remote_helper`
-
-                // TODO: use custom transport once commands are implemented
-                let mut transport = gitoxide::protocol::transport::connect(
-                    url.clone(),
-                    gitoxide::protocol::transport::Protocol::V2,
-                )
-                .await?;
-
-                // Implement once option capability is supported
-                let mut progress = gitoxide::progress::Discard;
-                let extra_parameters = vec![];
-
-                let outcome = gitoxide::protocol::fetch::handshake(
-                    &mut transport,
-                    authenticate,
-                    extra_parameters,
-                    &mut progress,
-                )
-                .await?;
-
-                let refs = gitoxide::protocol::ls_refs(
-                    &mut transport,
-                    // outcome.server_protocol_version,
-                    &outcome.capabilities,
-                    // TODO: gain a better understanding of
-                    // https://github.com/Byron/gitoxide/blob/da5f63cbc7506990f46d310f8064678decb86928/git-repository/src/remote/connection/ref_map.rs#L153-L168
-                    |_capabilities, _arguments, _features| {
-                        Ok(gitoxide::protocol::ls_refs::Action::Continue)
-                    },
-                    &mut progress,
-                )
-                .await?;
-
-                trace!("refs: {:#?}", refs);
-
-                // TODO: buffer and flush
-                refs.iter().for_each(|r| println!("{}", ref_to_string(r)));
-                println!()
+                commands::list::execute(&url, authenticate, &variant).await?
             }
             Commands::Push { src_dst } => {
                 trace!("batch push {}", src_dst);
                 let _ = push.insert(src_dst);
             }
-        }
-    }
-}
-
-fn ref_to_string(r: &gitoxide::protocol::handshake::Ref) -> String {
-    use gitoxide::protocol::handshake::Ref;
-
-    match r {
-        Ref::Peeled {
-            full_ref_name,
-            tag: _,
-            object: _,
-        } => {
-            // FIXME: not sure how to handle peeled refs yet
-            format!("? {}", full_ref_name)
-        }
-        Ref::Direct {
-            full_ref_name,
-            object,
-        } => {
-            // 91536083cdb16ef3c29638054642b50a34ea8c25 refs/heads/main
-            format!("{} {}", object, full_ref_name)
-        }
-        Ref::Symbolic {
-            full_ref_name,
-            target,
-            object: _,
-        } => {
-            // @refs/heads/main HEAD
-            format!("@{} {}", target, full_ref_name)
-        }
-        // TODO: determine if this is the correct way to handle unborn symrefs
-        Ref::Unborn {
-            full_ref_name,
-            target,
-        } => {
-            // @refs/heads/main HEAD
-            format!("@{} {}", target, full_ref_name)
         }
     }
 }
