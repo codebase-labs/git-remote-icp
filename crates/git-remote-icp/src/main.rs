@@ -3,8 +3,7 @@
 mod report_status_v2;
 
 use anyhow::{anyhow, Context};
-// use bstr::ByteSlice as _;
-use clap::{Command, FromArgMatches as _, Parser, Subcommand as _, ValueEnum};
+use clap::{Command, FromArgMatches as _, Parser, Subcommand, ValueEnum};
 use git::bstr::ByteSlice as _;
 use git_repository as git;
 use log::trace;
@@ -13,19 +12,30 @@ use std::env;
 use std::path::Path;
 use strum::{EnumVariantNames, VariantNames as _};
 
-#[derive(Parser)]
+#[derive(Debug, Parser)]
+#[clap(multicall(true))]
+#[clap(about, version)]
+enum RemoteHelper {
+    #[clap(name = "git-remote-icp")]
+    ICP(Args),
+    #[clap(name = "git-remote-tcp")]
+    TCP(Args),
+}
+
+#[derive(Debug, Parser)]
 #[clap(about, version)]
 struct Args {
     /// A remote repository; either the name of a configured remote or a URL
     #[clap(value_parser)]
-    repository: String,
+    repository: String, // TODO: BString
 
     /// A URL of the form icp://<address> or icp::<transport>://<address>
     #[clap(value_parser)]
     url: String,
 }
 
-#[derive(Debug, EnumVariantNames, Eq, Ord, PartialEq, PartialOrd, Parser)]
+#[derive(Debug, EnumVariantNames, Eq, Ord, PartialEq, PartialOrd, Subcommand)]
+// #[command(multicall(true))]
 #[strum(serialize_all = "kebab_case")]
 enum Commands {
     Capabilities,
@@ -53,18 +63,29 @@ enum ListVariant {
 
 const GIT_DIR: &str = "GIT_DIR";
 
-// TODO: investigate using clap multicall to provide git-remote-tcp and git-remote-icp
 // TODO: modules for each command
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
+
+    let remote_helper = RemoteHelper::parse();
+
+    let (external_transport_protocol, internal_transport_protocol, args) = match remote_helper {
+        RemoteHelper::ICP(args) => ("icp", "https", args),
+        RemoteHelper::TCP(args) => ("tcp", "git", args),
+    };
+
+    trace!("external_transport_protocol: {:?}", external_transport_protocol);
+    trace!("args.repository: {:?}", args.repository);
+    trace!("args.url: {:?}", args.url);
+
     git::interrupt::init_handler(move || {})?;
 
     let git_dir = env::var(GIT_DIR).context("failed to get GIT_DIR")?;
-
     trace!("GIT_DIR: {}", git_dir);
 
-    // TODO: determine if we can use gitoxide here instead
+    // TODO: use gitoxide here instead
+    // `repo.config_snapshot().string(“icp.privateKey”)`
     let private_key_path = std::process::Command::new("git")
         .arg("config")
         .arg("icp.privateKey")
@@ -87,14 +108,10 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: read icp.keyId from git config
 
-    let args = Args::parse();
-    trace!("args.repository: {:?}", args.repository);
-    trace!("args.url: {:?}", args.url);
-
-    let url: String = match args.url.strip_prefix("icp://") {
+    let url: String = match args.url.strip_prefix(&format!("{}://", external_transport_protocol)) {
         // The supplied URL was of the form `icp://<address>` so we change it to
-        // `git://<address>` (for now)
-        Some(address) => format!("git://{}", address),
+        // `https://<address>`.
+        Some(address) => format!("{}://{}", internal_transport_protocol, address),
         // The supplied url was of the form `icp::<transport>://<address>` but
         // Git invoked the remote helper with `<transport>://<address>`
         None => args.url.to_string(),
@@ -118,6 +135,7 @@ async fn main() -> anyhow::Result<()> {
     loop {
         trace!("loop");
 
+        // TODO: BString?
         let mut input = String::new();
 
         std::io::stdin()
@@ -140,6 +158,8 @@ async fn main() -> anyhow::Result<()> {
 
                 // Implement once option capability is supported
                 let progress = git::progress::Discard;
+
+                // FIXME: match on `remote_helper`
 
                 // TODO: use custom transport once commands are implemented
                 let transport = git::protocol::transport::connect(
@@ -173,6 +193,8 @@ async fn main() -> anyhow::Result<()> {
 
                 use git::refspec::parse::Operation;
                 use git::refspec::{instruction, Instruction};
+
+                // FIXME: match on `remote_helper`
 
                 // TODO: use custom transport once commands are implemented
                 // NOTE: push still uses the v1 protocol so we use that here.
@@ -466,7 +488,7 @@ async fn main() -> anyhow::Result<()> {
 
         trace!("input: {:#?}", input);
 
-        let input_command = Command::new("input")
+        let input_command = Command::new("git-remote-icp")
             .multicall(true)
             .subcommand_required(true);
 
@@ -496,6 +518,8 @@ async fn main() -> anyhow::Result<()> {
                         trace!("list");
                     }
                 }
+
+                // FIXME: match on `remote_helper`
 
                 // TODO: use custom transport once commands are implemented
                 let mut transport = git::protocol::transport::connect(

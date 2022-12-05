@@ -67,6 +67,9 @@
             nativeBuildInputs = [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
+            postInstall= ''
+              ln $out/bin/git-remote-icp $out/bin/git-remote-tcp
+            '';
             doInstallCheck = true;
             installCheckInputs = [
               pkgs.git
@@ -124,74 +127,74 @@
 
               # Test clone
 
-              git clone git://localhost/.git test-repo-tcp
-              git clone icp://localhost/.git test-repo-icp
+              git clone git://localhost/.git test-repo-git
+              git clone tcp://localhost/.git test-repo-tcp
 
+              GIT_LOG_GIT=$(git -C test-repo-git log)
               GIT_LOG_TCP=$(git -C test-repo-tcp log)
-              GIT_LOG_ICP=$(git -C test-repo-icp log)
 
-              if [ "$GIT_LOG_TCP" == "$GIT_LOG_ICP" ]; then
-                echo "GIT_LOG_TCP == GIT_LOG_ICP"
+              if [ "$GIT_LOG_GIT" == "$GIT_LOG_TCP" ]; then
+                echo "GIT_LOG_GIT == GIT_LOG_TCP"
               else
-                echo "GIT_LOG_TCP != GIT_LOG_ICP"
+                echo "GIT_LOG_GIT != GIT_LOG_TCP"
                 exit 1
               fi
 
-              GIT_DIFF_TCP=$(git -C test-repo-tcp diff)
+              GIT_DIFF_GIT=$(git -C test-repo-git diff)
 
-              git -C test-repo-icp remote add -f test-repo-tcp "$PWD/test-repo-tcp"
-              git -C test-repo-icp remote update
-              GIT_DIFF_ICP=$(git -C test-repo-icp diff main remotes/test-repo-tcp/main)
+              git -C test-repo-tcp remote add -f test-repo-git "$PWD/test-repo-git"
+              git -C test-repo-tcp remote update
+              GIT_DIFF_TCP=$(git -C test-repo-tcp diff main remotes/test-repo-git/main)
 
-              if [ "$GIT_DIFF_TCP" == "$GIT_DIFF_ICP" ]; then
-                echo "GIT_DIFF_TCP == GIT_DIFF_ICP"
+              if [ "$GIT_DIFF_GIT" == "$GIT_DIFF_TCP" ]; then
+                echo "GIT_DIFF_GIT == GIT_DIFF_TCP"
               else
-                echo "GIT_DIFF_TCP != GIT_DIFF_ICP"
+                echo "GIT_DIFF_GIT != GIT_DIFF_TCP"
                 exit 1
               fi
 
 
               # Test push
 
+              echo "\n" >> test-repo-git/README.md
+              git -C test-repo-git add .
+              git -C test-repo-git commit -m "Add trailing newline"
+              git -C test-repo-git push origin main
+
               echo "\n" >> test-repo-tcp/README.md
               git -C test-repo-tcp add .
               git -C test-repo-tcp commit -m "Add trailing newline"
               git -C test-repo-tcp push origin main
 
-              echo "\n" >> test-repo-icp/README.md
-              git -C test-repo-icp add .
-              git -C test-repo-icp commit -m "Add trailing newline"
-              git -C test-repo-icp push origin main
-
+              GIT_LOG_GIT_REMOTE=$(git -C test-repo-git log origin/main)
               GIT_LOG_TCP_REMOTE=$(git -C test-repo-tcp log origin/main)
-              GIT_LOG_ICP_REMOTE=$(git -C test-repo-icp log origin/main)
 
-              if [ "$GIT_LOG_TCP_REMOTE" == "$GIT_LOG_ICP_REMOTE" ]; then
-                echo "GIT_LOG_TCP_REMOTE == GIT_LOG_ICP_REMOTE"
+              if [ "$GIT_LOG_GIT_REMOTE" == "$GIT_LOG_TCP_REMOTE" ]; then
+                echo "GIT_LOG_GIT_REMOTE == GIT_LOG_TCP_REMOTE"
               else
-                echo "GIT_LOG_TCP_REMOTE != GIT_LOG_ICP_REMOTE"
-                echo "<<<<<<< GIT_LOG_TCP_REMOTE"
-                echo "$GIT_LOG_TCP_REMOTE"
+                echo "GIT_LOG_GIT_REMOTE != GIT_LOG_TCP_REMOTE"
+                echo "<<<<<<< GIT_LOG_GIT_REMOTE"
+                echo "$GIT_LOG_GIT_REMOTE"
                 echo "======="
-                echo "$GIT_LOG_ICP_REMOTE"
-                echo ">>>>>>> GIT_LOG_ICP_REMOTE"
+                echo "$GIT_LOG_TCP_REMOTE"
+                echo ">>>>>>> GIT_LOG_TCP_REMOTE"
 
                 exit 1
               fi
 
-              git -C test-repo-icp remote update
-              GIT_DIFF_TCP_REMOTE=$(git -C test-repo-tcp diff origin/main origin/main)
-              GIT_DIFF_ICP_REMOTE=$(git -C test-repo-icp diff origin/main remotes/test-repo-tcp/main)
+              git -C test-repo-tcp remote update
+              GIT_DIFF_GIT_REMOTE=$(git -C test-repo-git diff origin/main origin/main)
+              GIT_DIFF_TCP_REMOTE=$(git -C test-repo-tcp diff origin/main remotes/test-repo-git/main)
 
-              if [ "$GIT_DIFF_TCP_REMOTE" == "$GIT_DIFF_ICP_REMOTE" ]; then
-                echo "GIT_DIFF_TCP_REMOTE == GIT_DIFF_ICP_REMOTE"
+              if [ "$GIT_DIFF_GIT_REMOTE" == "$GIT_DIFF_TCP_REMOTE" ]; then
+                echo "GIT_DIFF_GIT_REMOTE == GIT_DIFF_TCP_REMOTE"
               else
-                echo "GIT_DIFF_TCP_REMOTE != GIT_DIFF_ICP_REMOTE"
-                echo "<<<<<<< GIT_DIFF_TCP_REMOTE"
-                echo "$GIT_DIFF_TCP_REMOTE"
+                echo "GIT_DIFF_GIT_REMOTE != GIT_DIFF_TCP_REMOTE"
+                echo "<<<<<<< GIT_DIFF_GIT_REMOTE"
+                echo "$GIT_DIFF_GIT_REMOTE"
                 echo "======="
-                echo "$GIT_DIFF_ICP_REMOTE"
-                echo ">>>>>>> GIT_DIFF_ICP_REMOTE"
+                echo "$GIT_DIFF_TCP_REMOTE"
+                echo ">>>>>>> GIT_DIFF_TCP_REMOTE"
 
                 exit 1
               fi
