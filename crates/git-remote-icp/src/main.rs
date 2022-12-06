@@ -1,10 +1,13 @@
 #![deny(rust_2018_idioms)]
 
+mod cli;
 mod commands;
 mod git;
+mod transport;
 
 use anyhow::{anyhow, Context};
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
+use cli::Cli;
 use commands::Commands;
 use git_repository as gitoxide;
 use log::trace;
@@ -13,48 +16,21 @@ use std::env;
 use std::path::Path;
 use strum::VariantNames as _;
 
-#[derive(Debug, Parser)]
-#[clap(multicall(true))]
-#[clap(about, version)]
-enum RemoteHelper {
-    GitRemoteIcp(Args),
-    GitRemoteTcp(Args),
-}
-
-#[derive(Debug, Parser)]
-#[clap(about, version)]
-struct Args {
-    /// A remote repository; either the name of a configured remote or a URL
-    #[clap(value_parser)]
-    repository: String,
-
-    /// A URL of the form icp://<address> or icp::<transport>://<address>
-    #[clap(value_parser)]
-    url: String,
-}
-
 const GIT_DIR: &str = "GIT_DIR";
 
-// TODO: modules for each command
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let remote_helper = RemoteHelper::parse();
+    let cli = Cli::parse();
 
-    let (external_transport_protocol, internal_transport_protocol, args) = match remote_helper {
-        RemoteHelper::GitRemoteIcp(args) => ("icp", "https", args),
-        RemoteHelper::GitRemoteTcp(args) => ("tcp", "git", args),
-    };
+    let scheme = transport::scheme(&cli);
+    trace!("scheme: {:?}", scheme);
 
-    trace!(
-        "external_transport_protocol: {:?}",
-        external_transport_protocol
-    );
-    trace!(
-        "internal_transport_protocol: {:?}",
-        internal_transport_protocol
-    );
+    let protocol = transport::protocol(&cli);
+    trace!("protocol: {:?}", protocol);
+
+    let args = cli::args(&cli);
     trace!("args.repository: {:?}", args.repository);
     trace!("args.url: {:?}", args.url);
 
@@ -87,15 +63,12 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: read icp.keyId from git config
 
-    let url: String = match args
-        .url
-        .strip_prefix(&format!("{}://", external_transport_protocol))
-    {
-        // The supplied URL was of the form `icp://<address>` so we change it to
-        // `https://<address>`.
-        Some(address) => format!("{}://{}", internal_transport_protocol, address),
-        // The supplied url was of the form `icp::<transport>://<address>` but
-        // Git invoked the remote helper with `<transport>://<address>`
+    let url: String = match args.url.strip_prefix(&format!("{}://", scheme)) {
+        // The supplied URL was of the form `<scheme>://<address>` so we change it to
+        // `<protocol>://<address>`.
+        Some(address) => format!("{}://{}", protocol, address),
+        // The supplied url was of the form `<scheme>::<protocol>://<address>` but
+        // Git invoked the remote helper with `<protocol>://<address>`
         None => args.url.to_string(),
     };
 
@@ -129,10 +102,9 @@ async fn main() -> anyhow::Result<()> {
         if input.is_empty() {
             trace!("terminated with a blank line");
 
-            // FIXME: match on `remote_helper`
-
             // TODO: use custom transport once commands are implemented
-            let fetch_transport = gitoxide::protocol::transport::connect(
+            let fetch_transport = transport::connect(
+                &cli,
                 url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
             )
@@ -140,11 +112,9 @@ async fn main() -> anyhow::Result<()> {
 
             commands::fetch::process(fetch_transport, &repo, &url, &mut fetch).await?;
 
-            // FIXME: match on `remote_helper`
-
-            // TODO: use custom transport once commands are implemented
             // NOTE: push still uses the v1 protocol so we use that here.
-            let mut push_transport = gitoxide::protocol::transport::connect(
+            let mut push_transport = transport::connect(
+                &cli,
                 url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
             )
@@ -182,10 +152,8 @@ async fn main() -> anyhow::Result<()> {
                 let _ = fetch.insert((hash, name));
             }
             Commands::List { variant } => {
-                // FIXME: match on `remote_helper`
-
-                // TODO: use custom transport once commands are implemented
-                let mut transport = gitoxide::protocol::transport::connect(
+                let mut transport = transport::connect(
+                    &cli,
                     url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,
                 )
