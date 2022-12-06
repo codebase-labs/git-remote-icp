@@ -12,18 +12,14 @@ use list::ListVariant;
 pub enum Commands {
     Capabilities,
     Fetch {
-        #[clap(value_parser)]
         hash: String, // TODO: gitoxide::hash::ObjectId?
 
-        #[clap(value_parser)]
         name: String,
     },
     List {
-        #[clap(arg_enum, value_parser)]
         variant: Option<ListVariant>,
     },
     Push {
-        #[clap(value_parser)]
         src_dst: String,
     },
 }
