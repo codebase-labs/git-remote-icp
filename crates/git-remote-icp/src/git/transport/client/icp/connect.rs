@@ -2,15 +2,16 @@ use crate::git::transport::client::icp;
 use git::protocol::transport;
 use git::url::Scheme;
 use git_repository as git;
-use ic_agent::Agent;
+use ic_agent::Identity;
 use log::trace;
+use std::sync::Arc;
 use transport::client::connect::Error;
 
-pub async fn connect<Url, E>(
-    agent: Agent,
+pub async fn connect<'a, Url, E>(
+    identity: Arc<dyn Identity>,
     url: Url,
     desired_version: transport::Protocol,
-) -> Result<Box<dyn transport::client::Transport + Send>, Error>
+) -> Result<Box<dyn transport::client::Transport + Send + 'a>, Error>
 where
     Url: TryInto<git::url::Url, Error = E>,
     git::url::parse::Error: From<E>,
@@ -25,5 +26,6 @@ where
     }?;
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
-    Ok(Box::new(icp::Connection::new(agent, desired_version)))
+    let connection = icp::Connection::new(identity, desired_version)?;
+    Ok(Box::new(connection))
 }

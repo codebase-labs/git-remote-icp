@@ -4,16 +4,17 @@ mod cli;
 mod commands;
 mod git;
 
-use ic_agent::Agent;
 use anyhow::{anyhow, Context};
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
 use cli::Cli;
 use commands::Commands;
 use git_repository as gitoxide;
+use ic_agent::identity::{AnonymousIdentity, BasicIdentity};
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
+use std::sync::Arc;
 use strum::VariantNames as _;
 
 const GIT_DIR: &str = "GIT_DIR";
@@ -66,7 +67,9 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: read icp.keyId from git config
 
-    let agent = Agent::builder().build()?;
+    // FIXME: let identity = BasicIdentity::from_key_pair(key_pair);
+    let identity = AnonymousIdentity;
+    let identity = Arc::new(identity);
 
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
@@ -91,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
 
             let fetch_transport = git::transport::client::connect(
                 &cli,
-                agent.clone(),
+                identity.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
             )
@@ -102,7 +105,7 @@ async fn main() -> anyhow::Result<()> {
             // NOTE: push still uses the v1 protocol so we use that here.
             let mut push_transport = git::transport::client::connect(
                 &cli,
-                agent.clone(),
+                identity.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
             )
@@ -142,7 +145,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::List { variant } => {
                 let mut transport = git::transport::client::connect(
                     &cli,
-                    agent.clone(),
+                    identity.clone(),
                     args.url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,
                 )

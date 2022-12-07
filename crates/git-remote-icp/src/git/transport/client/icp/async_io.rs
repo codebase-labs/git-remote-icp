@@ -2,8 +2,10 @@ use crate::git::transport::client::icp;
 use async_trait::async_trait;
 use git::protocol::transport::client;
 use git_repository as git;
+use log::trace;
 
-impl client::TransportWithoutIO for icp::Connection {
+impl client::TransportWithoutIO for icp::Connection
+{
     fn request(
         &mut self,
         write_mode: client::WriteMode,
@@ -29,12 +31,14 @@ impl client::TransportWithoutIO for icp::Connection {
 }
 
 #[async_trait(?Send)]
-impl client::Transport for icp::Connection {
+impl client::Transport for icp::Connection
+{
     async fn handshake<'a>(
         &mut self,
         service: git::protocol::transport::Service,
         extra_parameters: &'a [(&'a str, Option<&'a str>)],
     ) -> Result<client::SetServiceResponse<'_>, client::Error> {
+        trace!("agent: {:#?}", self.agent);
         todo!()
     }
 }
