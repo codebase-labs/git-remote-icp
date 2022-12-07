@@ -3,7 +3,6 @@
 mod cli;
 mod commands;
 mod git;
-mod transport;
 
 use anyhow::{anyhow, Context};
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
@@ -85,7 +84,7 @@ async fn main() -> anyhow::Result<()> {
         if input.is_empty() {
             trace!("terminated with a blank line");
 
-            let fetch_transport = transport::connect(
+            let fetch_transport = git::transport::client::connect(
                 &cli,
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
@@ -95,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
             commands::fetch::process(fetch_transport, &repo, &args.url, &mut fetch).await?;
 
             // NOTE: push still uses the v1 protocol so we use that here.
-            let mut push_transport = transport::connect(
+            let mut push_transport = git::transport::client::connect(
                 &cli,
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
@@ -134,7 +133,7 @@ async fn main() -> anyhow::Result<()> {
                 let _ = fetch.insert((hash, name));
             }
             Commands::List { variant } => {
-                let mut transport = transport::connect(
+                let mut transport = git::transport::client::connect(
                     &cli,
                     args.url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,
