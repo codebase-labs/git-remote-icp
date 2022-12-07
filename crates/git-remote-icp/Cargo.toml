@@ -10,6 +10,7 @@ name = "git-remote-icp"
 
 [dependencies]
 anyhow = "1.0"
+async-trait = "0.1"
 bstr = "1.0"
 clap = { version = "4.0", features = ["derive"] }
 derive_more = "0.99"
@@ -20,6 +21,3 @@ log = "0.4"
 nom = "7.0"
 strum = { version = "0.24", features = ["derive"] }
 tokio = { version = "1.12", features = ["full"] }
-
-[dev-dependencies]
-async-trait = "0.1"

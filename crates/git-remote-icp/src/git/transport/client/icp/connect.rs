@@ -1,3 +1,4 @@
+use crate::git::transport::client::icp;
 use git::protocol::transport;
 use git::url::Scheme;
 use git_repository as git;
@@ -22,6 +23,5 @@ where
     }?;
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
-    // FIXME
-    Err(Error::Connection(anyhow::anyhow!("icp:// transport not yet implemented").into()))
+    Ok(Box::new(icp::Connection::new()))
 }
