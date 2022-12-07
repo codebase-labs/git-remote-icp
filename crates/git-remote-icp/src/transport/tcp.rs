@@ -3,7 +3,7 @@ use git::url::Scheme;
 use git_repository as git;
 use log::trace;
 use std::convert::{Infallible, TryInto};
-use transport::connect::Error;
+use transport::client::connect::Error;
 
 pub async fn connect<Url, E>(
     url: Url,
