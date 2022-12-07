@@ -2,6 +2,7 @@ use crate::git::transport::client::icp;
 use git::protocol::transport;
 use git::url::Scheme;
 use git_repository as git;
+use ic_agent::export::Principal;
 use ic_agent::Identity;
 use log::trace;
 use std::sync::Arc;
@@ -9,7 +10,8 @@ use transport::client::connect::Error;
 
 pub async fn connect<'a, Url, E>(
     identity: Arc<dyn Identity>,
-    network_url: &str,
+    replica_url: &str,
+    canister_id: Principal,
     url: Url,
     desired_version: transport::Protocol,
 ) -> Result<Box<dyn transport::client::Transport + Send + 'a>, Error>
@@ -27,6 +29,8 @@ where
     }?;
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
-    let connection = icp::Connection::new(identity, network_url, url, desired_version)?;
+    let connection =
+        icp::Connection::new(identity, replica_url, canister_id, url, desired_version)?;
+
     Ok(Box::new(connection))
 }

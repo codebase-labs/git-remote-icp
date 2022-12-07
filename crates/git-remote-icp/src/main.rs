@@ -9,6 +9,7 @@ use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
 use cli::Cli;
 use commands::Commands;
 use git_repository as gitoxide;
+use ic_agent::export::Principal;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity};
 use log::trace;
 use std::collections::BTreeSet;
@@ -45,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
     //     anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`")
     // })?;
 
+    // TODO: abstraction over reading config (config module)
     let private_key_path = std::process::Command::new("git")
         .arg("config")
         .arg("icp.privateKey")
@@ -67,8 +69,12 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: read icp.keyId from git config
 
-    // FIXME: const DEFAULT_IC_GATEWAY: &str = "https://ic0.app" or icp.networkUrl
-    let network_url: &str = todo!();
+    // FIXME: icp.replicaUrl or "https://ic0.app"
+    let replica_url: &str = "http://localhost:8000";
+
+    // FIXME: icp.canisterId or "w7uni-tiaaa-aaaam-qaydq-cai"
+    let canister_id: &str = "w7uni-tiaaa-aaaam-qaydq-cai";
+    let canister_id = Principal::from_text(canister_id)?;
 
     // FIXME: let identity = BasicIdentity::from_key_pair(key_pair);
     let identity = AnonymousIdentity;
@@ -98,7 +104,8 @@ async fn main() -> anyhow::Result<()> {
             let fetch_transport = git::transport::client::connect(
                 &cli,
                 identity.clone(),
-                network_url.clone(),
+                replica_url.clone(),
+                canister_id.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
             )
@@ -110,7 +117,8 @@ async fn main() -> anyhow::Result<()> {
             let mut push_transport = git::transport::client::connect(
                 &cli,
                 identity.clone(),
-                network_url.clone(),
+                replica_url.clone(),
+                canister_id.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
             )
@@ -151,7 +159,8 @@ async fn main() -> anyhow::Result<()> {
                 let mut transport = git::transport::client::connect(
                     &cli,
                     identity.clone(),
-                    network_url.clone(),
+                    replica_url.clone(),
+                    canister_id.clone(),
                     args.url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,
                 )
