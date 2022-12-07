@@ -33,8 +33,17 @@ async fn main() -> anyhow::Result<()> {
     let git_dir = env::var(GIT_DIR).context("failed to get GIT_DIR")?;
     trace!("GIT_DIR: {}", git_dir);
 
-    // TODO: use gitoxide here instead
-    // `repo.config_snapshot().string(“icp.privateKey”)`
+    let repo_dir = Path::new(&git_dir)
+        .parent()
+        .ok_or_else(|| anyhow!("failed to get repository directory"))?;
+
+    let repo = gitoxide::open(repo_dir)?;
+
+    // TODO: figure out why this doesn't find the setting when used with `git -c`
+    // let private_key_path = config.string("icp.privateKey").ok_or_else(|| {
+    //     anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`")
+    // })?;
+
     let private_key_path = std::process::Command::new("git")
         .arg("config")
         .arg("icp.privateKey")
@@ -58,13 +67,6 @@ async fn main() -> anyhow::Result<()> {
     // TODO: read icp.keyId from git config
 
     let agent = Agent::builder().build()?;
-
-    let repo_dir = Path::new(&git_dir)
-        .parent()
-        .ok_or_else(|| anyhow!("failed to get repository directory"))?;
-
-    // TODO: `repo.config_snapshot().string(“icp.privateKey”)`
-    let repo = gitoxide::open(repo_dir)?;
 
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
