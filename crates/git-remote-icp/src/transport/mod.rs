@@ -20,17 +20,3 @@ where
         Cli::GitRemoteTcp(_) => tcp::connect(url, desired_version).await,
     }
 }
-
-pub fn scheme(cli: &Cli) -> &'static str {
-    match cli {
-        Cli::GitRemoteIcp(_) => icp::SCHEME,
-        Cli::GitRemoteTcp(_) => tcp::SCHEME,
-    }
-}
-
-pub fn protocol(cli: &Cli) -> &'static str {
-    match cli {
-        Cli::GitRemoteIcp(_) => icp::PROTOCOL,
-        Cli::GitRemoteTcp(_) => tcp::PROTOCOL,
-    }
-}

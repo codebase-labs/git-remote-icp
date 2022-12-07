@@ -24,12 +24,6 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let scheme = transport::scheme(&cli);
-    trace!("scheme: {:?}", scheme);
-
-    let protocol = transport::protocol(&cli);
-    trace!("protocol: {:?}", protocol);
-
     let args = cli::args(&cli);
     trace!("args.repository: {:?}", args.repository);
     trace!("args.url: {:?}", args.url);
@@ -63,17 +57,6 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: read icp.keyId from git config
 
-    let url: String = match args.url.strip_prefix(&format!("{}://", scheme)) {
-        // The supplied URL was of the form `<scheme>://<address>` so we change it to
-        // `<protocol>://<address>`.
-        Some(address) => format!("{}://{}", protocol, address),
-        // The supplied url was of the form `<scheme>::<protocol>://<address>` but
-        // Git invoked the remote helper with `<protocol>://<address>`
-        None => args.url.to_string(),
-    };
-
-    trace!("url: {}", url);
-
     let repo_dir = Path::new(&git_dir)
         .parent()
         .ok_or_else(|| anyhow!("failed to get repository directory"))?;
@@ -102,20 +85,19 @@ async fn main() -> anyhow::Result<()> {
         if input.is_empty() {
             trace!("terminated with a blank line");
 
-            // TODO: use custom transport once commands are implemented
             let fetch_transport = transport::connect(
                 &cli,
-                url.clone(),
+                args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
             )
             .await?;
 
-            commands::fetch::process(fetch_transport, &repo, &url, &mut fetch).await?;
+            commands::fetch::process(fetch_transport, &repo, &args.url, &mut fetch).await?;
 
             // NOTE: push still uses the v1 protocol so we use that here.
             let mut push_transport = transport::connect(
                 &cli,
-                url.clone(),
+                args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
             )
             .await?;
@@ -154,7 +136,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::List { variant } => {
                 let mut transport = transport::connect(
                     &cli,
-                    url.clone(),
+                    args.url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,
                 )
                 .await?;

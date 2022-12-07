@@ -15,8 +15,8 @@ clap = { version = "4.0", features = ["derive"] }
 derive_more = "0.99"
 env_logger = "0.9"
 # TODO: remove or feature gate async-std
-git-repository = { git = "https://github.com/Byron/gitoxide", rev="eca670585db212985d653cb2c6ec3636ec560905", features = ["async-network-client-async-std"] }
-git-validate = { git = "https://github.com/Byron/gitoxide", rev="eca670585db212985d653cb2c6ec3636ec560905" }
+git-repository = { git = "https://github.com/paulyoung/gitoxide", rev="4753e641eada72f4e944811ea85390481444b210", features = ["async-network-client-async-std"] }
+git-validate = { git = "https://github.com/paulyoung/gitoxide", rev="4753e641eada72f4e944811ea85390481444b210" }
 log = "0.4"
 nom = "7.0"
 strum = { version = "0.24", features = ["derive"] }
