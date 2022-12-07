@@ -16,12 +16,6 @@ A Git remote helper for the Internet Computer Protocol.
 ssh-keygen -t ed25519 -C "0+handle@users.noreply.codebase.org"
 ```
 
-or
-
-```
-ssh-keygen -t rsa -b 4096 -C "0+handle@users.noreply.codebase.org"
-```
-
 ## Configuring Git
 
 ### Globally
