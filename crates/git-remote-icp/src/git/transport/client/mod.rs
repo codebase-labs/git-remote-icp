@@ -11,6 +11,7 @@ use transport::client::connect::Error;
 pub async fn connect<'a, Url, E>(
     cli: &Cli,
     identity: Arc<dyn Identity>,
+    network_url: &str,
     url: Url,
     desired_version: transport::Protocol,
 ) -> Result<Box<dyn transport::client::Transport + Send + 'a>, Error>
@@ -19,7 +20,7 @@ where
     git::url::parse::Error: From<E>,
 {
     match cli {
-        Cli::GitRemoteIcp(_) => icp::connect(identity, url, desired_version).await,
+        Cli::GitRemoteIcp(_) => icp::connect(identity, network_url, url, desired_version).await,
         Cli::GitRemoteTcp(_) => tcp::connect(url, desired_version).await,
     }
 }

@@ -9,6 +9,7 @@ use transport::client::connect::Error;
 
 pub async fn connect<'a, Url, E>(
     identity: Arc<dyn Identity>,
+    network_url: &str,
     url: Url,
     desired_version: transport::Protocol,
 ) -> Result<Box<dyn transport::client::Transport + Send + 'a>, Error>
@@ -26,6 +27,6 @@ where
     }?;
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
-    let connection = icp::Connection::new(identity, desired_version)?;
+    let connection = icp::Connection::new(identity, network_url, url, desired_version)?;
     Ok(Box::new(connection))
 }

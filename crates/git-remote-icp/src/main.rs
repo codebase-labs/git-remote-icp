@@ -67,6 +67,9 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: read icp.keyId from git config
 
+    // FIXME: const DEFAULT_IC_GATEWAY: &str = "https://ic0.app" or icp.networkUrl
+    let network_url: &str = todo!();
+
     // FIXME: let identity = BasicIdentity::from_key_pair(key_pair);
     let identity = AnonymousIdentity;
     let identity = Arc::new(identity);
@@ -95,6 +98,7 @@ async fn main() -> anyhow::Result<()> {
             let fetch_transport = git::transport::client::connect(
                 &cli,
                 identity.clone(),
+                network_url.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
             )
@@ -106,6 +110,7 @@ async fn main() -> anyhow::Result<()> {
             let mut push_transport = git::transport::client::connect(
                 &cli,
                 identity.clone(),
+                network_url.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
             )
@@ -146,6 +151,7 @@ async fn main() -> anyhow::Result<()> {
                 let mut transport = git::transport::client::connect(
                     &cli,
                     identity.clone(),
+                    network_url.clone(),
                     args.url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,
                 )
