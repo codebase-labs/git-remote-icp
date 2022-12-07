@@ -4,6 +4,7 @@ mod cli;
 mod commands;
 mod git;
 
+use ic_agent::Agent;
 use anyhow::{anyhow, Context};
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
 use cli::Cli;
@@ -43,9 +44,9 @@ async fn main() -> anyhow::Result<()> {
     let private_key_path = String::from_utf8(private_key_path)?;
     let private_key_path = private_key_path.trim();
 
-    // if private_key_path.is_empty() {
-    //     return Err(anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`"));
-    // }
+    if private_key_path.is_empty() {
+        return Err(anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`"));
+    }
 
     trace!("private key path: {}", private_key_path);
 
@@ -55,6 +56,8 @@ async fn main() -> anyhow::Result<()> {
     // let private_key = _;
 
     // TODO: read icp.keyId from git config
+
+    let agent = Agent::builder().build()?;
 
     let repo_dir = Path::new(&git_dir)
         .parent()
@@ -86,6 +89,7 @@ async fn main() -> anyhow::Result<()> {
 
             let fetch_transport = git::transport::client::connect(
                 &cli,
+                agent.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
             )
@@ -96,6 +100,7 @@ async fn main() -> anyhow::Result<()> {
             // NOTE: push still uses the v1 protocol so we use that here.
             let mut push_transport = git::transport::client::connect(
                 &cli,
+                agent.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
             )
@@ -135,6 +140,7 @@ async fn main() -> anyhow::Result<()> {
             Commands::List { variant } => {
                 let mut transport = git::transport::client::connect(
                     &cli,
+                    agent.clone(),
                     args.url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,
                 )

@@ -2,10 +2,12 @@ use crate::git::transport::client::icp;
 use git::protocol::transport;
 use git::url::Scheme;
 use git_repository as git;
+use ic_agent::Agent;
 use log::trace;
 use transport::client::connect::Error;
 
 pub async fn connect<Url, E>(
+    agent: Agent,
     url: Url,
     desired_version: transport::Protocol,
 ) -> Result<Box<dyn transport::client::Transport + Send>, Error>
@@ -23,5 +25,5 @@ where
     }?;
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
-    Ok(Box::new(icp::Connection::new()))
+    Ok(Box::new(icp::Connection::new(agent, desired_version)))
 }
