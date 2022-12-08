@@ -35,6 +35,7 @@ where
         scheme @ (Scheme::Https | Scheme::Http) => Ok(scheme),
         _ => Err(Error::UnsupportedScheme(url.scheme)),
     }?;
+
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
     let connection =
