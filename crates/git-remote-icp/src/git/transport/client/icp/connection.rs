@@ -10,6 +10,7 @@ pub struct Connection {
     pub agent: Agent,
     pub replica_url: String,
     pub canister_id: Principal,
+    pub url: git::Url,
     pub desired_version: transport::Protocol,
 }
 
@@ -43,6 +44,7 @@ impl Connection {
             agent,
             replica_url: replica_url.to_string(),
             canister_id,
+            url,
             desired_version,
         };
 
