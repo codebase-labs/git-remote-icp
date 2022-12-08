@@ -12,6 +12,7 @@ use git_repository as gitoxide;
 use ic_agent::export::Principal;
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity};
 use log::trace;
+use ring::signature::Ed25519KeyPair;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
@@ -46,6 +47,15 @@ async fn main() -> anyhow::Result<()> {
     //     anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`")
     // })?;
 
+    // TODO: read icp.keyId from git config
+
+    // FIXME: icp.replicaUrl or "https://ic0.app"
+    let replica_url: &str = "http://localhost:8000";
+
+    // FIXME: icp.canisterId or "w7uni-tiaaa-aaaam-qaydq-cai"
+    let canister_id: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
+    let canister_id = Principal::from_text(canister_id)?;
+
     // TODO: abstraction over reading config (config module)
     let private_key_path = std::process::Command::new("git")
         .arg("config")
@@ -56,28 +66,22 @@ async fn main() -> anyhow::Result<()> {
     let private_key_path = String::from_utf8(private_key_path)?;
     let private_key_path = private_key_path.trim();
 
+    // TODO: consider falling back to AnonymousIdentity if icp.privateKey isn't
+    // set to allow users to clone from public repos using the icp:// scheme.
     if private_key_path.is_empty() {
         return Err(anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`"));
     }
 
     trace!("private key path: {}", private_key_path);
 
-    // let private_key_data = std::fs::read(private_key_path)
-    //     .map_err(|err| anyhow!("failed to read private key: {}", err))?;
+    let private_key_data = std::fs::read(private_key_path)
+        .map_err(|err| anyhow!("failed to read private key: {}", err))?;
 
-    // let private_key = _;
+    // let key_pair = Ed25519KeyPair::from_pkcs8(&private_key_data)?;
+    let key_pair = Ed25519KeyPair::from_pkcs8_maybe_unchecked(&private_key_data)?;
 
-    // TODO: read icp.keyId from git config
-
-    // FIXME: icp.replicaUrl or "https://ic0.app"
-    let replica_url: &str = "http://localhost:8000";
-
-    // FIXME: icp.canisterId or "w7uni-tiaaa-aaaam-qaydq-cai"
-    let canister_id: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
-    let canister_id = Principal::from_text(canister_id)?;
-
-    // FIXME: let identity = BasicIdentity::from_key_pair(key_pair);
-    let identity = AnonymousIdentity;
+    let identity = BasicIdentity::from_key_pair(key_pair);
+    trace!("identity: {:#?}", identity);
     let identity = Arc::new(identity);
 
     let authenticate =

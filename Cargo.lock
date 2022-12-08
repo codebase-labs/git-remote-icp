@@ -1453,6 +1453,7 @@ dependencies = [
  "ic-certified-assets",
  "log",
  "nom",
+ "ring",
  "serde_bytes",
  "strum",
  "tokio",
