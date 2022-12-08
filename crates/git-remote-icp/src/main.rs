@@ -10,9 +10,8 @@ use cli::Cli;
 use commands::Commands;
 use git_repository as gitoxide;
 use ic_agent::export::Principal;
-use ic_agent::identity::{AnonymousIdentity, BasicIdentity};
+use ic_agent::identity::{Identity as _, Secp256k1Identity};
 use log::trace;
-use ring::signature::Ed25519KeyPair;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
@@ -77,12 +76,13 @@ async fn main() -> anyhow::Result<()> {
     let private_key_data = std::fs::read(private_key_path)
         .map_err(|err| anyhow!("failed to read private key: {}", err))?;
 
-    // let key_pair = Ed25519KeyPair::from_pkcs8(&private_key_data)?;
-    let key_pair = Ed25519KeyPair::from_pkcs8_maybe_unchecked(&private_key_data)?;
-
-    let identity = BasicIdentity::from_key_pair(key_pair);
-    trace!("identity: {:#?}", identity);
+    let identity = Secp256k1Identity::from_pem_file(private_key_path)?;
     let identity = Arc::new(identity);
+
+    let principal = identity.sender().map_err(|err| anyhow!(err))?;
+    trace!("principal: {}", principal);
+
+    todo!();
 
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
