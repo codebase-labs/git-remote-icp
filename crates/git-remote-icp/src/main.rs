@@ -82,8 +82,6 @@ async fn main() -> anyhow::Result<()> {
     let principal = identity.sender().map_err(|err| anyhow!(err))?;
     trace!("principal: {}", principal);
 
-    todo!();
-
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
 
