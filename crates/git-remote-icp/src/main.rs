@@ -73,8 +73,8 @@ async fn main() -> anyhow::Result<()> {
 
     trace!("private key path: {}", private_key_path);
 
-    let private_key_data = std::fs::read(private_key_path)
-        .map_err(|err| anyhow!("failed to read private key: {}", err))?;
+    // let private_key_data = std::fs::read(private_key_path)
+    //     .map_err(|err| anyhow!("failed to read private key: {}", err))?;
 
     let identity = Secp256k1Identity::from_pem_file(private_key_path)?;
     let identity = Arc::new(identity);
