@@ -20,6 +20,14 @@ where
     git::url::parse::Error: From<E>,
 {
     let mut url = url.try_into().map_err(git::url::parse::Error::from)?;
+
+    if url.user().is_some() {
+        return Err(Error::UnsupportedUrlTokens {
+            url: url.to_bstring(),
+            scheme: url.scheme,
+        });
+    }
+
     trace!("Provided URL scheme: {:#?}", url.scheme);
 
     url.scheme = match url.scheme {
