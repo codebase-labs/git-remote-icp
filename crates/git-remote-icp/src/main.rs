@@ -73,7 +73,7 @@ async fn main() -> anyhow::Result<()> {
     let replica_url: &str = "http://localhost:8000";
 
     // FIXME: icp.canisterId or "w7uni-tiaaa-aaaam-qaydq-cai"
-    let canister_id: &str = "w7uni-tiaaa-aaaam-qaydq-cai";
+    let canister_id: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
     let canister_id = Principal::from_text(canister_id)?;
 
     // FIXME: let identity = BasicIdentity::from_key_pair(key_pair);
