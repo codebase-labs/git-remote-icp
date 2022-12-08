@@ -8,6 +8,8 @@ use std::sync::Arc;
 
 pub struct Connection {
     pub agent: Agent,
+    pub replica_url: String,
+    pub canister_id: Principal,
     pub desired_version: transport::Protocol,
 }
 
@@ -37,6 +39,8 @@ impl Connection {
 
         let connection = Self {
             agent,
+            replica_url: replica_url.to_string(),
+            canister_id,
             desired_version,
         };
 
