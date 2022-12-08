@@ -37,6 +37,8 @@ impl Connection {
             .build()
             .map_err(|err| transport::connect::Error::Connection(Box::new(err)))?;
 
+        // TODO: agent.fetch_root_key.await? during development
+
         let connection = Self {
             agent,
             replica_url: replica_url.to_string(),
