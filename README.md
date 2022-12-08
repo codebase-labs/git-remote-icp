@@ -13,8 +13,8 @@ A Git remote helper for the Internet Computer Protocol.
 ## Generating a public/private key pair
 
 ```
-openssl ecparam -name secp256k1 -genkey -noout -out secp256k1.pem
-openssl ec -in secp256k1.pem -pubout > secp256k1-pub.pem
+openssl ecparam -name secp256k1 -genkey -noout -out identity.pem
+openssl ec -in secp256k1.pem -pubout -out public.pem
 ```
 
 ## Configuring Git
