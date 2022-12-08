@@ -1,6 +1,7 @@
 use crate::git::transport::client::icp;
 use async_trait::async_trait;
 use candid::{Decode, Encode};
+use git::protocol::transport::packetline::{PacketLineRef, StreamingPeekableIter};
 use git::protocol::transport::{client, Protocol, Service};
 use git_repository as git;
 use ic_certified_assets::rc_bytes::RcBytes;
@@ -41,32 +42,11 @@ impl client::Transport for icp::Connection {
     async fn handshake<'a>(
         &mut self,
         service: Service,
+        // TODO: use these
         extra_parameters: &'a [(&'a str, Option<&'a str>)],
     ) -> Result<client::SetServiceResponse<'_>, client::Error> {
         trace!("service: {:#?}", service);
         trace!("extra_parameters: {:#?}", extra_parameters);
-
-        /*
-        let result = match service {
-            Service::ReceivePack => {
-                self.agent.update(&self.canister_id, "receive_pack")
-                    // .with_arg(&Encode!(&Argument { })?)
-                    .call_and_wait().await
-            },
-            Service::UploadPack => {
-                // TODO: consider using query_signed or update here
-                self.agent.query(&self.canister_id, "upload_pack")
-                    // .with_arg(&Encode!(&Argument { })?)
-                    .call().await
-            },
-        };
-
-        let response = result.map_err(|agent_error| {
-            client::Error::Io {
-                err: std::io::Error::new(std::io::ErrorKind::Other, agent_error),
-            }
-        })?;
-        */
 
         let host_header = self.url.host().map(|host| {
             let host = match self.url.port {
@@ -142,9 +122,6 @@ impl client::Transport for icp::Connection {
             }
         })?;
 
-        // trace!("response: {:#?}", response);
-        // trace!("response: {:#?}", String::from_utf8_lossy(&response));
-
         let response = Decode!(response.as_slice(), HttpResponse).map_err(|candid_error| {
             client::Error::Io {
                 err: std::io::Error::new(std::io::ErrorKind::Other, candid_error),
@@ -154,7 +131,25 @@ impl client::Transport for icp::Connection {
         // TODO: consider mapping HttpResponse to client::Error::Http
 
         trace!("response: {:#?}", response);
+        trace!("response.body: {}", String::from_utf8_lossy(&response.body));
 
-        todo!()
+        let mut line_reader =
+            StreamingPeekableIter::new(response.body.as_ref(), &[PacketLineRef::Flush]);
+
+        let client::capabilities::recv::Outcome {
+            capabilities,
+            refs,
+            protocol: actual_protocol,
+        } = client::Capabilities::from_lines_with_version_detection(&mut line_reader).await?;
+
+        trace!("capabilities: {:#?}", capabilities);
+        trace!("refs: {:#?}", refs);
+        trace!("actual_protocol: {:#?}", actual_protocol);
+
+        Ok(client::SetServiceResponse {
+            actual_protocol,
+            capabilities,
+            refs,
+        })
     }
 }
