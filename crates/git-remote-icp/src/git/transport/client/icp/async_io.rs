@@ -208,16 +208,17 @@ impl client::TransportWithoutIO for icp::Connection {
     }
 
     fn to_url(&self) -> std::borrow::Cow<'_, bstr::BStr> {
+        // TODO: do we need to provide replica URL or request URL?
         todo!("TransportWithoutIO::to_url")
     }
 
     fn connection_persists_across_multiple_requests(&self) -> bool {
-        todo!("TransportWithoutIO::connection_persists_across_multiple_requests")
+        false
     }
 
     fn configure(
         &mut self,
-        config: &dyn std::any::Any,
+        _config: &dyn std::any::Any,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
         todo!("TransportWithoutIO::configure")
     }
