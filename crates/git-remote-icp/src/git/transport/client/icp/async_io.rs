@@ -8,9 +8,12 @@
 use crate::git::transport::client::icp;
 use async_trait::async_trait;
 use candid::{Decode, Encode};
+use client::{ExtendedBufRead, HandleProgress, MessageKind, ReadlineBufRead};
+use git::protocol::futures_io::{AsyncBufRead, AsyncRead};
 use git::protocol::futures_lite::future;
 use git::protocol::futures_lite::io::Cursor;
 use git::protocol::futures_lite::AsyncReadExt;
+use git::protocol::transport::packetline;
 use git::protocol::transport::packetline::{PacketLineRef, StreamingPeekableIter};
 use git::protocol::transport::{client, Protocol, Service};
 use git_repository as git;
@@ -174,14 +177,18 @@ impl client::TransportWithoutIO for icp::Connection {
             ));
         }
 
-        let (_response_headers, response_body) = future::block_on(self.call(
+        // FIXME
+        let body = ByteBuf::new();
+
+        let (response_headers, response_body) = future::block_on(self.call(
             Action::Request,
             url,
             static_headers,
             &mut dynamic_headers,
-            // FIXME
-            ByteBuf::new(),
+            body,
         ))?;
+
+        todo!("TransportWithoutIO::request");
 
         let line_provider = self
             .line_provider
@@ -190,14 +197,12 @@ impl client::TransportWithoutIO for icp::Connection {
 
         line_provider.replace(response_body);
 
-        todo!("TransportWithoutIO::request")
+        // FIXME
+        let writer = Cursor::new(Vec::new());
 
-        /*
-        let writer = body;
-
-        let reader = Box::new(HeadersThenBody::<H, _> {
+        let reader = Box::new(HeadersThenBody::<_> {
             service,
-            headers: Some(headers),
+            headers: Some(response_headers),
             body: line_provider.as_read_without_sidebands(),
         });
 
@@ -207,7 +212,6 @@ impl client::TransportWithoutIO for icp::Connection {
             write_mode,
             on_into_read,
         ))
-         */
     }
 
     fn to_url(&self) -> std::borrow::Cow<'_, bstr::BStr> {
@@ -349,5 +353,98 @@ impl client::Transport for icp::Connection {
             capabilities,
             refs,
         })
+    }
+}
+
+struct HeadersThenBody<B: Unpin> {
+    service: Service,
+    headers: Option<Vec<HeaderField>>,
+    body: B,
+}
+
+impl<B: Unpin> HeadersThenBody<B> {
+    fn handle_headers(&mut self) -> std::io::Result<()> {
+        if let Some(headers) = self.headers.take() {
+            icp::Connection::check_content_type(self.service, "result", headers)
+                .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?
+        }
+        Ok(())
+    }
+}
+
+// impl<B: Read + Unpin> Read for HeadersThenBody<B> {
+//     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+//         self.handle_headers()?;
+//         self.body.read(buf)
+//     }
+// }
+
+// impl<B: BufRead + Unpin> BufRead for HeadersThenBody<B> {
+//     fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+//         self.handle_headers()?;
+//         self.body.fill_buf()
+//     }
+
+//     fn consume(&mut self, amt: usize) {
+//         self.body.consume(amt)
+//     }
+// }
+
+impl<B: AsyncRead + Unpin> AsyncRead for HeadersThenBody<B> {
+    fn poll_read(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut [u8],
+    ) -> std::task::Poll<std::io::Result<usize>> {
+        todo!()
+    }
+}
+
+impl<B: AsyncBufRead + Unpin> AsyncBufRead for HeadersThenBody<B> {
+    fn poll_fill_buf(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::io::Result<&[u8]>> {
+        todo!()
+    }
+
+    fn consume(self: std::pin::Pin<&mut Self>, amt: usize) {
+        todo!()
+    }
+}
+
+#[async_trait(?Send)]
+impl<B: ReadlineBufRead + Unpin> ReadlineBufRead for HeadersThenBody<B> {
+    async fn readline(
+        &mut self,
+    ) -> Option<std::io::Result<Result<PacketLineRef<'_>, packetline::decode::Error>>> {
+        if let Err(err) = self.handle_headers() {
+            return Some(Err(err));
+        }
+        // self.body.readline()
+        todo!()
+    }
+}
+
+#[async_trait(?Send)]
+impl<B: ExtendedBufRead + Unpin> ExtendedBufRead for HeadersThenBody<B> {
+    fn set_progress_handler(&mut self, handle_progress: Option<HandleProgress>) {
+        self.body.set_progress_handler(handle_progress)
+    }
+
+    async fn peek_data_line(&mut self) -> Option<std::io::Result<Result<&[u8], client::Error>>> {
+        if let Err(err) = self.handle_headers() {
+            return Some(Err(err));
+        }
+        // self.body.peek_data_line()
+        todo!()
+    }
+
+    fn reset(&mut self, version: Protocol) {
+        self.body.reset(version)
+    }
+
+    fn stopped_at(&self) -> Option<MessageKind> {
+        self.body.stopped_at()
     }
 }
