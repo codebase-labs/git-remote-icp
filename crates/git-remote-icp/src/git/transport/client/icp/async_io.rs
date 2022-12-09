@@ -289,8 +289,8 @@ impl client::Transport for icp::Connection {
         trace!("capabilities: {:#?}", capabilities);
         trace!("actual_protocol: {:#?}", actual_protocol);
 
-        // self.actual_version = actual_protocol;
-        // self.service = Some(service);
+        self.actual_version = actual_protocol;
+        self.service = Some(service);
 
         Ok(client::SetServiceResponse {
             actual_protocol,
