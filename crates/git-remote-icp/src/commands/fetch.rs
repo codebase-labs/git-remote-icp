@@ -8,7 +8,7 @@ pub async fn process<T>(
     transport: T,
     repo: &git::Repository,
     url: &str,
-    batch: &mut Batch
+    batch: &mut Batch,
 ) -> anyhow::Result<()>
 where
     T: git::protocol::transport::client::Transport,
@@ -19,7 +19,7 @@ where
         let mut remote = repo.remote_at(url)?;
 
         for (hash, _name) in batch.iter() {
-            remote = remote.with_refspec(hash.as_bytes(), git::remote::Direction::Fetch)?;
+            remote = remote.with_refspecs(Some(hash.as_bytes()), git::remote::Direction::Fetch)?;
         }
 
         // Implement once option capability is supported

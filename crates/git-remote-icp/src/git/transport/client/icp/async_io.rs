@@ -73,8 +73,8 @@ impl icp::Connection {
 
         trace!("http_request: {:#?}", http_request);
 
-        let arg = candid::Encode!(&http_request).map_err(|candid_error| client::Error::Io {
-            err: std::io::Error::new(std::io::ErrorKind::Other, candid_error),
+        let arg = candid::Encode!(&http_request).map_err(|candid_error| {
+            client::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, candid_error))
         })?;
 
         let result = match action {
@@ -98,15 +98,11 @@ impl icp::Connection {
 
         let response = result.map_err(|agent_error| {
             // TODO: consider mapping AgentError::HttpError to client::Error::Http
-            client::Error::Io {
-                err: std::io::Error::new(std::io::ErrorKind::Other, agent_error),
-            }
+            client::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, agent_error))
         })?;
 
         let response = Decode!(response.as_slice(), HttpResponse).map_err(|candid_error| {
-            client::Error::Io {
-                err: std::io::Error::new(std::io::ErrorKind::Other, candid_error),
-            }
+            client::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, candid_error))
         })?;
 
         // TODO: consider mapping HttpResponse to client::Error::Http
@@ -128,12 +124,12 @@ impl icp::Connection {
         if !headers.iter().any(|(name, value)| {
             name.eq_ignore_ascii_case("content-type") && value.trim() == wanted_content_type
         }) {
-            return Err(client::Error::Io {
-                err: std::io::Error::new(std::io::ErrorKind::Other, format!(
+            return Err(client::Error::Io (
+                std::io::Error::new(std::io::ErrorKind::Other, format!(
                     "Didn't find '{}' header to indicate 'smart' protocol, and 'dumb' protocol is not supported.",
                     wanted_content_type
                 )),
-            });
+            ));
         }
         Ok(())
     }
@@ -321,16 +317,14 @@ impl client::Transport for icp::Connection {
 
         if let Some(announced_service) = line.as_bstr().strip_prefix(b"# service=") {
             if announced_service != service.as_str().as_bytes() {
-                return Err(client::Error::Io {
-                    err: std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        format!(
-                            "Expected to see service {:?}, but got {:?}",
-                            service.as_str(),
-                            announced_service
-                        ),
+                return Err(client::Error::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!(
+                        "Expected to see service {:?}, but got {:?}",
+                        service.as_str(),
+                        announced_service
                     ),
-                });
+                )));
             }
 
             line_reader.as_read().read_to_end(&mut Vec::new()).await?;

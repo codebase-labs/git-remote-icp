@@ -16,8 +16,8 @@ candid = "0.8"
 clap = { version = "4.0", features = ["derive"] }
 derive_more = "0.99"
 env_logger = "0.9"
-git-repository = { git = "https://github.com/paulyoung/gitoxide", rev="4753e641eada72f4e944811ea85390481444b210", features = ["async-network-client-async-std"] }
-git-validate = { git = "https://github.com/paulyoung/gitoxide", rev="4753e641eada72f4e944811ea85390481444b210" }
+git-repository = { git = "https://github.com/Byron/gitoxide", rev="be0bbf519c4a6687c305717ec0c12215a5836f58", features = ["async-network-client-async-std"] }
+git-validate = { git = "https://github.com/Byron/gitoxide", rev="be0bbf519c4a6687c305717ec0c12215a5836f58" }
 ic-agent = "0.23"
 # When using ic-certified-assets = "0.2" we get an error that CandidType isn't
 # implemented for HttpRequest even though it is. This appears to be because it
