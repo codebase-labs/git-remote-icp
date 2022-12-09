@@ -18,7 +18,7 @@ pub struct Connection {
     pub user_agent_header: HeaderField,
     // pub supported_versions: [Protocol; 1],
     pub desired_version: transport::Protocol,
-    pub actual_version: Option<transport::Protocol>,
+    pub actual_version: transport::Protocol,
     pub service: Option<transport::Service>,
 }
 
@@ -61,7 +61,8 @@ impl Connection {
             // TODO: Protocol::V2?
             // supported_versions: [desired_version],
             desired_version,
-            actual_version: None,
+            // TODO: None?
+            actual_version: desired_version,
             service: None,
         };
 

@@ -167,15 +167,12 @@ impl client::TransportWithoutIO for icp::Connection {
 
         let mut dynamic_headers = Vec::new();
 
-        match self.actual_version {
-            Some(actual_version) if actual_version != Protocol::V1 => {
-                dynamic_headers.push((
-                    "Git-Protocol".to_string(),
-                    format!("version={}", actual_version as usize),
-                ));
-            }
-            _ => (),
-        };
+        if self.actual_version != Protocol::V1 {
+            dynamic_headers.push((
+                "Git-Protocol".to_string(),
+                format!("version={}", self.actual_version as usize),
+            ));
+        }
 
         let (_response_headers, response_body) = future::block_on(self.call(
             Action::Request,
