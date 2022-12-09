@@ -82,7 +82,7 @@ impl icp::Connection {
         // TODO: consider using query_signed, or update even if query works
         let result = self
             .agent
-            // .query(&self.canister_id, "http_request_update")
+            // .query(&self.canister_id, "http_request")
             .update(&self.canister_id, "http_request_update")
             .with_arg(&arg)
             // .call()
