@@ -75,19 +75,24 @@ impl icp::Connection {
             err: std::io::Error::new(std::io::ErrorKind::Other, candid_error),
         })?;
 
-        // TODO
-        // `.call(&self.canister_id, "http_request")` with `.call()` for handshake
-        // `.update(&self.canister_id, "http_request_update")` with `.call_and_wait()` for request
-
-        // TODO: consider using query_signed, or update even if query works
-        let result = self
-            .agent
-            // .query(&self.canister_id, "http_request")
-            .update(&self.canister_id, "http_request_update")
-            .with_arg(&arg)
-            // .call()
-            .call_and_wait()
-            .await;
+        let result = match action {
+            // TODO: consider using .query_signed(), or .update() with
+            // http_request_update
+            Action::Handshake => {
+                self.agent
+                    .query(&self.canister_id, "http_request")
+                    .with_arg(&arg)
+                    .call()
+                    .await
+            }
+            Action::Request => {
+                self.agent
+                    .update(&self.canister_id, "http_request_update")
+                    .with_arg(&arg)
+                    .call_and_wait()
+                    .await
+            }
+        };
 
         let response = result.map_err(|agent_error| {
             // TODO: consider mapping AgentError::HttpError to client::Error::Http
