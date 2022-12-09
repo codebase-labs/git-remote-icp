@@ -1,3 +1,4 @@
+use git::protocol::futures_lite::io::Cursor;
 use git::protocol::transport;
 use git_repository as git;
 use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
@@ -5,8 +6,10 @@ use ic_agent::export::Principal;
 use ic_agent::{Agent, Identity};
 use log::trace;
 use std::sync::Arc;
+use transport::packetline::StreamingPeekableIter;
 
 pub struct Connection {
+    pub line_provider: Option<StreamingPeekableIter<Cursor<Vec<u8>>>>,
     pub agent: Agent,
     pub replica_url: String,
     pub canister_id: Principal,
@@ -41,6 +44,7 @@ impl Connection {
         // TODO: agent.fetch_root_key.await? during development
 
         let connection = Self {
+            line_provider: None,
             agent,
             replica_url: replica_url.to_string(),
             canister_id,

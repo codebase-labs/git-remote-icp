@@ -1,10 +1,10 @@
 use crate::git::transport::client::icp;
 use async_trait::async_trait;
 use candid::{Decode, Encode};
-use git::protocol::transport::packetline::{PacketLineRef, StreamingPeekableIter};
+use git::protocol::futures_lite::io::Cursor;
+use git::protocol::futures_lite::AsyncReadExt;
 use git::protocol::transport::{client, Protocol, Service};
 use git_repository as git;
-use ic_certified_assets::rc_bytes::RcBytes;
 use ic_certified_assets::types::{HttpRequest, HttpResponse};
 use serde_bytes::ByteBuf;
 
@@ -133,17 +133,51 @@ impl client::Transport for icp::Connection {
         trace!("response: {:#?}", response);
         trace!("response.body: {}", String::from_utf8_lossy(&response.body));
 
-        let mut line_reader =
-            StreamingPeekableIter::new(response.body.as_ref(), &[PacketLineRef::Flush]);
+        use git::protocol::transport::packetline::{PacketLineRef, StreamingPeekableIter};
+
+        let line_reader = self.line_provider.get_or_insert_with(|| {
+            let async_reader = Cursor::new(response.body.to_vec());
+            StreamingPeekableIter::new(async_reader, &[PacketLineRef::Flush])
+        });
+
+        // The service announcement is only sent sometimes depending on the
+        // exact server/protocol version/used protocol (http?) eat the
+        // announcement when its there to avoid errors later (and check that the
+        // correct service was announced). Ignore the announcement otherwise.
+        let line_ = line_reader
+            .peek_line()
+            .await
+            .ok_or(client::Error::ExpectedLine(
+                "capabilities, version or service",
+            ))???;
+
+        let line = line_.as_text().ok_or(client::Error::ExpectedLine("text"))?;
+
+        if let Some(announced_service) = line.as_bstr().strip_prefix(b"# service=") {
+            if announced_service != service.as_str().as_bytes() {
+                return Err(client::Error::Io {
+                    err: std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!(
+                            "Expected to see service {:?}, but got {:?}",
+                            service.as_str(),
+                            announced_service
+                        ),
+                    ),
+                });
+            }
+
+            line_reader.as_read().read_to_end(&mut Vec::new()).await?;
+        }
 
         let client::capabilities::recv::Outcome {
             capabilities,
             refs,
             protocol: actual_protocol,
-        } = client::Capabilities::from_lines_with_version_detection(&mut line_reader).await?;
+        } = client::Capabilities::from_lines_with_version_detection(line_reader).await?;
 
         trace!("capabilities: {:#?}", capabilities);
-        trace!("refs: {:#?}", refs);
+        // trace!("refs: {:#?}", refs);
         trace!("actual_protocol: {:#?}", actual_protocol);
 
         Ok(client::SetServiceResponse {
