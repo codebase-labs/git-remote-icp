@@ -16,22 +16,22 @@ impl client::TransportWithoutIO for icp::Connection {
         write_mode: client::WriteMode,
         on_into_read: client::MessageKind,
     ) -> Result<client::RequestWriter<'_>, client::Error> {
-        todo!()
+        todo!("TransportWithoutIO::request")
     }
 
     fn to_url(&self) -> std::borrow::Cow<'_, bstr::BStr> {
-        todo!()
+        todo!("TransportWithoutIO::to_url")
     }
 
     fn connection_persists_across_multiple_requests(&self) -> bool {
-        todo!()
+        todo!("TransportWithoutIO::connection_persists_across_multiple_requests")
     }
 
     fn configure(
         &mut self,
         config: &dyn std::any::Any,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-        todo!()
+        todo!("TransportWithoutIO::configure")
     }
 }
 
@@ -80,7 +80,7 @@ impl client::Transport for icp::Connection {
                     .call_and_wait()
                     .await
                 */
-                todo!()
+                todo!("Transport::handshake Service::ReceivePack")
             }
             Service::UploadPack => {
                 // url: "/@paul/hello-world.git/info/refs?service=git-upload-pack".to_string(),
