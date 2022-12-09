@@ -9,7 +9,6 @@ use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
 use cli::Cli;
 use commands::Commands;
 use git_repository as gitoxide;
-use ic_agent::export::Principal;
 use ic_agent::identity::{Identity as _, Secp256k1Identity};
 use log::trace;
 use std::collections::BTreeSet;
@@ -41,46 +40,28 @@ async fn main() -> anyhow::Result<()> {
 
     let repo = gitoxide::open(repo_dir)?;
 
-    // TODO: figure out why this doesn't find the setting when used with `git -c`
-    // let private_key_path = config.string("icp.privateKey").ok_or_else(|| {
-    //     anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`")
-    // })?;
-
-    // TODO: read icp.keyId from git config
-
-    // FIXME: icp.replicaUrl or "https://ic0.app"
-    let replica_url: &str = "http://localhost:8000";
-
-    // FIXME: icp.canisterId or "w7uni-tiaaa-aaaam-qaydq-cai"
-    let canister_id: &str = "rwlgt-iiaaa-aaaaa-aaaaa-cai";
-    let canister_id = Principal::from_text(canister_id)?;
-
-    // TODO: abstraction over reading config (config module)
-    let private_key_path = std::process::Command::new("git")
-        .arg("config")
-        .arg("icp.privateKey")
-        .output()?;
-
-    let private_key_path = private_key_path.stdout;
-    let private_key_path = String::from_utf8(private_key_path)?;
-    let private_key_path = private_key_path.trim();
-
     // TODO: consider falling back to AnonymousIdentity if icp.privateKey isn't
     // set to allow users to clone from public repos using the icp:// scheme.
-    if private_key_path.is_empty() {
-        return Err(anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`"));
-    }
+    let private_key_path = git::config::private_key().map_err(|_| {
+        anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`")
+    })?;
 
     trace!("private key path: {}", private_key_path);
-
-    // let private_key_data = std::fs::read(private_key_path)
-    //     .map_err(|err| anyhow!("failed to read private key: {}", err))?;
 
     let identity = Secp256k1Identity::from_pem_file(private_key_path)?;
     let identity = Arc::new(identity);
 
     let principal = identity.sender().map_err(|err| anyhow!(err))?;
     trace!("principal: {}", principal);
+
+    let fetch_root_key = git::config::fetch_root_key();
+    trace!("fetch_root_key: {}", fetch_root_key);
+
+    let replica_url = git::config::replica_url();
+    trace!("replica_url: {}", replica_url);
+
+    let canister_id = git::config::canister_id()?;
+    trace!("canister_id: {}", canister_id);
 
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
@@ -106,7 +87,8 @@ async fn main() -> anyhow::Result<()> {
             let fetch_transport = git::transport::client::connect(
                 &cli,
                 identity.clone(),
-                replica_url.clone(),
+                fetch_root_key,
+                replica_url.as_str(),
                 canister_id.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
@@ -119,7 +101,8 @@ async fn main() -> anyhow::Result<()> {
             let mut push_transport = git::transport::client::connect(
                 &cli,
                 identity.clone(),
-                replica_url.clone(),
+                fetch_root_key,
+                replica_url.as_str(),
                 canister_id.clone(),
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
@@ -161,7 +144,8 @@ async fn main() -> anyhow::Result<()> {
                 let mut transport = git::transport::client::connect(
                     &cli,
                     identity.clone(),
-                    replica_url.clone(),
+                    fetch_root_key,
+                    replica_url.as_str(),
                     canister_id.clone(),
                     args.url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,

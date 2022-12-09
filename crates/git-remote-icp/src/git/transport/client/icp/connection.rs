@@ -25,6 +25,7 @@ pub struct Connection {
 impl Connection {
     pub async fn new(
         identity: Arc<dyn Identity>,
+        fetch_root_key: bool,
         replica_url: &str,
         canister_id: Principal,
         url: git::Url,
@@ -47,6 +48,12 @@ impl Connection {
             .map_err(|err| transport::connect::Error::Connection(Box::new(err)))?;
 
         // TODO: icp.fetchRootKey
+        if fetch_root_key {
+            agent
+                .fetch_root_key()
+                .await
+                .map_err(|err| transport::connect::Error::Connection(Box::new(err)))?;
+        }
 
         let connection = Self {
             line_provider: None,

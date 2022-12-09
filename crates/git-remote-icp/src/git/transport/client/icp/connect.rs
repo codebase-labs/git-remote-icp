@@ -10,6 +10,7 @@ use transport::client::connect::Error;
 
 pub async fn connect<'a, Url, E>(
     identity: Arc<dyn Identity>,
+    fetch_root_key: bool,
     replica_url: &str,
     canister_id: Principal,
     url: Url,
@@ -39,7 +40,7 @@ where
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
     let connection =
-        icp::Connection::new(identity, replica_url, canister_id, url, desired_version).await?;
+        icp::Connection::new(identity, fetch_root_key, replica_url, canister_id, url, desired_version).await?;
 
     Ok(Box::new(connection))
 }

@@ -35,7 +35,13 @@ git config --global icp.privateKey /absolute/path/to/private/key/file
 ### Against a local repository
 
 ```
-cargo build && PATH=./target/debug:$PATH RUST_LOG=trace git -c icp.privateKey=/absolute/path/to/private/key clone icp::http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
+cargo build && PATH=./target/debug:$PATH RUST_LOG=trace git -c icp.fetchRootKey=true -c icp.replicaUrl=http://localhost:8000 -c icp.canisterId=rwlgt-iiaaa-aaaaa-aaaaa-cai -c icp.privateKey=/Users/py/projects/codebase-labs/git-remote-ic/async/identity.pem clone icp::http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
+```
+
+or
+
+```
+cargo build && PATH=./target/debug:$PATH RUST_LOG=trace git -c icp.fetchRootKey=true -c icp.replicaUrl=http://localhost:8000 -c icp.canisterId=rwlgt-iiaaa-aaaaa-aaaaa-cai -c icp.privateKey=/Users/py/projects/codebase-labs/git-remote-ic/async/identity.pem clone icp::http://git.codebase.ic0.localhost:8453/@paul/hello-world.git
 ```
 
 ### Against a remote repository

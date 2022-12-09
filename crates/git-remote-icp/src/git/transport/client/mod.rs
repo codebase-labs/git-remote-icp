@@ -12,6 +12,7 @@ use transport::client::connect::Error;
 pub async fn connect<'a, Url, E>(
     cli: &Cli,
     identity: Arc<dyn Identity>,
+    fetch_root_key: bool,
     replica_url: &str,
     canister_id: Principal,
     url: Url,
@@ -23,7 +24,7 @@ where
 {
     match cli {
         Cli::GitRemoteIcp(_) => {
-            icp::connect(identity, replica_url, canister_id, url, desired_version).await
+            icp::connect(identity, fetch_root_key, replica_url, canister_id, url, desired_version).await
         }
         Cli::GitRemoteTcp(_) => tcp::connect(url, desired_version).await,
     }
