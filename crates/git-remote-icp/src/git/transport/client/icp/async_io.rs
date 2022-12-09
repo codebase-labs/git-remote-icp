@@ -27,13 +27,20 @@ fn append_url(base: &str, suffix: &str) -> String {
     buf
 }
 
+enum Action {
+    Handshake,
+    Request,
+}
+
 impl icp::Connection {
     async fn call(
         &self,
+        action: Action,
         service: Service,
         url: String,
         static_headers: &[HeaderField],
         dynamic_headers: &mut Vec<HeaderField>,
+        body: ByteBuf,
     ) -> Result<(Vec<HeaderField>, Cursor<Vec<u8>>), client::Error> {
         if let Some(host) = self.url.host() {
             let host = match self.url.port {
@@ -49,12 +56,17 @@ impl icp::Connection {
             .map(|x| x.to_owned())
             .collect::<Vec<_>>();
 
+        let method = match action {
+            Action::Handshake => "GET",
+            Action::Request => "POST",
+        }
+        .to_string();
+
         let http_request = HttpRequest {
-            // TODO: confirm if this needs to change for receive-pack
-            method: "GET".to_string(),
+            method,
             url,
             headers,
-            body: ByteBuf::default(),
+            body,
         };
 
         trace!("http_request: {:#?}", http_request);
@@ -63,15 +75,18 @@ impl icp::Connection {
             err: std::io::Error::new(std::io::ErrorKind::Other, candid_error),
         })?;
 
-        // TODO: consider if we need to use `.update(&self.canister_id,
-        // "http_request_update")` with `.call_and_wait()` for receive-pack
+        // TODO
+        // `.call(&self.canister_id, "http_request")` with `.call()` for handshake
+        // `.update(&self.canister_id, "http_request_update")` with `.call_and_wait()` for request
 
         // TODO: consider using query_signed, or update even if query works
         let result = self
             .agent
-            .query(&self.canister_id, "http_request")
+            // .query(&self.canister_id, "http_request_update")
+            .update(&self.canister_id, "http_request_update")
             .with_arg(&arg)
-            .call()
+            // .call()
+            .call_and_wait()
             .await;
 
         let response = result.map_err(|agent_error| {
@@ -92,12 +107,15 @@ impl icp::Connection {
         trace!("response: {:#?}", response);
         trace!("response.body: {}", String::from_utf8_lossy(&response.body));
 
-        let body = Cursor::new(response.body.to_vec());
-
-        return Ok((response.headers, body));
+        let response_body = Cursor::new(response.body.to_vec());
+        return Ok((response.headers, response_body));
     }
 
-    fn check_content_type(service: Service, kind: &str, headers: Vec<HeaderField>) -> Result<(), client::Error> {
+    fn check_content_type(
+        service: Service,
+        kind: &str,
+        headers: Vec<HeaderField>,
+    ) -> Result<(), client::Error> {
         let wanted_content_type = format!("application/x-{}-{}", service.as_str(), kind);
 
         if !headers.iter().any(|(name, value)| {
@@ -152,14 +170,22 @@ impl client::TransportWithoutIO for icp::Connection {
             ));
         }
 
-        let (headers, body) = future::block_on(self.call(service, url, static_headers, &mut dynamic_headers))?;
+        let (_response_headers, response_body) = future::block_on(self.call(
+            Action::Request,
+            service,
+            url,
+            static_headers,
+            &mut dynamic_headers,
+            // FIXME
+            ByteBuf::new(),
+        ))?;
 
         let line_provider = self
             .line_provider
             .as_mut()
             .expect("handshake to have been called first");
 
-        line_provider.replace(body);
+        line_provider.replace(response_body);
 
         todo!("TransportWithoutIO::request")
 
@@ -243,12 +269,22 @@ impl client::Transport for icp::Connection {
             dynamic_headers.push(("Git-Protocol".to_string(), parameters));
         }
 
-        let (headers, body) = self.call(service, url, static_headers, &mut dynamic_headers).await?;
-        icp::Connection::check_content_type(service, "advertisement", headers)?;
+        let (response_headers, response_body) = self
+            .call(
+                Action::Handshake,
+                service,
+                url,
+                static_headers,
+                &mut dynamic_headers,
+                ByteBuf::new(),
+            )
+            .await?;
 
-        let line_reader = self
-            .line_provider
-            .get_or_insert_with(|| StreamingPeekableIter::new(body, &[PacketLineRef::Flush]));
+        icp::Connection::check_content_type(service, "advertisement", response_headers)?;
+
+        let line_reader = self.line_provider.get_or_insert_with(|| {
+            StreamingPeekableIter::new(response_body, &[PacketLineRef::Flush])
+        });
 
         // The service announcement is only sent sometimes depending on the
         // exact server/protocol version/used protocol (http?) eat the
