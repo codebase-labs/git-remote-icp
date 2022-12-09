@@ -215,6 +215,19 @@ impl client::TransportWithoutIO for icp::Connection {
         todo!("TransportWithoutIO::to_url")
     }
 
+    // We implement this in a paranoid and safe way, not allowing downgrade to
+    // V1 which could send large amounts of refs in case we didn't want to
+    // support V1.
+    /*
+    fn supported_protocol_versions(&self) -> &[Protocol] {
+        if self.desired_version == Protocol::V1 {
+            &[]
+        } else {
+            &self.supported_versions
+        }
+    }
+    */
+
     fn connection_persists_across_multiple_requests(&self) -> bool {
         false
     }
