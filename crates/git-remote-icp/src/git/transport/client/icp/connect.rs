@@ -39,7 +39,7 @@ where
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
     let connection =
-        icp::Connection::new(identity, replica_url, canister_id, url, desired_version)?;
+        icp::Connection::new(identity, replica_url, canister_id, url, desired_version).await?;
 
     Ok(Box::new(connection))
 }

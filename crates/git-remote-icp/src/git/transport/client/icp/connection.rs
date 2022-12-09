@@ -22,7 +22,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub fn new(
+    pub async fn new(
         identity: Arc<dyn Identity>,
         replica_url: &str,
         canister_id: Principal,
@@ -45,7 +45,7 @@ impl Connection {
             .build()
             .map_err(|err| transport::connect::Error::Connection(Box::new(err)))?;
 
-        // TODO: agent.fetch_root_key.await? during development
+        // TODO: icp.fetchRootKey
 
         let connection = Self {
             line_provider: None,
