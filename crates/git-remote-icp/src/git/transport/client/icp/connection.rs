@@ -4,10 +4,10 @@ use git_repository as git;
 use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
 use ic_agent::export::Principal;
 use ic_agent::{Agent, Identity};
+use ic_certified_assets::types::HeaderField;
 use log::trace;
 use std::sync::Arc;
 use transport::packetline::StreamingPeekableIter;
-use ic_certified_assets::types::HeaderField;
 
 pub struct Connection {
     pub line_provider: Option<StreamingPeekableIter<Cursor<Vec<u8>>>>,
@@ -53,7 +53,10 @@ impl Connection {
             replica_url: replica_url.to_string(),
             canister_id,
             url,
-            user_agent_header: ("User-Agent".to_string(), concat!("git/remote-icp-", env!("CARGO_PKG_VERSION")).to_string()),
+            user_agent_header: (
+                "User-Agent".to_string(),
+                concat!("git/remote-icp-", env!("CARGO_PKG_VERSION")).to_string(),
+            ),
             desired_version,
             actual_version: desired_version,
             service: None,
