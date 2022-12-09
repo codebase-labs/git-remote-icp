@@ -101,6 +101,11 @@
               git config --global user.email 0+test.users.noreply@codebase.org
               git config --global receive.denyCurrentBranch updateInstead
 
+              git config --global icp.fetchRootKey true
+              git config --global icp.replicaUrl http://localhost:8000
+              git config --global icp.canisterId rwlgt-iiaaa-aaaaa-aaaaa-cai
+              git config --global icp.privateKey "$PWD/identity.pem"
+
 
               # Set up test repo
 
