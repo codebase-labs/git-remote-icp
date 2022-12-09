@@ -17,6 +17,8 @@ pub struct Connection {
     pub url: git::Url,
     pub user_agent_header: HeaderField,
     pub desired_version: transport::Protocol,
+    pub actual_version: transport::Protocol,
+    pub service: Option<transport::Service>,
 }
 
 impl Connection {
@@ -53,6 +55,8 @@ impl Connection {
             url,
             user_agent_header: ("User-Agent".to_string(), concat!("git/remote-icp-", env!("CARGO_PKG_VERSION")).to_string()),
             desired_version,
+            actual_version: desired_version,
+            service: None,
         };
 
         Ok(connection)
