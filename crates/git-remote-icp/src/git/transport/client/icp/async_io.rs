@@ -34,7 +34,7 @@ impl icp::Connection {
         url: String,
         static_headers: &[HeaderField],
         dynamic_headers: &mut Vec<HeaderField>,
-    ) -> Result<Cursor<Vec<u8>>, client::Error> {
+    ) -> Result<(Vec<HeaderField>, Cursor<Vec<u8>>), client::Error> {
         if let Some(host) = self.url.host() {
             let host = match self.url.port {
                 Some(port) => format!("{}:{}", host, port),
@@ -92,11 +92,25 @@ impl icp::Connection {
         trace!("response: {:#?}", response);
         trace!("response.body: {}", String::from_utf8_lossy(&response.body));
 
-        // TODO: check content type
-
         let body = Cursor::new(response.body.to_vec());
 
-        return Ok(body);
+        return Ok((response.headers, body));
+    }
+
+    fn check_content_type(service: Service, kind: &str, headers: Vec<HeaderField>) -> Result<(), client::Error> {
+        let wanted_content_type = format!("application/x-{}-{}", service.as_str(), kind);
+
+        if !headers.iter().any(|(name, value)| {
+            name.eq_ignore_ascii_case("content-type") && value.trim() == wanted_content_type
+        }) {
+            return Err(client::Error::Io {
+                err: std::io::Error::new(std::io::ErrorKind::Other, format!(
+                    "Didn't find '{}' header to indicate 'smart' protocol, and 'dumb' protocol is not supported.",
+                    wanted_content_type
+                )),
+            });
+        }
+        Ok(())
     }
 }
 
@@ -138,7 +152,7 @@ impl client::TransportWithoutIO for icp::Connection {
             ));
         }
 
-        let body = future::block_on(self.call(service, url, static_headers, &mut dynamic_headers))?;
+        let (headers, body) = future::block_on(self.call(service, url, static_headers, &mut dynamic_headers))?;
 
         let line_provider = self
             .line_provider
@@ -229,7 +243,8 @@ impl client::Transport for icp::Connection {
             dynamic_headers.push(("Git-Protocol".to_string(), parameters));
         }
 
-        let body = self.call(service, url, static_headers, &mut dynamic_headers).await?;
+        let (headers, body) = self.call(service, url, static_headers, &mut dynamic_headers).await?;
+        icp::Connection::check_content_type(service, "advertisement", headers)?;
 
         let line_reader = self
             .line_provider
