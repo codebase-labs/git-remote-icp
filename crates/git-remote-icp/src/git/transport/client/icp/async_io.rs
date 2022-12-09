@@ -36,7 +36,6 @@ impl icp::Connection {
     async fn call(
         &self,
         action: Action,
-        service: Service,
         url: String,
         static_headers: &[HeaderField],
         dynamic_headers: &mut Vec<HeaderField>,
@@ -177,7 +176,6 @@ impl client::TransportWithoutIO for icp::Connection {
 
         let (_response_headers, response_body) = future::block_on(self.call(
             Action::Request,
-            service,
             url,
             static_headers,
             &mut dynamic_headers,
@@ -278,7 +276,6 @@ impl client::Transport for icp::Connection {
         let (response_headers, response_body) = self
             .call(
                 Action::Handshake,
-                service,
                 url,
                 static_headers,
                 &mut dynamic_headers,
