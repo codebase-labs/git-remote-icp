@@ -7,6 +7,7 @@ use ic_agent::{Agent, Identity};
 use log::trace;
 use std::sync::Arc;
 use transport::packetline::StreamingPeekableIter;
+use ic_certified_assets::types::HeaderField;
 
 pub struct Connection {
     pub line_provider: Option<StreamingPeekableIter<Cursor<Vec<u8>>>>,
@@ -14,6 +15,7 @@ pub struct Connection {
     pub replica_url: String,
     pub canister_id: Principal,
     pub url: git::Url,
+    pub user_agent_header: HeaderField,
     pub desired_version: transport::Protocol,
 }
 
@@ -49,6 +51,7 @@ impl Connection {
             replica_url: replica_url.to_string(),
             canister_id,
             url,
+            user_agent_header: ("User-Agent".to_string(), concat!("git/remote-icp-", env!("CARGO_PKG_VERSION")).to_string()),
             desired_version,
         };
 

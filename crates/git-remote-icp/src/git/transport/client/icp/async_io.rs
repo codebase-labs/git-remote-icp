@@ -5,7 +5,7 @@ use git::protocol::futures_lite::io::Cursor;
 use git::protocol::futures_lite::AsyncReadExt;
 use git::protocol::transport::{client, Protocol, Service};
 use git_repository as git;
-use ic_certified_assets::types::{HttpRequest, HttpResponse};
+use ic_certified_assets::types::{HeaderField, HttpRequest, HttpResponse};
 use serde_bytes::ByteBuf;
 
 use log::trace;
@@ -35,6 +35,15 @@ impl client::TransportWithoutIO for icp::Connection {
     }
 }
 
+fn append_url(base: &str, suffix: &str) -> String {
+    let mut buf = base.to_owned();
+    if base.as_bytes().last() != Some(&b'/') {
+        buf.push('/');
+    }
+    buf.push_str(suffix);
+    buf
+}
+
 // NOTE: using client::Error::io isn't ideal but seems to be the best option
 // given what's available.
 #[async_trait(?Send)]
@@ -42,27 +51,72 @@ impl client::Transport for icp::Connection {
     async fn handshake<'a>(
         &mut self,
         service: Service,
-        // TODO: use these
         extra_parameters: &'a [(&'a str, Option<&'a str>)],
     ) -> Result<client::SetServiceResponse<'_>, client::Error> {
         trace!("service: {:#?}", service);
         trace!("extra_parameters: {:#?}", extra_parameters);
 
-        let host_header = self.url.host().map(|host| {
+        let url = append_url(
+            &self.url.path.to_string(),
+            &format!("info/refs?service={}", service.as_str()),
+        );
+
+        let static_headers = &[self.user_agent_header.clone()];
+
+        let mut dynamic_headers = Vec::<HeaderField>::new();
+
+        if self.desired_version != Protocol::V1 || !extra_parameters.is_empty() {
+            let mut parameters = if self.desired_version != Protocol::V1 {
+                let mut p = format!("version={}", self.desired_version as usize);
+                if !extra_parameters.is_empty() {
+                    p.push(':');
+                }
+                p
+            } else {
+                String::new()
+            };
+
+            parameters.push_str(
+                &extra_parameters
+                    .iter()
+                    .map(|(key, value)| match value {
+                        Some(value) => format!("{}={}", key, value),
+                        None => key.to_string(),
+                    })
+                    .collect::<Vec<_>>()
+                    .join(":"),
+            );
+
+            dynamic_headers.push(("Git-Protocol".to_string(), parameters));
+        }
+
+        if let Some(host) = self.url.host() {
             let host = match self.url.port {
                 Some(port) => format!("{}:{}", host, port),
                 None => host.to_string(),
             };
-            ("host".to_string(), host)
-        });
+            dynamic_headers.push(("host".to_string(), host))
+        }
 
-        let git_protocol_header = {
-            let version = match self.desired_version {
-                Protocol::V1 => "1",
-                Protocol::V2 => "2",
-            };
-            ("git-protocol".to_string(), format!("version={}", version))
+        let headers = static_headers
+            .iter()
+            .chain(&dynamic_headers)
+            .map(|x| x.to_owned())
+            .collect::<Vec<_>>();
+
+        let http_request = HttpRequest {
+            // TODO: confirm if this needs to change for receive-pack
+            method: "GET".to_string(),
+            url,
+            headers,
+            body: ByteBuf::default(),
         };
+
+        trace!("http_request: {:#?}", http_request);
+
+        let arg = candid::Encode!(&http_request).map_err(|candid_error| client::Error::Io {
+            err: std::io::Error::new(std::io::ErrorKind::Other, candid_error),
+        })?;
 
         // Calling HTTP methods for now instead of exposing separate methods for
         // each service.
@@ -71,49 +125,17 @@ impl client::Transport for icp::Connection {
         // transport, but it has the benefit of keeping the existing HTTP
         // interface working for unauthenticated calls that don't use the remote
         // helper.
-        let result = match service {
-            Service::ReceivePack => {
-                /*
-                self.agent
-                    .update(&self.canister_id, "http_request_update")
-                    // .with_arg(&http_request)
-                    .call_and_wait()
-                    .await
-                */
-                todo!("Transport::handshake Service::ReceivePack")
-            }
-            Service::UploadPack => {
-                // url: "/@paul/hello-world.git/info/refs?service=git-upload-pack".to_string(),
-                let url = format!("{}/info/refs?service=git-upload-pack", self.url.path);
 
-                let headers = vec![host_header, Some(git_protocol_header)]
-                    .into_iter()
-                    .filter_map(|x| x)
-                    .collect::<Vec<_>>();
+        // TODO: consider if we need to use `.update(&self.canister_id,
+        // "http_request_update")` with `.call_and_wait()` for receive-pack
 
-                let http_request = HttpRequest {
-                    method: "GET".to_string(),
-                    url,
-                    headers,
-                    // body: ByteBuf::from(body),
-                    body: ByteBuf::default(),
-                };
-
-                trace!("http_request: {:#?}", http_request);
-
-                let arg =
-                    candid::Encode!(&http_request).map_err(|candid_error| client::Error::Io {
-                        err: std::io::Error::new(std::io::ErrorKind::Other, candid_error),
-                    })?;
-
-                // TODO: consider using query_signed or update here
-                self.agent
-                    .query(&self.canister_id, "http_request")
-                    .with_arg(&arg)
-                    .call()
-                    .await
-            }
-        };
+        // TODO: consider using query_signed, or update even if query works
+        let result = self
+            .agent
+            .query(&self.canister_id, "http_request")
+            .with_arg(&arg)
+            .call()
+            .await;
 
         let response = result.map_err(|agent_error| {
             // TODO: consider mapping AgentError::HttpError to client::Error::Http
@@ -132,6 +154,8 @@ impl client::Transport for icp::Connection {
 
         trace!("response: {:#?}", response);
         trace!("response.body: {}", String::from_utf8_lossy(&response.body));
+
+        // TODO: check content type
 
         use git::protocol::transport::packetline::{PacketLineRef, StreamingPeekableIter};
 
