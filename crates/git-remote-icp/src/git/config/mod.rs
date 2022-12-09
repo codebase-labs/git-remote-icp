@@ -22,7 +22,7 @@ const CANISTER_ID_KEY: &str = "icp.canisterId";
 const DEFAULT_CANISTER_ID: &str = "w7uni-tiaaa-aaaam-qaydq-cai";
 
 pub fn canister_id() -> anyhow::Result<Principal> {
-    let canister_id = get(REPLICA_URL_KEY).unwrap_or_else(|_| DEFAULT_CANISTER_ID.to_string());
+    let canister_id = get(CANISTER_ID_KEY).unwrap_or_else(|_| DEFAULT_CANISTER_ID.to_string());
     let principal = Principal::from_text(canister_id)?;
     Ok(principal)
 }
