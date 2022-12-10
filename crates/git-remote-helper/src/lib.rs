@@ -12,12 +12,10 @@ use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
 use cli::Cli;
 use commands::Commands;
 use git_repository as gitoxide;
-use ic_agent::identity::{Identity as _, Secp256k1Identity};
 use log::trace;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
-use std::sync::Arc;
 use strum::VariantNames as _;
 use std::future::Future;
 

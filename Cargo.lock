@@ -1381,21 +1381,31 @@ name = "git-remote-helper"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "bstr",
- "candid",
  "clap",
  "derive_more",
  "env_logger",
  "git-repository",
  "git-validate",
- "ic-agent",
- "ic-certified-assets",
  "log",
  "maybe-async",
  "nom",
- "serde_bytes",
  "strum",
+ "tokio",
+]
+
+[[package]]
+name = "git-remote-icp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "candid",
+ "env_logger",
+ "git-remote-helper",
+ "git-repository",
+ "ic-agent",
+ "ic-certified-assets",
+ "log",
+ "serde_bytes",
  "tokio",
 ]
 

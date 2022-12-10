@@ -1,4 +1,16 @@
 [workspace]
 members = [
     "crates/git-remote-helper",
+    # "crates/git-remote-http",
+    "crates/git-remote-icp",
+    # "crates/git-remote-tcp",
 ]
+
+[workspace.dependencies]
+anyhow = "1.0"
+env_logger = "0.9"
+log = "0.4"
+git-remote-helper = { path = "crates/git-remote-helper" }
+git-repository = { git = "https://github.com/Byron/gitoxide", rev="be0bbf519c4a6687c305717ec0c12215a5836f58" }
+git-validate = { git = "https://github.com/Byron/gitoxide", rev="be0bbf519c4a6687c305717ec0c12215a5836f58" }
+tokio = { version = "1.12", features = ["full"] }

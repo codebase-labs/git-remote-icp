@@ -5,44 +5,24 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
 
-[[bin]]
-name = "git-remote-tcp"
-path = "src/git_remote_tcp.rs"
-required-features = ["async-client"]
-
-[[bin]]
-name = "git-remote-icp"
-path = "src/git_remote_icp.rs"
-required-features = ["blocking-client"]
-
 [features]
-# blocking-client  = ["git-repository/http-client-reqwest", "maybe-async/is_sync"]
-blocking-client = ["git-repository/async-network-client-async-std"]
-async-client = ["git-repository/async-network-client-async-std"]
+# blocking-http-client  = ["git-repository/http-client-reqwest", "maybe-async/is_sync"]
+blocking-http-client = ["git-repository/async-network-client-async-std"]
+async-network-client = ["git-repository/async-network-client-async-std"]
 
 [dependencies]
-anyhow = "1.0"
-async-trait = "0.1"
-bstr = "1.0"
+anyhow = { workspace = true }
+# async-trait = "0.1"
+# bstr = "1.0"
 clap = { version = "4.0", features = ["derive"] }
 derive_more = "0.99"
-env_logger = "0.9"
-git-repository = { git = "https://github.com/Byron/gitoxide", rev="be0bbf519c4a6687c305717ec0c12215a5836f58" }
-git-validate = { git = "https://github.com/Byron/gitoxide", rev="be0bbf519c4a6687c305717ec0c12215a5836f58" }
-log = "0.4"
+env_logger = { workspace = true }
+git-repository = { workspace = true }
+git-validate = { workspace = true }
+log = { workspace = true }
 nom = "7.0"
 strum = { version = "0.24", features = ["derive"] }
-tokio = { version = "1.12", features = ["full"] }
-
-# git-remote-icp dependencies
-candid = "0.8"
-ic-agent = "0.23"
-# When using ic-certified-assets = "0.2" we get an error that CandidType isn't
-# implemented for HttpRequest even though it is. This appears to be because it
-# uses candid 0.7 when we are using candid 0.8. This commit isn't on crates.io
-# but depends on candid 0.8.
-ic-certified-assets = { git = "https://github.com/dfinity/sdk", rev="763c2bb35bcba5cee34ecc08a991252f474e631e" }
-serde_bytes = "0.11"
+tokio = { workspace = true }
 
 [dev-dependencies]
 maybe-async = "0.2"

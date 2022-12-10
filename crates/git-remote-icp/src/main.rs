@@ -1,11 +1,12 @@
 #![feature(async_closure)]
 #![feature(impl_trait_in_fn_trait_return)]
 
+mod config;
+
 use anyhow::{anyhow, Context};
 use git::protocol::transport;
 use git_remote_helper;
 use ic_agent::export::Principal;
-use git_remote_helper::git::config;
 use git_repository as git;
 use log::trace;
 use std::sync::Arc;
@@ -55,8 +56,8 @@ where
     Url: TryInto<git::url::Url, Error = E>,
     git::url::parse::Error: From<E>,
 {
-    let f = async move |url, desired_version| {
+    let connect = async move |url, desired_version| {
       todo!()
     };
-    f
+    connect
 }

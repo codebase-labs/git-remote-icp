@@ -1,0 +1,26 @@
+[package]
+name = "git-remote-icp"
+description = "A Git remote helper for the Internet Computer Protocol."
+version = "0.1.0"
+edition = "2021"
+authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
+
+[[bin]]
+name = "git-remote-icp"
+
+[dependencies]
+anyhow = { workspace = true }
+# async-trait = { workspace = true }
+candid = "0.8"
+env_logger = { workspace = true }
+git-remote-helper = { workspace = true, features = ["blocking-http-client"] }
+git-repository = { workspace = true }
+ic-agent = "0.23"
+# When using ic-certified-assets = "0.2" we get an error that CandidType isn't
+# implemented for HttpRequest even though it is. This appears to be because it
+# uses candid 0.7 when we are using candid 0.8. This commit isn't on crates.io
+# but depends on candid 0.8.
+ic-certified-assets = { git = "https://github.com/dfinity/sdk", rev="763c2bb35bcba5cee34ecc08a991252f474e631e" }
+log = { workspace = true }
+serde_bytes = "0.11"
+tokio = { workspace = true }

@@ -64,7 +64,6 @@
           git-remote-icp = craneLib.buildPackage rec {
             pname = "git-remote-icp";
             inherit cargoArtifacts src;
-            cargoExtraArgs = "--bin ${pname} --features blocking-client";
             nativeBuildInputs = [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
@@ -82,7 +81,6 @@
           git-remote-tcp = craneLib.buildPackage rec {
             pname = "git-remote-tcp";
             inherit cargoArtifacts src;
-            cargoExtraArgs = "--bin ${pname} --features async-client";
             nativeBuildInputs = [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
