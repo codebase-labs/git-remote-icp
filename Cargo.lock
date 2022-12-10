@@ -1377,7 +1377,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "git-remote-icp"
+name = "git-remote-helper"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1392,6 +1392,7 @@ dependencies = [
  "ic-agent",
  "ic-certified-assets",
  "log",
+ "maybe-async",
  "nom",
  "serde_bytes",
  "strum",

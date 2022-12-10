@@ -1,4 +1,4 @@
 [workspace]
 members = [
-    "crates/git-remote-icp",
+    "crates/git-remote-helper",
 ]

@@ -1,9 +1,12 @@
 #![deny(rust_2018_idioms)]
+#![feature(type_alias_impl_trait)]
+#![feature(impl_trait_in_fn_trait_return)]
 
-mod cli;
-mod commands;
-mod git;
+pub mod cli;
+pub mod commands;
+pub mod git;
 
+use gitoxide::protocol::transport;
 use anyhow::{anyhow, Context};
 use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
 use cli::Cli;
@@ -16,11 +19,16 @@ use std::env;
 use std::path::Path;
 use std::sync::Arc;
 use strum::VariantNames as _;
+use std::future::Future;
 
 const GIT_DIR: &str = "GIT_DIR";
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+pub async fn main<C>(connect:
+    impl Fn(String, transport::Protocol) -> C,
+) -> anyhow::Result<()>
+    where
+        C: Future<Output = Result<Box<(dyn transport::client::Transport + Send)>, transport::connect::Error>>
+{
     env_logger::init();
 
     let cli = Cli::parse();
@@ -40,29 +48,7 @@ async fn main() -> anyhow::Result<()> {
 
     let repo = gitoxide::open(repo_dir)?;
 
-    // TODO: consider falling back to AnonymousIdentity if icp.privateKey isn't
-    // set to allow users to clone from public repos using the icp:// scheme.
-    let private_key_path = git::config::private_key().map_err(|_| {
-        anyhow!("failed to read icp.privateKey from git config. Set with `git config --global icp.privateKey <path to private key>`")
-    })?;
-
-    trace!("private key path: {}", private_key_path);
-
-    let identity = Secp256k1Identity::from_pem_file(private_key_path)?;
-    let identity = Arc::new(identity);
-
-    let principal = identity.sender().map_err(|err| anyhow!(err))?;
-    trace!("principal: {}", principal);
-
-    let fetch_root_key = git::config::fetch_root_key();
-    trace!("fetch_root_key: {}", fetch_root_key);
-
-    let replica_url = git::config::replica_url();
-    trace!("replica_url: {}", replica_url);
-
-    let canister_id = git::config::canister_id()?;
-    trace!("canister_id: {}", canister_id);
-
+    // TODO: implementer provides this
     let authenticate =
         |action| panic!("unexpected call to authenticate with action: {:#?}", action);
 
@@ -84,12 +70,7 @@ async fn main() -> anyhow::Result<()> {
         if input.is_empty() {
             trace!("terminated with a blank line");
 
-            let fetch_transport = git::transport::client::connect(
-                &cli,
-                identity.clone(),
-                fetch_root_key,
-                replica_url.as_str(),
-                canister_id.clone(),
+            let fetch_transport = connect(
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V2,
             )
@@ -98,12 +79,7 @@ async fn main() -> anyhow::Result<()> {
             commands::fetch::process(fetch_transport, &repo, &args.url, &mut fetch).await?;
 
             // NOTE: push still uses the v1 protocol so we use that here.
-            let mut push_transport = git::transport::client::connect(
-                &cli,
-                identity.clone(),
-                fetch_root_key,
-                replica_url.as_str(),
-                canister_id.clone(),
+            let mut push_transport = connect(
                 args.url.clone(),
                 gitoxide::protocol::transport::Protocol::V1,
             )
@@ -141,12 +117,7 @@ async fn main() -> anyhow::Result<()> {
                 let _ = fetch.insert((hash, name));
             }
             Commands::List { variant } => {
-                let mut transport = git::transport::client::connect(
-                    &cli,
-                    identity.clone(),
-                    fetch_root_key,
-                    replica_url.as_str(),
-                    canister_id.clone(),
+                let mut transport = connect(
                     args.url.clone(),
                     gitoxide::protocol::transport::Protocol::V2,
                 )

@@ -40,8 +40,8 @@
             ];
           };
 
-          rust = pkgs.rust-bin.stable.latest.default;
-          # rust = pkgs.rust-bin.nightly."2022-06-01".default;
+          # rust = pkgs.rust-bin.stable.latest.default;
+          rust = pkgs.rust-bin.nightly."2022-10-31".default;
 
           # NB: we don't need to overlay our custom toolchain for the *entire*
           # pkgs (which would require rebuilding anything else which uses rust).
@@ -64,12 +64,28 @@
           git-remote-icp = craneLib.buildPackage rec {
             pname = "git-remote-icp";
             inherit cargoArtifacts src;
+            cargoExtraArgs = "--bin ${pname} --features blocking-client";
             nativeBuildInputs = [
               pkgs.darwin.apple_sdk.frameworks.Security
             ];
-            postInstall= ''
-              ln $out/bin/git-remote-icp $out/bin/git-remote-tcp
+            doInstallCheck = true;
+            installCheckInputs = [
+              pkgs.git
+              pkgs.netcat
+            ];
+            installCheckPhase = ''
+              echo "not yet implemented: installCheckPhase"
+              exit 1
             '';
+          };
+
+          git-remote-tcp = craneLib.buildPackage rec {
+            pname = "git-remote-tcp";
+            inherit cargoArtifacts src;
+            cargoExtraArgs = "--bin ${pname} --features async-client";
+            nativeBuildInputs = [
+              pkgs.darwin.apple_sdk.frameworks.Security
+            ];
             doInstallCheck = true;
             installCheckInputs = [
               pkgs.git
@@ -212,8 +228,8 @@
           };
 
           apps = {
-            git-remote-icp = flake-utils.lib.mkApp {
-              drv = git-remote-icp;
+            git-remote-tcp = flake-utils.lib.mkApp {
+              drv = git-remote-tcp;
             };
           };
         in
@@ -221,12 +237,14 @@
             checks = {
               inherit
                 git-remote-icp
+                git-remote-tcp
               ;
             };
 
             packages = {
               inherit
                 git-remote-icp
+                git-remote-tcp
               ;
             };
 
@@ -239,7 +257,7 @@
               # RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
               RUST_SRC_PATH = pkgs.rust.packages.stable.rustPlatform.rustLibSrc;
               inputsFrom = builtins.attrValues self.checks;
-              nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ git-remote-icp.nativeBuildInputs ++ [
+              nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ git-remote-tcp.nativeBuildInputs ++ [
                 pkgs.openssh
               ];
             };
