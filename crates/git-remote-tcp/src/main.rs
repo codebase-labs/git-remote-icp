@@ -1,6 +1,3 @@
-#![feature(async_closure)]
-#![feature(impl_trait_in_fn_trait_return)]
-
 mod connect;
 
 use git_remote_helper;
