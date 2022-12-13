@@ -1,4 +1,6 @@
-use anyhow::anyhow;
+mod connect;
+
+use connect::connect;
 use git_remote_helper;
 
 pub fn main() -> anyhow::Result<()> {

@@ -2,7 +2,7 @@
 members = [
     "crates/git-remote-helper",
     "crates/git-remote-http-reqwest",
-    "crates/git-remote-icp",
+    # "crates/git-remote-icp",
     "crates/git-remote-tcp",
 ]
 
