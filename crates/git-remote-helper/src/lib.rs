@@ -8,8 +8,8 @@ pub mod git;
 
 use gitoxide::protocol::transport;
 use anyhow::{anyhow, Context};
-use clap::{Command, FromArgMatches as _, Parser, Subcommand as _};
-use cli::Cli;
+use clap::{Command, FromArgMatches as _, Parser as _, Subcommand as _};
+use cli::Args;
 use commands::Commands;
 use git_repository as gitoxide;
 use log::trace;
@@ -27,9 +27,7 @@ pub async fn main<C>(connect:
     where
         C: Future<Output = Result<Box<(dyn transport::client::Transport + Send)>, transport::connect::Error>>
 {
-    let cli = Cli::parse();
-
-    let args = cli::args(&cli);
+    let args = Args::parse();
     trace!("args.repository: {:?}", args.repository);
     trace!("args.url: {:?}", args.url);
 
