@@ -1,12 +1,14 @@
 use clap::ValueEnum;
 use git_repository as git;
 use log::trace;
+use maybe_async::maybe_async;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, ValueEnum)]
 pub enum ListVariant {
     ForPush,
 }
 
+#[maybe_async]
 pub async fn execute<AuthFn, T>(
     mut transport: T,
     authenticate: AuthFn,

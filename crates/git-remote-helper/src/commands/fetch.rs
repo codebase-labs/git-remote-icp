@@ -1,9 +1,11 @@
 use git_repository as git;
 use log::trace;
 use std::collections::BTreeSet;
+use maybe_async::maybe_async;
 
 pub type Batch = BTreeSet<(String, String)>;
 
+#[maybe_async]
 pub async fn process<T>(
     transport: T,
     repo: &git::Repository,

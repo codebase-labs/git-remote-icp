@@ -3,10 +3,18 @@ use anyhow::anyhow;
 use git::bstr::ByteSlice as _;
 use git_repository as git;
 use log::trace;
+use maybe_async::maybe_async;
 use std::collections::BTreeSet;
+
+#[cfg(feature = "blocking-network-client")]
+use std::io::Write as _;
+
+#[cfg(feature = "async-network-client")]
+use git::protocol::futures_lite::io::AsyncWriteExt as _;
 
 pub type Batch = BTreeSet<String>;
 
+#[maybe_async]
 pub async fn process<AuthFn, T>(
     mut transport: T,
     repo: &git::Repository,
@@ -43,7 +51,7 @@ where
 
         trace!("remote_refs: {:#?}", remote_refs);
 
-        let mut writer = transport.request(
+        let mut request_writer = transport.request(
             git::protocol::transport::client::WriteMode::Binary,
             // This is currently redundant because we use `.into_parts()`
             git::protocol::transport::client::MessageKind::Flush,
@@ -198,11 +206,10 @@ where
                 dst
             );
 
-            use git::protocol::futures_lite::io::AsyncWriteExt as _;
-            writer.write_all(chunk.as_bytes().as_bstr()).await?;
+            request_writer.write_all(chunk.as_bytes().as_bstr()).await?;
         }
 
-        writer
+        request_writer
             .write_message(git::protocol::transport::client::MessageKind::Flush)
             .await?;
 
@@ -212,9 +219,10 @@ where
         let num_entries: u32 = entries.len().try_into()?;
         trace!("num entries: {:#?}", num_entries);
 
-        let (mut async_writer, mut async_reader) = writer.into_parts();
+        let (mut writer, mut reader) = request_writer.into_parts();
 
-        let mut sync_writer = git::protocol::futures_lite::io::BlockOn::new(&mut async_writer);
+        #[cfg(feature = "async-network-client")]
+        let mut writer = git::protocol::futures_lite::io::BlockOn::new(&mut writer);
 
         let pack_writer = git::odb::pack::data::output::bytes::FromEntriesIter::new(
             std::iter::once(Ok::<
@@ -223,7 +231,7 @@ where
                     git::odb::store::find::Error,
                 >,
             >(entries)),
-            &mut sync_writer,
+            &mut writer,
             num_entries,
             git::odb::pack::data::Version::V2,
             git::hash::Kind::Sha1,
@@ -250,7 +258,7 @@ where
         use std::ops::Deref as _;
         use std::sync::{Arc, Mutex};
         let messages = Arc::new(Mutex::new(Vec::<String>::new()));
-        async_reader.set_progress_handler(Some(Box::new({
+        reader.set_progress_handler(Some(Box::new({
             move |is_err, data| {
                 assert!(!is_err);
                 messages
@@ -263,7 +271,7 @@ where
 
         let mut streaming_peekable_iter =
             git::protocol::transport::packetline::StreamingPeekableIter::new(
-                async_reader,
+                reader,
                 &[git::protocol::transport::packetline::PacketLineRef::Flush],
             );
 

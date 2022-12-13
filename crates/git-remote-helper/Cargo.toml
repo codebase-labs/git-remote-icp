@@ -6,8 +6,8 @@ edition = "2021"
 authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
 
 [features]
-blocking-network-client  = ["git-repository/blocking-network-client"]
 async-network-client = ["git-repository/async-network-client"]
+blocking-network-client  = ["git-repository/blocking-network-client", "maybe-async/is_sync"]
 
 [dependencies]
 anyhow = { workspace = true }
@@ -16,10 +16,10 @@ derive_more = "0.99"
 git-repository = { workspace = true }
 git-validate = { workspace = true }
 log = { workspace = true }
+maybe-async = "0.2"
 nom = "7.0"
 strum = { version = "0.24", features = ["derive"] }
 tokio = { workspace = true }
 
 [dev-dependencies]
 async-trait = { workspace = true }
-maybe-async = "0.2"

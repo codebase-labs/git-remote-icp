@@ -3,6 +3,7 @@ use git::bstr::BString;
 use git::protocol::transport::client::ReadlineBufRead;
 use git::protocol::transport::packetline;
 use git_repository as git;
+use maybe_async::maybe_async;
 use nom::branch::alt;
 use nom::bytes::complete::{tag, take_while1};
 use nom::character::complete::char;
@@ -46,6 +47,7 @@ pub struct ErrorMsg(BString);
 #[derive(Clone, Debug, Display, Eq, PartialEq)]
 pub struct RefName(BString);
 
+#[maybe_async]
 pub async fn read_and_parse<'a, T>(reader: &'a mut T) -> Result<ReportStatusV2, ParseError>
 where
     T: ReadlineBufRead + 'a,
@@ -110,6 +112,7 @@ where
     })(input)
 }
 
+#[maybe_async]
 async fn read_and_parse_command_statuses_v2<'a, E>(
     reader: &'a mut (dyn ReadlineBufRead + 'a),
 ) -> Result<Vec<CommandStatusV2>, ParseError>
@@ -312,7 +315,9 @@ impl std::fmt::Display for ParseError {
         let msg = match self {
             Self::FailedToReadUnpackStatus => "failed to read unpack status".to_string(),
             Self::Io(err) => format!("IO error: {}", err),
-            Self::ExpectedOneOrMoreCommandStatusV2 => "expected one or more command status v2".to_string(),
+            Self::ExpectedOneOrMoreCommandStatusV2 => {
+                "expected one or more command status v2".to_string()
+            }
             Self::Nom(err) => format!("nom error: {}", err),
             Self::PacketLineDecode(err) => err.to_string(),
             Self::UnexpectedCommandFailLine => "unexpected command fail line".to_string(),
@@ -327,6 +332,7 @@ impl std::fmt::Display for ParseError {
 
 impl std::error::Error for ParseError {}
 
+#[maybe_async]
 async fn read_data_line_and_parse_with<'a, Ok, E>(
     input: &'a mut (dyn ReadlineBufRead + 'a),
     parser: impl FnMut(&'a [u8]) -> IResult<&'a [u8], Ok>,
@@ -348,6 +354,7 @@ fn parse_with<'a, Ok>(
         .map_err(|err| ParseError::Nom(err.to_string()))
 }
 
+#[maybe_async]
 async fn read_data_line<'a>(
     input: &'a mut (dyn ReadlineBufRead + 'a),
     err: ParseError,
@@ -379,9 +386,11 @@ fn as_slice(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use async_trait::async_trait;
     use core::pin::Pin;
     use git::bstr::{BStr, ByteSlice};
+
+    #[cfg(feature = "async-network-client")]
+    use async_trait::async_trait;
 
     struct Fixture<'a>(&'a [u8]);
 
@@ -430,9 +439,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_read_and_parse_ok_0_command_status_v2() {
-        let mut input = vec!["unpack ok"]
-            .join("\n")
-            .into_bytes();
+        let mut input = vec!["unpack ok"].join("\n").into_bytes();
         let mut reader = Fixture(&mut input);
         let result = read_and_parse(&mut reader).await;
         assert_eq!(

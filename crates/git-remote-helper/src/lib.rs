@@ -6,26 +6,33 @@ pub mod cli;
 pub mod commands;
 pub mod git;
 
-use gitoxide::protocol::transport;
 use anyhow::{anyhow, Context};
 use clap::{Command, FromArgMatches as _, Parser as _, Subcommand as _};
 use cli::Args;
 use commands::Commands;
 use git_repository as gitoxide;
+use gitoxide::protocol::transport;
 use log::trace;
+use maybe_async::maybe_async;
 use std::collections::BTreeSet;
 use std::env;
 use std::path::Path;
 use strum::VariantNames as _;
-use std::future::Future;
+
+#[cfg(all(feature = "async-network-client", feature = "blocking-network-client"))]
+compile_error!("Cannot set both 'async-network-client' and 'blocking-network-client' features as they are mutually exclusive");
 
 const GIT_DIR: &str = "GIT_DIR";
 
-pub async fn main<C>(connect:
-    impl Fn(String, transport::Protocol) -> C,
-) -> anyhow::Result<()>
-    where
-        C: Future<Output = Result<Box<(dyn transport::client::Transport + Send)>, transport::client::connect::Error>>
+#[maybe_async]
+pub async fn main<C>(connect: impl Fn(String, transport::Protocol) -> C) -> anyhow::Result<()>
+where
+    C: std::future::Future<
+        Output = Result<
+            Box<(dyn transport::client::Transport + Send)>,
+            transport::client::connect::Error,
+        >,
+    >,
 {
     let args = Args::parse();
     trace!("args.repository: {:?}", args.repository);
