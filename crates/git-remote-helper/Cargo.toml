@@ -7,8 +7,8 @@ authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
 
 [features]
 # blocking-http-client  = ["git-repository/http-client-reqwest", "maybe-async/is_sync"]
-blocking-http-client = ["git-repository/async-network-client-async-std"]
-async-network-client = ["git-repository/async-network-client-async-std"]
+blocking-http-client = ["git-repository/async-network-client"]
+async-network-client = ["git-repository/async-network-client"]
 
 [dependencies]
 anyhow = { workspace = true }

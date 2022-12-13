@@ -25,7 +25,7 @@ pub async fn main<C>(connect:
     impl Fn(String, transport::Protocol) -> C,
 ) -> anyhow::Result<()>
     where
-        C: Future<Output = Result<Box<(dyn transport::client::Transport + Send)>, transport::connect::Error>>
+        C: Future<Output = Result<Box<(dyn transport::client::Transport + Send)>, transport::client::connect::Error>>
 {
     let args = Args::parse();
     trace!("args.repository: {:?}", args.repository);
