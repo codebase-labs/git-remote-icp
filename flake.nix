@@ -78,8 +78,28 @@
             '';
           };
 
-          git-remote-tcp = pkgs.callPackage ./nix/git-remote-tcp.nix {
+          git-remote-tcp = pkgs.callPackage ./nix/git-remote-helper.nix {
             inherit craneLib cargoArtifacts src;
+            scheme = { internal = "git"; external = "tcp"; };
+            setup = ''
+              # Start Git daemon
+
+              # Based on https://github.com/Byron/gitoxide/blob/0c9c48b3b91a1396eb1796f288a2cb10380d1f14/tests/helpers.sh#L59
+              git daemon --verbose --base-path=test-repo --enable=receive-pack --export-all --user-path &
+              GIT_DAEMON_PID=$!
+
+              trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
+
+              # DEFAULT_GIT_PORT is 9418
+              while ! nc -z localhost 9418; do
+                sleep 0.1
+              done
+            '';
+            teardown = ''
+              # Exit cleanly
+
+              kill "$GIT_DAEMON_PID"
+            '';
           };
 
           apps = {
