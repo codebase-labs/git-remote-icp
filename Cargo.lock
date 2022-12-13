@@ -1398,6 +1398,7 @@ name = "git-remote-icp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "candid",
  "env_logger",
  "git-remote-helper",

@@ -5,10 +5,12 @@
 // has the benefit of keeping the existing HTTP interface working for
 // unauthenticated calls that don't use the remote helper.
 
-use crate::git::transport::client::icp;
+use crate::connection::Connection;
+
 use async_trait::async_trait;
 use candid::{Decode, Encode};
 use client::{ExtendedBufRead, HandleProgress, MessageKind, ReadlineBufRead};
+use git::bstr;
 use git::protocol::futures_io::{AsyncBufRead, AsyncRead};
 use git::protocol::futures_lite::future;
 use git::protocol::futures_lite::io::Cursor;
@@ -35,7 +37,7 @@ enum Action {
     Request,
 }
 
-impl icp::Connection {
+impl Connection {
     async fn call(
         &self,
         action: Action,
@@ -135,7 +137,7 @@ impl icp::Connection {
     }
 }
 
-impl client::TransportWithoutIO for icp::Connection {
+impl client::TransportWithoutIO for Connection {
     fn request(
         &mut self,
         write_mode: client::WriteMode,
@@ -243,7 +245,7 @@ impl client::TransportWithoutIO for icp::Connection {
 // NOTE: using client::Error::io isn't ideal but seems to be the best option
 // given what's available.
 #[async_trait(?Send)]
-impl client::Transport for icp::Connection {
+impl client::Transport for Connection {
     async fn handshake<'a>(
         &mut self,
         service: Service,
@@ -296,7 +298,7 @@ impl client::Transport for icp::Connection {
             )
             .await?;
 
-        icp::Connection::check_content_type(service, "advertisement", response_headers)?;
+        Connection::check_content_type(service, "advertisement", response_headers)?;
 
         let line_reader = self.line_provider.get_or_insert_with(|| {
             StreamingPeekableIter::new(response_body, &[PacketLineRef::Flush])
@@ -359,7 +361,7 @@ struct HeadersThenBody<B: Unpin> {
 impl<B: Unpin> HeadersThenBody<B> {
     fn handle_headers(&mut self) -> std::io::Result<()> {
         if let Some(headers) = self.headers.take() {
-            icp::Connection::check_content_type(self.service, "result", headers)
+            Connection::check_content_type(self.service, "result", headers)
                 .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?
         }
         Ok(())

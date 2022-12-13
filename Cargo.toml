@@ -8,6 +8,7 @@ members = [
 
 [workspace.dependencies]
 anyhow = "1.0"
+async-trait = "0.1"
 env_logger = "0.9"
 log = "0.4"
 git-remote-helper = { path = "crates/git-remote-helper" }

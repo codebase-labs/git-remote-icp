@@ -10,7 +10,7 @@ name = "git-remote-icp"
 
 [dependencies]
 anyhow = { workspace = true }
-# async-trait = { workspace = true }
+async-trait = { workspace = true } # FIXME: remove this once blocking
 candid = "0.8"
 env_logger = { workspace = true }
 git-remote-helper = { workspace = true, features = ["blocking-http-client"] }

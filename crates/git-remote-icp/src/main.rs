@@ -1,8 +1,10 @@
 #![feature(async_closure)]
 #![feature(impl_trait_in_fn_trait_return)]
 
+mod async_io;
 mod config;
 mod connect;
+mod connection;
 
 use anyhow::anyhow;
 use git_remote_helper;
