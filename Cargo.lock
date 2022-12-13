@@ -1140,6 +1140,7 @@ name = "git-features"
 version = "0.24.1"
 source = "git+https://github.com/Byron/gitoxide?rev=be0bbf519c4a6687c305717ec0c12215a5836f58#be0bbf519c4a6687c305717ec0c12215a5836f58"
 dependencies = [
+ "bytes",
  "crc32fast",
  "crossbeam-channel",
  "crossbeam-utils",
@@ -1394,6 +1395,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "git-remote-http-reqwest"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "env_logger",
+ "git-remote-helper",
+ "git-repository",
+ "log",
+]
+
+[[package]]
 name = "git-remote-icp"
 version = "0.1.0"
 dependencies = [
@@ -1512,14 +1524,17 @@ source = "git+https://github.com/Byron/gitoxide?rev=be0bbf519c4a6687c305717ec0c1
 dependencies = [
  "async-std",
  "async-trait",
+ "base64",
  "bstr",
  "futures-io",
  "futures-lite",
+ "git-credentials",
  "git-features",
  "git-packetline",
  "git-sec",
  "git-url",
  "pin-project-lite",
+ "reqwest",
  "thiserror",
 ]
 
@@ -2319,7 +2334,7 @@ checksum = "7d17b78036a60663b797adeaee46f5c9dfebb86948d1255007a1d6be0271ff99"
 dependencies = [
  "instant",
  "lock_api",
- "parking_lot_core 0.8.5",
+ "parking_lot_core 0.8.6",
 ]
 
 [[package]]
@@ -2334,9 +2349,9 @@ dependencies = [
 
 [[package]]
 name = "parking_lot_core"
-version = "0.8.5"
+version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d76e8e1493bcac0d2766c42737f34458f1c8c50c0d23bcb24ea953affb273216"
+checksum = "60a2cfe6f0ad2bfc16aefa463b497d5c7a5ecd44a23efa72aa342d90177356dc"
 dependencies = [
  "cfg-if",
  "instant",

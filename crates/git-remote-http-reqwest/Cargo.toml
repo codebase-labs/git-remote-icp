@@ -1,0 +1,16 @@
+[package]
+name = "git-remote-http-reqwest"
+description = "A Git remote helper for HTTP."
+version = "0.1.0"
+edition = "2021"
+authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
+
+[[bin]]
+name = "git-remote-http-reqwest"
+
+[dependencies]
+anyhow = { workspace = true }
+env_logger = { workspace = true }
+git-remote-helper = { workspace = true, features = ["blocking-network-client"] }
+git-repository = { workspace = true, features = ["blocking-http-transport-reqwest"] }
+log = { workspace = true }
