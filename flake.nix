@@ -61,6 +61,23 @@
             ];
           };
 
+          git-remote-http-reqwest = craneLib.buildPackage rec {
+            pname = "git-remote-http-reqwest";
+            inherit cargoArtifacts src;
+            nativeBuildInputs = [
+              pkgs.darwin.apple_sdk.frameworks.Security
+            ];
+            doInstallCheck = true;
+            installCheckInputs = [
+              pkgs.git
+              pkgs.netcat
+            ];
+            installCheckPhase = ''
+              echo "FIXME"
+              exit 1
+            '';
+          };
+
           git-remote-tcp = craneLib.buildPackage rec {
             pname = "git-remote-tcp";
             inherit cargoArtifacts src;
@@ -217,6 +234,7 @@
           rec {
             checks = {
               inherit
+                git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
               ;
@@ -224,6 +242,7 @@
 
             packages = {
               inherit
+                git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
               ;
@@ -238,9 +257,11 @@
               # RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
               RUST_SRC_PATH = pkgs.rust.packages.stable.rustPlatform.rustLibSrc;
               inputsFrom = builtins.attrValues self.checks;
-              nativeBuildInputs = cargoArtifacts.nativeBuildInputs ++ git-remote-tcp.nativeBuildInputs ++ [
-                pkgs.openssh
-              ];
+              nativeBuildInputs = pkgs.lib.foldl
+                (state: drv: builtins.concatLists [state drv.nativeBuildInputs])
+                []
+                ([cargoArtifacts] ++ pkgs.lib.attrValues packages)
+              ;
             };
           }
       );
