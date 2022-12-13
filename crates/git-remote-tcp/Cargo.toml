@@ -10,7 +10,6 @@ name = "git-remote-tcp"
 
 [dependencies]
 anyhow = { workspace = true }
-# async-trait = { workspace = true }
 env_logger = { workspace = true }
 git-remote-helper = { workspace = true, features = ["async-network-client"] }
 git-repository = { workspace = true, features = ["async-network-client-async-std"] }
