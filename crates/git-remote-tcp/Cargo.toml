@@ -1,0 +1,18 @@
+[package]
+name = "git-remote-tcp"
+description = "A Git remote helper for the git:// protocol"
+version = "0.1.0"
+edition = "2021"
+authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
+
+[[bin]]
+name = "git-remote-tcp"
+
+[dependencies]
+anyhow = { workspace = true }
+# async-trait = { workspace = true }
+env_logger = { workspace = true }
+git-remote-helper = { workspace = true, features = ["async-network-client"] }
+git-repository = { workspace = true }
+log = { workspace = true }
+tokio = { workspace = true }

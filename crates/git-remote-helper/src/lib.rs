@@ -27,8 +27,6 @@ pub async fn main<C>(connect:
     where
         C: Future<Output = Result<Box<(dyn transport::client::Transport + Send)>, transport::connect::Error>>
 {
-    env_logger::init();
-
     let cli = Cli::parse();
 
     let args = cli::args(&cli);

@@ -12,11 +12,9 @@ async-network-client = ["git-repository/async-network-client-async-std"]
 
 [dependencies]
 anyhow = { workspace = true }
-# async-trait = "0.1"
 # bstr = "1.0"
 clap = { version = "4.0", features = ["derive"] }
 derive_more = "0.99"
-env_logger = { workspace = true }
 git-repository = { workspace = true }
 git-validate = { workspace = true }
 log = { workspace = true }
@@ -25,4 +23,5 @@ strum = { version = "0.24", features = ["derive"] }
 tokio = { workspace = true }
 
 [dev-dependencies]
+async-trait = "0.1"
 maybe-async = "0.2"

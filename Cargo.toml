@@ -3,7 +3,7 @@ members = [
     "crates/git-remote-helper",
     # "crates/git-remote-http",
     "crates/git-remote-icp",
-    # "crates/git-remote-tcp",
+    "crates/git-remote-tcp",
 ]
 
 [workspace.dependencies]

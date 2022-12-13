@@ -1381,9 +1381,9 @@ name = "git-remote-helper"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "clap",
  "derive_more",
- "env_logger",
  "git-repository",
  "git-validate",
  "log",
@@ -1406,6 +1406,18 @@ dependencies = [
  "ic-certified-assets",
  "log",
  "serde_bytes",
+ "tokio",
+]
+
+[[package]]
+name = "git-remote-tcp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "env_logger",
+ "git-remote-helper",
+ "git-repository",
+ "log",
  "tokio",
 ]
 

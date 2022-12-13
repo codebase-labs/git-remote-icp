@@ -61,23 +61,6 @@
             ];
           };
 
-          git-remote-icp = craneLib.buildPackage rec {
-            pname = "git-remote-icp";
-            inherit cargoArtifacts src;
-            nativeBuildInputs = [
-              pkgs.darwin.apple_sdk.frameworks.Security
-            ];
-            doInstallCheck = true;
-            installCheckInputs = [
-              pkgs.git
-              pkgs.netcat
-            ];
-            installCheckPhase = ''
-              echo "not yet implemented: installCheckPhase"
-              exit 1
-            '';
-          };
-
           git-remote-tcp = craneLib.buildPackage rec {
             pname = "git-remote-tcp";
             inherit cargoArtifacts src;
@@ -115,10 +98,10 @@
               git config --global user.email 0+test.users.noreply@codebase.org
               git config --global receive.denyCurrentBranch updateInstead
 
-              git config --global icp.fetchRootKey true
-              git config --global icp.replicaUrl http://localhost:8000
-              git config --global icp.canisterId rwlgt-iiaaa-aaaaa-aaaaa-cai
-              git config --global icp.privateKey "$PWD/identity.pem"
+              # git config --global icp.fetchRootKey true
+              # git config --global icp.replicaUrl http://localhost:8000
+              # git config --global icp.canisterId rwlgt-iiaaa-aaaaa-aaaaa-cai
+              # git config --global icp.privateKey "$PWD/identity.pem"
 
 
               # Set up test repo
@@ -234,22 +217,22 @@
           rec {
             checks = {
               inherit
-                git-remote-icp
+                # git-remote-icp
                 git-remote-tcp
               ;
             };
 
             packages = {
               inherit
-                git-remote-icp
+                # git-remote-icp
                 git-remote-tcp
               ;
             };
 
             inherit apps;
 
-            defaultPackage = packages.git-remote-icp;
-            defaultApp = apps.git-remote-icp;
+            # defaultPackage = packages.git-remote-icp;
+            # defaultApp = apps.git-remote-icp;
 
             devShell = pkgs.mkShell {
               # RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
