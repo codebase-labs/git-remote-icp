@@ -13,7 +13,7 @@ anyhow = { workspace = true }
 async-trait = { workspace = true } # FIXME: remove this once blocking
 candid = "0.8"
 env_logger = { workspace = true }
-git-remote-helper = { workspace = true, features = ["blocking-http-client"] }
+git-remote-helper = { workspace = true, features = ["blocking-network-client"] }
 git-repository = { workspace = true }
 ic-agent = "0.23"
 # When using ic-certified-assets = "0.2" we get an error that CandidType isn't

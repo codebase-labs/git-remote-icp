@@ -6,8 +6,7 @@ edition = "2021"
 authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
 
 [features]
-# blocking-http-client  = ["git-repository/http-client-reqwest", "maybe-async/is_sync"]
-blocking-http-client = ["git-repository/async-network-client"]
+blocking-network-client  = ["git-repository/blocking-network-client"]
 async-network-client = ["git-repository/async-network-client"]
 
 [dependencies]
