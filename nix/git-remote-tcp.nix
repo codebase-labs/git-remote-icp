@@ -1,6 +1,6 @@
 { pkgs, craneLib, cargoArtifacts, src }:
 
-craneLib.buildPackage rec {
+craneLib.buildPackage {
   pname = "git-remote-tcp";
   inherit cargoArtifacts src;
   nativeBuildInputs = [

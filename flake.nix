@@ -61,7 +61,7 @@
             ];
           };
 
-          git-remote-http-reqwest = craneLib.buildPackage rec {
+          git-remote-http-reqwest = craneLib.buildPackage {
             pname = "git-remote-http-reqwest";
             inherit cargoArtifacts src;
             nativeBuildInputs = [
