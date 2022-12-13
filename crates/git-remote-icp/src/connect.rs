@@ -13,12 +13,12 @@ use transport::client::connect::Error;
 pub fn make<'a, Url, E>(
     identity: Arc<dyn Identity>,
     fetch_root_key: bool,
-    replica_url: &str,
+    replica_url: &'a str,
     canister_id: Principal,
-) -> impl Fn(Url, transport::Protocol) -> (impl Future<Output = Result<Box<(dyn transport::client::Transport + Send + 'a)>, transport::connect::Error>> + 'a)
-// ) -> impl Fn(Url, transport::Protocol) -> (impl Future<Output = Result<Box<Connection>, transport::connect::Error>> + 'a)
+// ) -> impl Fn(Url, transport::Protocol) -> (impl Future<Output = Result<Box<(dyn transport::client::Transport + Send + 'a)>, transport::connect::Error>> + 'a)
+) -> Box<dyn Fn(Url, transport::Protocol) -> (impl Future<Output = Result<Connection, transport::connect::Error>> + 'a) + 'a>
 where
-    Url: TryInto<git::url::Url, Error = E>,
+    Url: TryInto<git::url::Url, Error = E> + 'a,
     git::url::parse::Error: From<E>,
 {
     let connect = async move |url: Url, desired_version| {
@@ -44,7 +44,7 @@ where
         let connection =
             Connection::new(identity, fetch_root_key, replica_url, canister_id, url, desired_version).await?;
 
-        Ok(Box::new(connection))
+        Ok(connection)
     };
-    connect
+    Box::new(connect)
 }
