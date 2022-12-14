@@ -107,9 +107,6 @@
             scheme = { internal = "git"; external = "tcp"; };
             # DEFAULT_GIT_PORT is 9418
             port = "9418";
-            installCheckInputs = [
-              pkgs.netcat
-            ];
             setup = ''
               # Start Git daemon
 
@@ -118,10 +115,6 @@
               GIT_DAEMON_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
-
-              while ! nc -z localhost ${port}; do
-                sleep 0.1
-              done
             '';
             teardown = ''
               # Exit cleanly

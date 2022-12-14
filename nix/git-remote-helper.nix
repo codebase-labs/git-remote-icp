@@ -24,6 +24,7 @@ craneLib.buildPackage {
   doInstallCheck = true;
   installCheckInputs = installCheckInputs ++ [
     pkgs.git
+    pkgs.netcat
   ];
   installCheckPhase = ''
     set -e
@@ -62,6 +63,10 @@ craneLib.buildPackage {
     git -C test-repo commit -m "Initial commit"
 
     ${setup}
+
+    while ! nc -z localhost ${port}; do
+      sleep 0.1
+    done
 
     # Test clone
 
