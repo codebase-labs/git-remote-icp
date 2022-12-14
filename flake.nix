@@ -75,10 +75,6 @@
               HTTP_SERVER_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
-
-              while ! nc -z localhost ${port}; do
-                sleep 0.1
-              done
             '';
             teardown = ''
               # Exit cleanly
