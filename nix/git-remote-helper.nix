@@ -22,9 +22,6 @@ craneLib.buildPackage {
   inherit cargoExtraArgs pname src;
   cargoArtifacts = craneLib.buildDepsOnly {
     inherit cargoExtraArgs pname src;
-    nativeBuildInputs = [
-      pkgs.cmake
-    ];
   };
   nativeBuildInputs = [
     pkgs.darwin.apple_sdk.frameworks.Security
