@@ -1,4 +1,13 @@
-{ pkgs, craneLib, cargoArtifacts, src, scheme, setup, teardown }:
+{ pkgs
+, craneLib
+, cargoArtifacts
+, src
+, scheme
+, installCheckInputs ? []
+, configure ? ""
+, setup
+, teardown
+}:
 
 let SCHEME = {
   INTERNAL = pkgs.lib.toUpper scheme.internal;
@@ -12,9 +21,8 @@ craneLib.buildPackage {
     pkgs.darwin.apple_sdk.frameworks.Security
   ];
   doInstallCheck = true;
-  installCheckInputs = [
+  installCheckInputs = installCheckInputs ++ [
     pkgs.git
-    pkgs.netcat
   ];
   installCheckPhase = ''
     set -e
@@ -42,11 +50,7 @@ craneLib.buildPackage {
     git config --global user.email 0+test.users.noreply@codebase.org
     git config --global receive.denyCurrentBranch updateInstead
 
-    # git config --global icp.fetchRootKey true
-    # git config --global icp.replicaUrl http://localhost:8000
-    # git config --global icp.canisterId rwlgt-iiaaa-aaaaa-aaaaa-cai
-    # git config --global icp.privateKey "$PWD/identity.pem"
-
+    ${configure}
 
     # Set up test repo
 

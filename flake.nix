@@ -61,19 +61,42 @@
             ];
           };
 
-          git-remote-http-reqwest = craneLib.buildPackage {
-            pname = "git-remote-http-reqwest";
-            inherit cargoArtifacts src;
-            nativeBuildInputs = [
-              pkgs.darwin.apple_sdk.frameworks.Security
-            ];
-            doInstallCheck = true;
+          git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix {
+            inherit craneLib cargoArtifacts src;
+            scheme = { internal = "http"; external = "http-reqwest"; };
             installCheckInputs = [
-              pkgs.git
-              pkgs.netcat
+              pkgs.python3
             ];
-            installCheckPhase = ''
-              echo "FIXME"
+            setup = ''
+              mkdir cgi-bin
+              ln -s ${pkgs.git}/libexec/git-core/git-http-backend cgi-bin
+
+              # Start HTTP server
+
+              python -m http.server --directory test-repo --cgi &
+              HTTP_SERVER_PID=$!
+
+              trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
+            '';
+            teardown = ''
+              # Exit cleanly
+              kill "$HTTP_SERVER_PID"
+            '';
+          };
+
+          git-remote-icp = pkgs.callPackage ./nix/git-remote-helper.nix {
+            inherit craneLib cargoArtifacts src;
+            scheme = { internal = "http"; external = "icp"; };
+            configure = ''
+              git config --global icp.fetchRootKey true
+              git config --global icp.replicaUrl http://localhost:8000
+              git config --global icp.canisterId rwlgt-iiaaa-aaaaa-aaaaa-cai
+              git config --global icp.privateKey "$PWD/identity.pem"
+            '';
+            setup = ''
+              exit 1
+            '';
+            teardown = ''
               exit 1
             '';
           };
@@ -81,6 +104,9 @@
           git-remote-tcp = pkgs.callPackage ./nix/git-remote-helper.nix {
             inherit craneLib cargoArtifacts src;
             scheme = { internal = "git"; external = "tcp"; };
+            installCheckInputs = [
+              pkgs.netcat
+            ];
             setup = ''
               # Start Git daemon
 
@@ -97,7 +123,6 @@
             '';
             teardown = ''
               # Exit cleanly
-
               kill "$GIT_DAEMON_PID"
             '';
           };
