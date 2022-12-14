@@ -64,7 +64,7 @@
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib cargoArtifacts src;
             scheme = { internal = "http"; external = "http-reqwest"; };
-            port = "8000";
+            port = "8888";
             installCheckInputs = [
               pkgs.python3
             ];
