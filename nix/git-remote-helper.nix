@@ -3,6 +3,7 @@
 , cargoArtifacts
 , src
 , scheme
+, port
 , installCheckInputs ? []
 , configure ? ""
 , setup
@@ -64,8 +65,8 @@ craneLib.buildPackage {
 
     # Test clone
 
-    git clone ${scheme.internal}://localhost/.git test-repo-${scheme.internal}
-    git clone ${scheme.external}://localhost/.git test-repo-${scheme.external}
+    git clone ${scheme.internal}://localhost:${port}/.git test-repo-${scheme.internal}
+    git clone ${scheme.external}://localhost:${port}/.git test-repo-${scheme.external}
 
     GIT_LOG_${SCHEME.INTERNAL}=$(git -C test-repo-${scheme.internal} log)
     GIT_LOG_${SCHEME.EXTERNAL}=$(git -C test-repo-${scheme.external} log)

@@ -61,9 +61,10 @@
             ];
           };
 
-          git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix {
+          git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib cargoArtifacts src;
             scheme = { internal = "http"; external = "http-reqwest"; };
+            port = "8000";
             installCheckInputs = [
               pkgs.python3
             ];
@@ -73,7 +74,7 @@
 
               # Start HTTP server
 
-              python -m http.server --directory test-repo --cgi &
+              python -m http.server ${port} --bind 127.0.0.1 --directory test-repo --cgi &
               HTTP_SERVER_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
@@ -101,9 +102,11 @@
             '';
           };
 
-          git-remote-tcp = pkgs.callPackage ./nix/git-remote-helper.nix {
+          git-remote-tcp = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib cargoArtifacts src;
             scheme = { internal = "git"; external = "tcp"; };
+            # DEFAULT_GIT_PORT is 9418
+            port = "9418";
             installCheckInputs = [
               pkgs.netcat
             ];
@@ -116,8 +119,7 @@
 
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
 
-              # DEFAULT_GIT_PORT is 9418
-              while ! nc -z localhost 9418; do
+              while ! nc -z localhost ${port}; do
                 sleep 0.1
               done
             '';
