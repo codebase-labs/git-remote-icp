@@ -15,10 +15,16 @@ let SCHEME = {
 }; in
 
 let pname = "git-remote-${scheme.external}"; in
+let cargoExtraArgs = "--package ${pname}"; in
 
 craneLib.buildPackage {
-  inherit pname src;
-  cargoExtraArgs = "--package ${pname}";
+  inherit cargoExtraArgs pname src;
+  cargoArtifacts = craneLib.buildDepsOnly {
+    inherit cargoExtraArgs pname src;
+    nativeBuildInputs = [
+      pkgs.cmake
+    ];
+  };
   nativeBuildInputs = [
     pkgs.darwin.apple_sdk.frameworks.Security
   ];
