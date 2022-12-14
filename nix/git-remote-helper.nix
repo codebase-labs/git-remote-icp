@@ -1,6 +1,5 @@
 { pkgs
 , craneLib
-, cargoArtifacts
 , src
 , scheme
 , port
@@ -15,9 +14,11 @@ let SCHEME = {
   EXTERNAL = pkgs.lib.toUpper scheme.external;
 }; in
 
+let pname = "git-remote-${scheme.external}"; in
+
 craneLib.buildPackage {
-  inherit cargoArtifacts src;
-  pname = "git-remote-${scheme.external}";
+  inherit pname src;
+  cargoExtraArgs = "--package ${pname}";
   nativeBuildInputs = [
     pkgs.darwin.apple_sdk.frameworks.Security
   ];

@@ -52,17 +52,8 @@
 
           src = ./.;
 
-          # Build *just* the cargo dependencies, so we can reuse
-          # all of that work (e.g. via cachix) when running in CI
-          cargoArtifacts = craneLib.buildDepsOnly {
-            inherit src;
-            nativeBuildInputs = [
-              pkgs.cmake
-            ];
-          };
-
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
-            inherit craneLib cargoArtifacts src;
+            inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
             port = "8888";
             installCheckInputs = [
@@ -86,7 +77,7 @@
           };
 
           git-remote-icp = pkgs.callPackage ./nix/git-remote-helper.nix {
-            inherit craneLib cargoArtifacts src;
+            inherit craneLib src;
             scheme = { internal = "http"; external = "icp"; };
             configure = ''
               git config --global icp.fetchRootKey true
@@ -103,7 +94,7 @@
           };
 
           git-remote-tcp = pkgs.callPackage ./nix/git-remote-helper.nix rec {
-            inherit craneLib cargoArtifacts src;
+            inherit craneLib src;
             scheme = { internal = "git"; external = "tcp"; };
             # DEFAULT_GIT_PORT is 9418
             port = "9418";
@@ -157,7 +148,7 @@
               nativeBuildInputs = pkgs.lib.foldl
                 (state: drv: builtins.concatLists [state drv.nativeBuildInputs])
                 []
-                ([cargoArtifacts] ++ pkgs.lib.attrValues packages)
+                (pkgs.lib.attrValues packages)
               ;
             };
           }
