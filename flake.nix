@@ -56,19 +56,29 @@
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
             port = "8888";
+            path_ = "/cgi-bin/git-http-backend";
             installCheckInputs = [
               pkgs.python3
             ];
+            configure = ''
+              git config --global http.receivePack true
+            '';
             setup = ''
-              mkdir cgi-bin
-              ln -s ${pkgs.git}/libexec/git-core/git-http-backend cgi-bin
+              mkdir test-repo/cgi-bin
+              ln -s ${pkgs.git}/libexec/git-core/git-http-backend test-repo/cgi-bin/git-http-backend
 
               # Start HTTP server
 
-              python -m http.server ${port} --bind 127.0.0.1 --directory test-repo --cgi &
+              cd test-repo
+              # GIT_HTTP_EXPORT_ALL=1 GIT_PROTOCOL=version=2 python -m http.server ${port} --bind 127.0.0.1 --cgi --directory . &
+              GIT_HTTP_EXPORT_ALL=1 GIT_PROTOCOL=version=2 python3 -c 'import http.server; http.server.CGIHTTPRequestHandler.have_fork = False; http.server.test(HandlerClass=http.server.CGIHTTPRequestHandler, port=${port})' &
               HTTP_SERVER_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
+
+              while ! nc -z localhost ${port}; do
+                sleep 0.1
+              done
             '';
             teardown = ''
               # Exit cleanly
@@ -102,7 +112,7 @@
               # Start Git daemon
 
               # Based on https://github.com/Byron/gitoxide/blob/0c9c48b3b91a1396eb1796f288a2cb10380d1f14/tests/helpers.sh#L59
-              git daemon --verbose --base-path=test-repo --enable=receive-pack --export-all --user-path &
+              git daemon --verbose --base-path=test-repo --enable=receive-pack --export-all &
               GIT_DAEMON_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
