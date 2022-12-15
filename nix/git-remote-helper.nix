@@ -70,6 +70,8 @@ craneLib.buildPackage {
     git -C test-repo add .
     git -C test-repo commit -m "Initial commit"
 
+    GIT_LOG_INIT=$(git -C test-repo log)
+
     ${setup}
 
     while ! nc -z localhost ${port}; do
@@ -92,6 +94,13 @@ craneLib.buildPackage {
 
     GIT_LOG_${SCHEME.INTERNAL}=$(git -C test-repo-${scheme.internal} log)
     GIT_LOG_${SCHEME.EXTERNAL}=$(git -C test-repo-${scheme.external} log)
+
+    if [ "$GIT_LOG_INIT" == "$GIT_LOG_${SCHEME.INTERNAL}" ]; then
+      echo "GIT_LOG_INIT == GIT_LOG_${SCHEME.INTERNAL}"
+    else
+      echo "GIT_LOG_INIT != GIT_LOG_${SCHEME.INTERNAL}"
+      exit 1
+    fi
 
     if [ "$GIT_LOG_${SCHEME.INTERNAL}" == "$GIT_LOG_${SCHEME.EXTERNAL}" ]; then
       echo "GIT_LOG_${SCHEME.INTERNAL} == GIT_LOG_${SCHEME.EXTERNAL}"
