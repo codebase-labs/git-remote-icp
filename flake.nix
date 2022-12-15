@@ -70,8 +70,8 @@
               # Start HTTP server
 
               cd test-repo
-              # GIT_HTTP_EXPORT_ALL=1 GIT_PROTOCOL=version=2 python -m http.server ${port} --bind 127.0.0.1 --cgi --directory . &
-              GIT_HTTP_EXPORT_ALL=1 GIT_PROTOCOL=version=2 python3 -c 'import http.server; http.server.CGIHTTPRequestHandler.have_fork = False; http.server.test(HandlerClass=http.server.CGIHTTPRequestHandler, port=${port})' &
+              # GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 python -m http.server ${port} --bind 127.0.0.1 --cgi --directory . &
+              GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 python3 -c 'import http.server; http.server.CGIHTTPRequestHandler.have_fork = False; http.server.test(HandlerClass=http.server.CGIHTTPRequestHandler, port=${port})' &
               HTTP_SERVER_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
