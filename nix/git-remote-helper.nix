@@ -10,9 +10,12 @@
 , teardown
 }:
 
+let schemeToEnvVar = scheme:
+  builtins.replaceStrings ["-"] ["_"] (pkgs.lib.toUpper scheme); in
+
 let SCHEME = {
-  INTERNAL = pkgs.lib.toUpper scheme.internal;
-  EXTERNAL = pkgs.lib.toUpper scheme.external;
+  INTERNAL = schemeToEnvVar scheme.internal;
+  EXTERNAL = schemeToEnvVar scheme.external;
 }; in
 
 let pname = "git-remote-${scheme.external}"; in
