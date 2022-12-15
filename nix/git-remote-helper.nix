@@ -72,6 +72,8 @@ craneLib.buildPackage {
 
     GIT_LOG_INIT=$(git -C test-repo log)
 
+    git clone --bare test-repo test-repo-bare
+
     ${setup}
 
     while ! nc -z localhost ${port}; do

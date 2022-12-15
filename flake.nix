@@ -64,12 +64,12 @@
               git config --global http.receivePack true
             '';
             setup = ''
-              mkdir test-repo/cgi-bin
-              ln -s ${pkgs.git}/libexec/git-core/git-http-backend test-repo/cgi-bin/git-http-backend
+              mkdir test-repo-bare/cgi-bin
+              ln -s ${pkgs.git}/libexec/git-core/git-http-backend test-repo-bare/cgi-bin/git-http-backend
 
               # Start HTTP server
 
-              cd test-repo
+              cd test-repo-bare
               # GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 python -m http.server ${port} --bind 127.0.0.1 --cgi --directory . &
               GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 python3 -c 'import http.server; http.server.CGIHTTPRequestHandler.have_fork = False; http.server.test(HandlerClass=http.server.CGIHTTPRequestHandler, port=${port})' &
               HTTP_SERVER_PID=$!
@@ -108,7 +108,7 @@
               # Start Git daemon
 
               # Based on https://github.com/Byron/gitoxide/blob/0c9c48b3b91a1396eb1796f288a2cb10380d1f14/tests/helpers.sh#L59
-              git daemon --verbose --base-path=test-repo --enable=receive-pack --export-all &
+              git daemon --verbose --base-path=test-repo-bare --enable=receive-pack --export-all &
               GIT_DAEMON_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
