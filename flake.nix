@@ -52,82 +52,36 @@
 
           src = ./.;
 
-          gemserv = craneLib.buildPackage {
-            src = pkgs.fetchCrate {
-              pname = "gemserv";
-              version = "0.6.6";
-              sha256 = "sha256-femZ68D480rgoaexUTzHDsu+0eluIvxoUoXElpgyqVA=";
+          hyper-cgi = craneLib.buildPackage rec {
+            src = pkgs.fetchFromGitHub {
+              owner = "josh-project";
+              repo = "josh";
+              rev = "b93518b172d656820744dbee605964811fd6cd99";
+              sha256 = "sha256-PowrE8iTyR/47I6JcGqqeqeVaU517toHu891YnWVQRs=";
             };
-            nativeBuildInputs = [
-              pkgs.darwin.apple_sdk.frameworks.Security
-            ];
+            cargoExtraArgs = "--package hyper_cgi --bin hyper-cgi-test-server --features hyper_cgi/test-server";
           };
-
-          # https://portal.mozz.us/gemini/gmi.bacardi55.io/gemlog/2022/02/07/gemserv-update/
-          # https://tildegit.org/solderpunk/gemcert
-          gemserv-config = {
-            interface = [
-              "[::]:8888"
-            ];
-            log = "info";
-            server = [
-              {
-                hostname = "localhost";
-                dir = ".";
-                key = pkgs.writeText "localhost-key" ''
-                  -----BEGIN PRIVATE KEY-----
-                  MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgQdw63IzKmLZGnghG
-                  joG6tjY56fxnAbdFXGKmij3Fiu2hRANCAASD6oq7J0ZIZbMi7bBf6gaUvx9ZBTE3
-                  TQAlB0/UXTWcukTsnbV4UcnyTnT184hwOrwRepT7tP+b6OYCgzLT+pjX
-                  -----END PRIVATE KEY-----
-                '';
-                cert = pkgs.writeText "localhost-crt" ''
-                  -----BEGIN CERTIFICATE-----
-                  MIIBTDCB9KADAgECAhEApecIu8TIssPzNPb240JATDAKBggqhkjOPQQDAjAUMRIw
-                  EAYDVQQDEwlsb2NhbGhvc3QwIBcNMjIxMjE2MDQzMDAzWhgPMjEyMjEyMTYwNDMw
-                  MDNaMBQxEjAQBgNVBAMTCWxvY2FsaG9zdDBZMBMGByqGSM49AgEGCCqGSM49AwEH
-                  A0IABIPqirsnRkhlsyLtsF/qBpS/H1kFMTdNACUHT9RdNZy6ROydtXhRyfJOdPXz
-                  iHA6vBF6lPu0/5vo5gKDMtP6mNejJTAjMCEGA1UdEQQaMBiCCWxvY2FsaG9zdIIL
-                  Ki5sb2NhbGhvc3QwCgYIKoZIzj0EAwIDRwAwRAIgL1GwQUa0S63nsepj5DyTVwG8
-                  OPlCaUx72jY+Zet8gEgCIEeF0VCvXk5fCHFGqcdcOhICN5oCMTvDH2mCazYRkpGz
-                  -----END CERTIFICATE-----
-                '';
-                cgi = true;
-                cgipath = "/cgi-bin";
-              }
-            ];
-          };
-
-          gemserv-json = pkgs.writeText "gemserv-json" (builtins.toJSON gemserv-config);
-
-          gemserv-toml = pkgs.runCommand "gemserv-toml" {
-            buildInputs = [
-              pkgs.remarshal
-            ];
-          } ''
-            json2toml --input ${gemserv-json} --output $out
-          '';
 
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
             port = "8888";
-            path_ = "/cgi-bin/git-http-backend";
             installCheckInputs = [
-              gemserv
+              hyper-cgi
+              pkgs.git
             ];
             configure = ''
               git config --global http.receivePack true
             '';
             setup = ''
-              mkdir test-repo-bare/cgi-bin
-              ln -s ${pkgs.git}/libexec/git-core/git-http-backend test-repo-bare/cgi-bin/git-http-backend
-
               # Start HTTP server
 
-              cd test-repo-bare
+              GIT_DIR=./ GIT_PROJECT_ROOT=./ GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 hyper-cgi-test-server \
+                --port ${port} \
+                --dir=./test-repo-bare/ \
+                --cmd=git \
+                --args=http-backend &
 
-              GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 gemserv ${gemserv-toml} &
               HTTP_SERVER_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
@@ -176,8 +130,8 @@
           };
 
           apps = {
-            gemserv = flake-utils.lib.mkApp {
-              drv = gemserv;
+            hyper-cgi = flake-utils.lib.mkApp {
+              drv = hyper-cgi;
             };
 
             git-remote-tcp = flake-utils.lib.mkApp {
@@ -188,7 +142,7 @@
           rec {
             checks = {
               inherit
-                gemserv
+                hyper-cgi
                 git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
@@ -197,7 +151,7 @@
 
             packages = {
               inherit
-                gemserv
+                hyper-cgi
                 git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
