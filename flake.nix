@@ -71,7 +71,7 @@
               pkgs.git
             ];
             configure = ''
-              git config --global http.receivePack true
+              git config --global --type bool http.receivePack true
             '';
             setup = ''
               # Start HTTP server
