@@ -52,13 +52,21 @@
 
           src = ./.;
 
+          cgi-bin = craneLib.buildPackage {
+            src = pkgs.fetchCrate {
+              pname = "cgi-bin";
+              version = "0.0.1";
+              sha256 = "sha256-ksVAG1DBZdLqvvHET1aCrLrbl8qLdOh9ipn4HWehkKI=";
+            };
+          };
+
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
             port = "8888";
-            path_ = "/cgi-bin/git-http-backend";
+            path_ = "/git-http-backend";
             installCheckInputs = [
-              pkgs.python3
+              cgi-bin
             ];
             configure = ''
               git config --global http.receivePack true
@@ -70,8 +78,8 @@
               # Start HTTP server
 
               cd test-repo-bare
-              # GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 python -m http.server ${port} --bind 127.0.0.1 --cgi --directory . &
-              GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 python3 -c 'import http.server; http.server.CGIHTTPRequestHandler.have_fork = False; http.server.test(HandlerClass=http.server.CGIHTTPRequestHandler, port=${port})' &
+
+              GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 cgi-bin --port ${port} &
               HTTP_SERVER_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
@@ -120,6 +128,10 @@
           };
 
           apps = {
+            cgi-bin = flake-utils.lib.mkApp {
+              drv = cgi-bin;
+            };
+
             git-remote-tcp = flake-utils.lib.mkApp {
               drv = git-remote-tcp;
             };
@@ -128,6 +140,7 @@
           rec {
             checks = {
               inherit
+                cgi-bin
                 git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
@@ -136,6 +149,7 @@
 
             packages = {
               inherit
+                cgi-bin
                 git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
@@ -150,7 +164,7 @@
             devShell = pkgs.mkShell {
               # RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
               RUST_SRC_PATH = pkgs.rust.packages.stable.rustPlatform.rustLibSrc;
-              inputsFrom = builtins.attrValues self.checks;
+              inputsFrom = builtins.attrValues checks;
               nativeBuildInputs = pkgs.lib.foldl
                 (state: drv: builtins.concatLists [state drv.nativeBuildInputs])
                 []
