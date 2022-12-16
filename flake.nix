@@ -76,7 +76,7 @@
             setup = ''
               # Start HTTP server
 
-              GIT_DIR=./ GIT_PROJECT_ROOT=./ GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 hyper-cgi-test-server \
+              GIT_DIR=./ GIT_PROJECT_ROOT=./ GIT_HTTP_EXPORT_ALL=1 hyper-cgi-test-server \
                 --port ${port} \
                 --dir=./test-repo-bare/ \
                 --cmd=git \
