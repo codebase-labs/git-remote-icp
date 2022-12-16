@@ -52,56 +52,46 @@
 
           src = ./.;
 
-          # https://git-scm.com/docs/git-http-backend#Documentation/git-http-backend.txt-Lighttpd
-          # https://github.com/NixOS/nixpkgs/blob/c7c950be8900e7ea5d2af4a5dfa58905ac612f84/nixos/modules/services/web-servers/lighttpd/default.nix
-          lighttpd-conf = port: pkgs.writeText "lighthttpd.conf" ''
-            server.document-root = "."
-            server.port = ${toString port}
+          # https://git-scm.com/docs/git-http-backend#Documentation/git-http-backend.txt-Apache2x
+          httpd-conf = port: pkgs.writeText "httpd.conf" ''
+            ServerName localhost
+            Listen ${toString port}
 
-            server.modules = (
-              "mod_auth",
-              "mod_alias",
-              "mod_setenv",
-              "mod_cgi",
-            )
+            LogLevel debug
+            ErrorLog /dev/stdout
 
-            alias.url += (
-              "/git" => "${pkgs.git}/libexec/git-core/git-http-backend"
-            )
+            SetEnv GIT_PROJECT_ROOT /
+            SetEnv GIT_HTTP_EXPORT_ALL
+            ScriptAlias /git/ ${pkgs.git}/libexec/git-core/git-http-backend/
+            # SetEnvIf Git-Protocol ".*" GIT_PROTOCOL=$0
 
-            $HTTP["url"] =~ "^/" {
-              cgi.assign = ("" => "")
-
-              setenv.add-environment = (
-                "GIT_PROJECT_ROOT" => "/",
-                "GIT_HTTP_EXPORT_ALL" => "1",
-              )
-            }
+            LoadModule mpm_event_module ${pkgs.apacheHttpd}/modules/mod_mpm_event.so
+            LoadModule cgi_module ${pkgs.apacheHttpd}/modules/mod_cgi.so
+            LoadModule alias_module ${pkgs.apacheHttpd}/modules/mod_alias.so
+            LoadModule env_module ${pkgs.apacheHttpd}/modules/mod_env.so
+            LoadModule unixd_module ${pkgs.apacheHttpd}/modules/mod_unixd.so
           '';
 
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
+            path_ = "/git/test-repo-bare";
             port = 8888;
             installCheckInputs = [
-              pkgs.lighttpd
+              pkgs.apacheHttpd
             ];
             configure = ''
               git config --global --type bool http.receivePack true
             '';
             setup = ''
-              cd test-repo-bare
-
               # Start HTTP server
 
-              lighttpd -f ${lighttpd-conf port}
-              HTTP_SERVER_PID=$!
+              apachectl -k start -f ${httpd-conf port}
 
-              trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
+              trap "EXIT_CODE=\$? && apachectl -k stop && exit \$EXIT_CODE" EXIT
             '';
             teardown = ''
-              # Exit cleanly
-              kill "$HTTP_SERVER_PID"
+              apachectl -k stop
             '';
           };
 
@@ -137,7 +127,6 @@
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
             '';
             teardown = ''
-              # Exit cleanly
               kill "$GIT_DAEMON_PID"
             '';
           };
@@ -176,7 +165,9 @@
               inputsFrom = builtins.attrValues checks;
               nativeBuildInputs = pkgs.lib.foldl
                 (state: drv: builtins.concatLists [state drv.nativeBuildInputs])
-                []
+                [
+                  pkgs.apacheHttpd
+                ]
                 (pkgs.lib.attrValues packages)
               ;
             };
