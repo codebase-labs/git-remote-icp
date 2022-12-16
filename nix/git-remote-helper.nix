@@ -74,6 +74,7 @@ craneLib.buildPackage {
     GIT_LOG_INIT=$(git -C test-repo log)
 
     git clone --bare test-repo test-repo-bare
+    git -C test-repo-bare update-server-info
 
     ${setup}
 
@@ -83,11 +84,19 @@ craneLib.buildPackage {
 
     # Test clone
 
+    echo "------------------"
+    echo "native clone start"
+    echo "------------------"
+
     git clone ${scheme.internal}://localhost:${toString port}${path_} test-repo-${scheme.internal}
 
     echo "---------------------"
     echo "native clone complete"
     echo "---------------------"
+
+    echo "-------------------------"
+    echo "remote helper clone start"
+    echo "-------------------------"
 
     git clone ${scheme.external}://localhost:${toString port}${path_} test-repo-${scheme.external}
 
@@ -128,6 +137,10 @@ craneLib.buildPackage {
 
     # Test push
 
+    echo "-----------------"
+    echo "native push start"
+    echo "-----------------"
+
     echo "\n" >> test-repo-${scheme.internal}/README.md
     git -C test-repo-${scheme.internal} add .
     git -C test-repo-${scheme.internal} commit -m "Add trailing newline"
@@ -136,6 +149,10 @@ craneLib.buildPackage {
     echo "--------------------"
     echo "native push complete"
     echo "--------------------"
+
+    echo "------------------------"
+    echo "remote helper push start"
+    echo "------------------------"
 
     echo "\n" >> test-repo-${scheme.external}/README.md
     git -C test-repo-${scheme.external} add .
