@@ -59,6 +59,7 @@ craneLib.buildPackage {
     git config --global user.name "Test"
     git config --global user.email 0+test.users.noreply@codebase.org
     git config --global receive.denyCurrentBranch updateInstead
+    git config --global protocol.version 2
 
     ${configure}
 
