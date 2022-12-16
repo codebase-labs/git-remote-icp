@@ -77,19 +77,19 @@ craneLib.buildPackage {
 
     ${setup}
 
-    while ! nc -z localhost ${port}; do
+    while ! nc -z localhost ${toString port}; do
       sleep 0.1
     done
 
     # Test clone
 
-    git clone ${scheme.internal}://localhost:${port}${path_} test-repo-${scheme.internal}
+    git clone ${scheme.internal}://localhost:${toString port}${path_} test-repo-${scheme.internal}
 
     echo "---------------------"
     echo "native clone complete"
     echo "---------------------"
 
-    git clone ${scheme.external}://localhost:${port}${path_} test-repo-${scheme.external}
+    git clone ${scheme.external}://localhost:${toString port}${path_} test-repo-${scheme.external}
 
     echo "----------------------------"
     echo "remote helper clone complete"

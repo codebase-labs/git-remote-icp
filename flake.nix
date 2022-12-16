@@ -65,7 +65,7 @@
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
-            port = "8888";
+            port = 8888;
             installCheckInputs = [
               hyper-cgi
               pkgs.git
@@ -113,7 +113,7 @@
             inherit craneLib src;
             scheme = { internal = "git"; external = "tcp"; };
             # DEFAULT_GIT_PORT is 9418
-            port = "9418";
+            port = 9418;
             setup = ''
               # Start Git daemon
 
