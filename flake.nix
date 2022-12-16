@@ -52,36 +52,49 @@
 
           src = ./.;
 
-          hyper-cgi = craneLib.buildPackage rec {
-            src = pkgs.fetchFromGitHub {
-              owner = "josh-project";
-              repo = "josh";
-              rev = "b93518b172d656820744dbee605964811fd6cd99";
-              sha256 = "sha256-PowrE8iTyR/47I6JcGqqeqeVaU517toHu891YnWVQRs=";
-            };
-            cargoExtraArgs = "--package hyper_cgi --bin hyper-cgi-test-server --features hyper_cgi/test-server";
-          };
+          # https://git-scm.com/docs/git-http-backend#Documentation/git-http-backend.txt-Lighttpd
+          # https://github.com/NixOS/nixpkgs/blob/c7c950be8900e7ea5d2af4a5dfa58905ac612f84/nixos/modules/services/web-servers/lighttpd/default.nix
+          lighttpd-conf = port: pkgs.writeText "lighthttpd.conf" ''
+            server.document-root = "."
+            server.port = ${toString port}
+
+            server.modules = (
+              "mod_auth",
+              "mod_alias",
+              "mod_setenv",
+              "mod_cgi",
+            )
+
+            alias.url += (
+              "/git" => "${pkgs.git}/libexec/git-core/git-http-backend"
+            )
+
+            $HTTP["url"] =~ "^/" {
+              cgi.assign = ("" => "")
+
+              setenv.add-environment = (
+                "GIT_PROJECT_ROOT" => "/",
+                "GIT_HTTP_EXPORT_ALL" => "1",
+              )
+            }
+          '';
 
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
             port = 8888;
             installCheckInputs = [
-              hyper-cgi
-              pkgs.git
+              pkgs.lighttpd
             ];
             configure = ''
               git config --global --type bool http.receivePack true
             '';
             setup = ''
+              cd test-repo-bare
+
               # Start HTTP server
 
-              GIT_DIR=./ GIT_PROJECT_ROOT=./ GIT_HTTP_EXPORT_ALL=1 hyper-cgi-test-server \
-                --port ${port} \
-                --dir=./test-repo-bare/ \
-                --cmd=git \
-                --args=http-backend &
-
+              lighttpd -f ${lighttpd-conf port}
               HTTP_SERVER_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
@@ -130,10 +143,6 @@
           };
 
           apps = {
-            hyper-cgi = flake-utils.lib.mkApp {
-              drv = hyper-cgi;
-            };
-
             git-remote-tcp = flake-utils.lib.mkApp {
               drv = git-remote-tcp;
             };
@@ -142,7 +151,6 @@
           rec {
             checks = {
               inherit
-                hyper-cgi
                 git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
@@ -151,7 +159,6 @@
 
             packages = {
               inherit
-                hyper-cgi
                 git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
