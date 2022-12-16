@@ -52,11 +52,12 @@
 
           src = ./.;
 
-          cgi-bin = craneLib.buildPackage {
-            src = pkgs.fetchCrate {
-              pname = "cgi-bin";
-              version = "0.0.1";
-              sha256 = "sha256-ksVAG1DBZdLqvvHET1aCrLrbl8qLdOh9ipn4HWehkKI=";
+          rust-httpd = craneLib.buildPackage {
+            src = pkgs.fetchFromGitHub {
+              owner = "PritiKumr";
+              repo = "rust-httpd";
+              rev = "dd9a6e4e5b6e2f177398ad8c0127d227891539cb";
+              sha256 = "sha256-6J1yx5na0swUzs0ps9hXB32u+y7t240dX7m7vszjm4I=";
             };
           };
 
@@ -64,22 +65,22 @@
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
             port = "8888";
-            path_ = "/git-http-backend";
+            path_ = "/cgi/git-http-backend";
             installCheckInputs = [
-              cgi-bin
+              rust-httpd
             ];
             configure = ''
               git config --global http.receivePack true
             '';
             setup = ''
-              mkdir test-repo-bare/cgi-bin
-              ln -s ${pkgs.git}/libexec/git-core/git-http-backend test-repo-bare/cgi-bin/git-http-backend
+              mkdir test-repo-bare/cgi
+              ln -s ${pkgs.git}/libexec/git-core/git-http-backend test-repo-bare/cgi/git-http-backend
 
               # Start HTTP server
 
               cd test-repo-bare
 
-              GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 cgi-bin --port ${port} &
+              GIT_HTTP_EXPORT_ALL=1 HTTP_GIT_PROTOCOL=version=2 rust-httpd &
               HTTP_SERVER_PID=$!
 
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
@@ -128,8 +129,8 @@
           };
 
           apps = {
-            cgi-bin = flake-utils.lib.mkApp {
-              drv = cgi-bin;
+            rust-httpd = flake-utils.lib.mkApp {
+              drv = rust-httpd;
             };
 
             git-remote-tcp = flake-utils.lib.mkApp {
@@ -140,19 +141,19 @@
           rec {
             checks = {
               inherit
-                cgi-bin
                 git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
+                rust-httpd
               ;
             };
 
             packages = {
               inherit
-                cgi-bin
                 git-remote-http-reqwest
                 # git-remote-icp
                 git-remote-tcp
+                rust-httpd
               ;
             };
 
