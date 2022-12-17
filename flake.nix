@@ -127,10 +127,11 @@
               git config --global --type bool http.receivePack true
             '';
             setup = ''
-              cd test-repo-bare
+              pushd test-repo-bare
               lighttpd -f ${lighttpd-conf port}
               HTTP_SERVER_PID=$!
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
+              popd
             '';
             teardown = ''
               kill "$HTTP_SERVER_PID"
