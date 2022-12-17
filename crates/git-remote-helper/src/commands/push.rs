@@ -269,17 +269,8 @@ where
             }
         })));
 
-        let mut streaming_peekable_iter =
-            git::protocol::transport::packetline::StreamingPeekableIter::new(
-                reader,
-                &[git::protocol::transport::packetline::PacketLineRef::Flush],
-            );
-
-        streaming_peekable_iter.fail_on_err_lines(true);
-        let mut reader = streaming_peekable_iter.as_read();
-
         let (_unpack_result, command_statuses) =
-            receive_pack::response::read_and_parse(&mut reader).await?;
+            receive_pack::response::read_and_parse(reader).await?;
 
         command_statuses.iter().for_each(|command_status| {
             trace!("{:#?}", command_status);

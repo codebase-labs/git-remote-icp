@@ -11,9 +11,9 @@ use maybe_async::maybe_async;
     async(feature = "async-network-client", tokio::test)
 )]
 async fn test_read_and_parse_ok_0_command_status_v2() {
-    let mut input = vec!["unpack ok"].join("\n").into_bytes();
-    let mut reader = Fixture(&mut input);
-    let result = read_and_parse(&mut reader).await;
+    let mut input = vec!["000eunpack ok", "0000"].join("\n").into_bytes();
+    let reader = Fixture(&mut input);
+    let result = read_and_parse(reader).await;
     assert_eq!(
         result,
         Err(ParseError::ExpectedOneOrMoreCommandStatusV2),
@@ -26,11 +26,11 @@ async fn test_read_and_parse_ok_0_command_status_v2() {
     async(feature = "async-network-client", tokio::test)
 )]
 async fn test_read_and_parse_ok_1_command_status_v2_ok() {
-    let mut input = vec!["unpack ok", "ok refs/heads/main"]
+    let mut input = vec!["000eunpack ok", "0017ok refs/heads/main", "0000"]
         .join("\n")
         .into_bytes();
-    let mut reader = Fixture(&mut input);
-    let result = read_and_parse(&mut reader).await;
+    let reader = Fixture(&mut input);
+    let result = read_and_parse(reader).await;
     assert_eq!(
         result,
         Ok((
@@ -49,18 +49,22 @@ async fn test_read_and_parse_ok_1_command_status_v2_ok() {
     async(feature = "async-network-client", tokio::test)
 )]
 async fn test_read_and_parse_ok_1_command_status_v2_fail() {
-    let mut input = vec!["unpack ok", "ng refs/heads/main some error message"]
-        .join("\n")
-        .into_bytes();
-    let mut reader = Fixture(&mut input);
-    let result = read_and_parse(&mut reader).await;
+    let mut input = vec![
+        "000eunpack ok",
+        "002ang refs/heads/main some error message",
+        "0000",
+    ]
+    .join("\n")
+    .into_bytes();
+    let reader = Fixture(&mut input);
+    let result = read_and_parse(reader).await;
     assert_eq!(
         result,
         Ok((
             UnpackResult::Ok,
             vec![CommandStatusV2::Fail(
                 RefName(BString::new(b"refs/heads/main".to_vec())),
-                ErrorMsg(BString::new(b"some error message".to_vec()))
+                ErrorMsg(BString::new(b"some error message\n".to_vec()))
             ),]
         )),
         "report-status-v2"
@@ -73,14 +77,15 @@ async fn test_read_and_parse_ok_1_command_status_v2_fail() {
 )]
 async fn test_read_and_parse_ok_2_command_statuses_v2_ok_fail() {
     let mut input = vec![
-        "unpack ok",
-        "ok refs/heads/debug",
-        "ng refs/heads/main non-fast-forward",
+        "000eunpack ok",
+        "0018ok refs/heads/debug",
+        "0028ng refs/heads/main non-fast-forward",
+        "0000",
     ]
     .join("\n")
     .into_bytes();
-    let mut reader = Fixture(&mut input);
-    let result = read_and_parse(&mut reader).await;
+    let reader = Fixture(&mut input);
+    let result = read_and_parse(reader).await;
     assert_eq!(
         result,
         Ok((
@@ -92,7 +97,7 @@ async fn test_read_and_parse_ok_2_command_statuses_v2_ok_fail() {
                 ),
                 CommandStatusV2::Fail(
                     RefName(BString::new(b"refs/heads/main".to_vec())),
-                    ErrorMsg(BString::new(b"non-fast-forward".to_vec()))
+                    ErrorMsg(BString::new(b"non-fast-forward\n".to_vec()))
                 ),
             ]
         )),
@@ -106,14 +111,15 @@ async fn test_read_and_parse_ok_2_command_statuses_v2_ok_fail() {
 )]
 async fn test_read_and_parse_ok_2_command_statuses_v2_fail_ok() {
     let mut input = vec![
-        "unpack ok",
-        "ng refs/heads/main non-fast-forward",
-        "ok refs/heads/debug",
+        "000eunpack ok",
+        "0028ng refs/heads/main non-fast-forward",
+        "0018ok refs/heads/debug",
+        "0000",
     ]
     .join("\n")
     .into_bytes();
-    let mut reader = Fixture(&mut input);
-    let result = read_and_parse(&mut reader).await;
+    let reader = Fixture(&mut input);
+    let result = read_and_parse(reader).await;
     assert_eq!(
         result,
         Ok((
@@ -121,7 +127,7 @@ async fn test_read_and_parse_ok_2_command_statuses_v2_fail_ok() {
             vec![
                 CommandStatusV2::Fail(
                     RefName(BString::new(b"refs/heads/main".to_vec())),
-                    ErrorMsg(BString::new(b"non-fast-forward".to_vec()))
+                    ErrorMsg(BString::new(b"non-fast-forward\n".to_vec()))
                 ),
                 CommandStatusV2::Ok(
                     RefName(BString::new(b"refs/heads/debug".to_vec())),

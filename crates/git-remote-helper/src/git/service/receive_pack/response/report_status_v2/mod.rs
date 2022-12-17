@@ -51,19 +51,28 @@ pub struct ErrorMsg(BString);
 pub struct RefName(BString);
 
 #[maybe_async]
-pub async fn read_and_parse<'a, T>(reader: &'a mut T) -> Result<ReportStatusV2, ParseError>
+pub async fn read_and_parse<'a, T>(reader: T) -> Result<ReportStatusV2, ParseError>
 where
-    T: ReadlineBufRead + 'a,
+    T: ReadlineBufRead + Unpin + 'a,
 {
+    let mut streaming_peekable_iter =
+        git::protocol::transport::packetline::StreamingPeekableIter::new(
+            reader,
+            &[git::protocol::transport::packetline::PacketLineRef::Flush],
+        );
+
+    streaming_peekable_iter.fail_on_err_lines(true);
+    let mut reader = streaming_peekable_iter.as_read();
+
     let unpack_result = read_data_line_and_parse_with::<_, nom::error::Error<_>>(
-        reader,
+        &mut reader,
         parse_unpack_status,
         ParseError::FailedToReadUnpackStatus,
     )
     .await?;
 
     let command_statuses_v2 =
-        read_and_parse_command_statuses_v2::<nom::error::Error<_>>(reader).await?;
+        read_and_parse_command_statuses_v2::<nom::error::Error<_>>(&mut reader).await?;
 
     Ok((unpack_result, command_statuses_v2))
 }
