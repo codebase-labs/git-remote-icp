@@ -52,39 +52,6 @@
 
           src = ./.;
 
-          lighttpd-conf-common = ''
-            cgi.assign = ("" => "")
-
-            setenv.set-environment = (
-              "GIT_PROJECT_ROOT" => var.CWD,
-              "GIT_HTTP_EXPORT_ALL" => "",
-              "REMOTE_USER" => "$REDIRECT_REMOTE_USER",
-            )
-
-            $REQUEST_HEADER["Git-Protocol"] =~ "(.+)" {
-              setenv.add-environment += (
-                "HTTP_GIT_PROTOCOL" => "%1",
-              )
-            }
-          '';
-
-          lighttpd-userfile = pkgs.writeText "userfile" ''
-            username:password
-          '';
-
-          lighttpd-conf-auth = ''
-            auth.backend = "plain"
-            auth.backend.plain.userfile = "${lighttpd-userfile}"
-
-            auth.require = (
-              "/" => (
-                "method" => "basic",
-                "realm" => "git",
-                "require" => "valid-user"
-              )
-            )
-          '';
-
           # https://git-scm.com/docs/git-http-backend#Documentation/git-http-backend.txt-Lighttpd
           # https://github.com/NixOS/nixpkgs/blob/c7c950be8900e7ea5d2af4a5dfa58905ac612f84/nixos/modules/services/web-servers/lighttpd/default.nix
           lighttpd-conf = port: pkgs.writeText "lighthttpd.conf" ''
@@ -92,7 +59,6 @@
             server.port = ${toString port}
 
             server.modules = (
-              # "mod_auth",
               "mod_alias",
               "mod_setenv",
               "mod_cgi",
@@ -111,16 +77,20 @@
               "/git" => "${pkgs.git}/libexec/git-core/git-http-backend"
             )
 
-            $HTTP["querystring"] =~ "service=git-receive-pack" {
-              $HTTP["url"] =~ "^/git" {
-                ${lighttpd-conf-common}
-                # ${lighttpd-conf-auth}
+            $HTTP["url"] =~ "^/git" {
+              cgi.assign = ("" => "")
+
+              setenv.set-environment = (
+                "GIT_PROJECT_ROOT" => var.CWD,
+                "GIT_HTTP_EXPORT_ALL" => "",
+                "REMOTE_USER" => "$REDIRECT_REMOTE_USER",
+              )
+
+              $REQUEST_HEADER["Git-Protocol"] =~ "(.+)" {
+                setenv.add-environment += (
+                  "HTTP_GIT_PROTOCOL" => "%1",
+                )
               }
-            } else $HTTP["url"] =~ "^/git/.*/git-receive-pack$" {
-              ${lighttpd-conf-common}
-              # ${lighttpd-conf-auth}
-            } else $HTTP["url"] =~ "^/git" {
-              ${lighttpd-conf-common}
             }
           '';
 
@@ -133,7 +103,6 @@
               pkgs.lighttpd
             ];
             configure = ''
-              # git config --global credential.helper "!f() { echo \"username=username\"; echo \"password=password\"; }; f";
               git config --global --type bool http.receivePack true
             '';
             setup = ''
