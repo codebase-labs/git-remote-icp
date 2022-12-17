@@ -52,8 +52,6 @@
 
           src = ./.;
 
-          # https://git-scm.com/docs/git-http-backend#Documentation/git-http-backend.txt-Lighttpd
-          # https://github.com/NixOS/nixpkgs/blob/c7c950be8900e7ea5d2af4a5dfa58905ac612f84/nixos/modules/services/web-servers/lighttpd/default.nix
           lighttpd-conf = port: pkgs.writeText "lighthttpd.conf" ''
             server.document-root = var.CWD
             server.port = ${toString port}
@@ -140,12 +138,9 @@
             # DEFAULT_GIT_PORT is 9418
             port = 9418;
             setup = ''
-              # Start Git daemon
-
               # Based on https://github.com/Byron/gitoxide/blob/0c9c48b3b91a1396eb1796f288a2cb10380d1f14/tests/helpers.sh#L59
               git daemon --verbose --base-path=test-repo-bare --enable=receive-pack --export-all &
               GIT_DAEMON_PID=$!
-
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
             '';
             teardown = ''
