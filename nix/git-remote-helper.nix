@@ -61,7 +61,15 @@ craneLib.buildPackage {
     git config --global receive.denyCurrentBranch updateInstead
     git config --global protocol.version 2
 
+    echo "---------------"
+    echo "configure start"
+    echo "---------------"
+
     ${configure}
+
+    echo "------------------"
+    echo "configure complete"
+    echo "------------------"
 
     # Set up test repo
 
@@ -76,11 +84,20 @@ craneLib.buildPackage {
     git clone --bare test-repo test-repo-bare
     git -C test-repo-bare update-server-info
 
+    echo "-----------"
+    echo "setup start"
+    echo "-----------"
+
     ${setup}
+
+    echo "--------------"
+    echo "setup complete"
+    echo "--------------"
 
     while ! nc -z localhost ${toString port}; do
       sleep 0.1
     done
+
 
     # Test clone
 
