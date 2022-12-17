@@ -213,6 +213,14 @@ craneLib.buildPackage {
       exit 1
     fi
 
+    echo "--------------"
+    echo "teardown start"
+    echo "--------------"
+
     ${teardown}
+
+    echo "-----------------"
+    echo "teardown complete"
+    echo "-----------------"
   '';
 }
