@@ -58,6 +58,7 @@
             setenv.set-environment = (
               "GIT_PROJECT_ROOT" => var.CWD,
               "GIT_HTTP_EXPORT_ALL" => "",
+              "REMOTE_USER" => "$REDIRECT_REMOTE_USER",
             )
 
             $REQUEST_HEADER["Git-Protocol"] =~ "(.+)" {
