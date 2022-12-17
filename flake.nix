@@ -95,7 +95,7 @@
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
-            path_ = "/git";
+            path_ = "/git/test-repo-bare";
             port = 8888;
             installCheckInputs = [
               pkgs.lighttpd
@@ -104,11 +104,9 @@
               git config --global --type bool http.receivePack true
             '';
             setup = ''
-              pushd test-repo-bare
               lighttpd -f ${lighttpd-conf port} -D 2>&1 &
               HTTP_SERVER_PID=$!
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
-              popd
             '';
             teardown = ''
               kill "$HTTP_SERVER_PID"
@@ -136,10 +134,11 @@
             inherit craneLib src;
             scheme = { internal = "git"; external = "tcp"; };
             # DEFAULT_GIT_PORT is 9418
+            path_ = "/test-repo-bare";
             port = 9418;
             setup = ''
               # Based on https://github.com/Byron/gitoxide/blob/0c9c48b3b91a1396eb1796f288a2cb10380d1f14/tests/helpers.sh#L59
-              git daemon --verbose --base-path=test-repo-bare --enable=receive-pack --export-all &
+              git daemon --verbose --base-path=. --enable=receive-pack --export-all &
               GIT_DAEMON_PID=$!
               trap "EXIT_CODE=\$? && kill \$GIT_DAEMON_PID && exit \$EXIT_CODE" EXIT
             '';
