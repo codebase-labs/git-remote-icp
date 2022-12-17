@@ -128,7 +128,7 @@
             '';
             setup = ''
               pushd test-repo-bare
-              lighttpd -f ${lighttpd-conf port}
+              lighttpd -f ${lighttpd-conf port} -D &
               HTTP_SERVER_PID=$!
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
               popd
