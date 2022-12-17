@@ -67,7 +67,7 @@ craneLib.buildPackage {
 
     mkdir test-repo
     git -C test-repo init
-    echo "# Hello, World!" > test-repo/README.md
+    echo '# Hello, World!' > test-repo/README.md
     git -C test-repo add .
     git -C test-repo commit -m "Initial commit"
 
