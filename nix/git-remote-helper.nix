@@ -158,7 +158,7 @@ craneLib.buildPackage {
     echo "native push start"
     echo "-----------------"
 
-    echo "\n" >> test-repo-${scheme.internal}/README.md
+    echo "" >> test-repo-${scheme.internal}/README.md
     git -C test-repo-${scheme.internal} add .
     git -C test-repo-${scheme.internal} commit -m "Add trailing newline"
     git -C test-repo-${scheme.internal} push origin main
@@ -171,7 +171,7 @@ craneLib.buildPackage {
     echo "remote helper push start"
     echo "------------------------"
 
-    echo "\n" >> test-repo-${scheme.external}/README.md
+    echo "" >> test-repo-${scheme.external}/README.md
     git -C test-repo-${scheme.external} add .
     git -C test-repo-${scheme.external} commit -m "Add trailing newline"
     git -C test-repo-${scheme.external} push origin main
