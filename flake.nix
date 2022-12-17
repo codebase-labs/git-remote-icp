@@ -97,6 +97,15 @@
               "mod_cgi",
             )
 
+            debug.log-request-header = "enable"
+            debug.log-response-header = "enable"
+            debug.log-file-not-found = "enable"
+            debug.log-request-handling = "enable"
+            debug.log-condition-handling = "enable"
+            debug.log-condition-cache-handling = "enable"
+            debug.log-ssl-noise = "enable"
+            debug.log-timeouts = "enable"
+
             alias.url += (
               "/git" => "${pkgs.git}/libexec/git-core/git-http-backend"
             )
@@ -128,7 +137,7 @@
             '';
             setup = ''
               pushd test-repo-bare
-              lighttpd -f ${lighttpd-conf port} -D &
+              lighttpd -f ${lighttpd-conf port} -D 2>&1 &
               HTTP_SERVER_PID=$!
               trap "EXIT_CODE=\$? && kill \$HTTP_SERVER_PID && exit \$EXIT_CODE" EXIT
               popd
