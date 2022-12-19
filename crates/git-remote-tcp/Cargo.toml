@@ -1,6 +1,6 @@
 [package]
 name = "git-remote-tcp"
-description = "A Git remote helper for the git:// protocol"
+description = "A Git remote helper for the git:// protocol."
 version = "0.1.0"
 edition = "2021"
 authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]

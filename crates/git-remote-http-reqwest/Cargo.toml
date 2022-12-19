@@ -1,6 +1,6 @@
 [package]
 name = "git-remote-http-reqwest"
-description = "A Git remote helper for HTTP."
+description = "A Git remote helper for http:// and https:// protocols."
 version = "0.1.0"
 edition = "2021"
 authors = ["Paul Young <84700+paulyoung@users.noreply.github.com>"]
