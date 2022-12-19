@@ -35,11 +35,11 @@ openssl ec -in secp256k1.pem -pubout -out public.pem
   # By default, the helper is configured to talk to the main Internet Computer,
   # and verifies responses using a hard-coded public key.
   #
-  # This function will instruct the agent to ask the endpoint for its public
+  # This function will instruct the helper to ask the replica for its public
   # key, and use that instead. This is required when talking to a local test
   # instance, for example.
   #
-  # Only use this when you are not talking to the main Internet Computer,
+  # Only enable this when you are not talking to the main Internet Computer,
   # otherwise you are prone to man-in-the-middle attacks.
   fetchRootKey = true
 ```
