@@ -19,10 +19,29 @@ openssl ec -in secp256k1.pem -pubout -out public.pem
 
 ## Configuring Git
 
-### Globally
+```gitconfig
+[icp]
+  # Required. See "Generating a public/private key pair"
+  privateKey = /absolute/path/to/private/key/file
 
-```
-git config --global icp.privateKey /absolute/path/to/private/key/file
+  # Optional. Defaults to w7uni-tiaaa-aaaam-qaydq-cai
+  canisterId = rwlgt-iiaaa-aaaaa-aaaaa-cai
+
+  # Optional. Defaults to https://ic0.app
+  replicaUrl = http://localhost:8000
+
+  # Optional. Defaults to false.
+  #
+  # By default, the helper is configured to talk to the main Internet Computer,
+  # and verifies responses using a hard-coded public key.
+  #
+  # This function will instruct the agent to ask the endpoint for its public
+  # key, and use that instead. This is required when talking to a local test
+  # instance, for example.
+  #
+  # Only use this when you are not talking to the main Internet Computer,
+  # otherwise you are prone to man-in-the-middle attacks.
+  fetchRootKey = true
 ```
 
 ## Resources
