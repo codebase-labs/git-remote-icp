@@ -1,5 +1,5 @@
 // use crate::connection::Connection;
-// use crate::icp::remote::Remote;
+use crate::http::Remote;
 
 use git::protocol::transport;
 use git::url::Scheme;
@@ -72,8 +72,13 @@ where
 
     // TODO: replace the placeholder generic argument with our `Remote` that
     // implements the `Http` trait.
-    let transport: transport::client::http::Transport<_> =
-        transport::client::http::connect(&url.to_bstring().to_string(), desired_version);
+    let remote: Remote = todo!();
+
+    let transport = transport::client::http::connect_http(
+        remote,
+        &url.to_bstring().to_string(),
+        desired_version,
+    );
 
     Ok(Box::new(transport))
 }
