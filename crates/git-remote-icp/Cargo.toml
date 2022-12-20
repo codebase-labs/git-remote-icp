@@ -10,11 +10,11 @@ name = "git-remote-icp"
 
 [dependencies]
 anyhow = { workspace = true }
-async-trait = { workspace = true } # FIXME: remove this once blocking
 candid = "0.8"
 env_logger = { workspace = true }
 git-remote-helper = { workspace = true, features = ["blocking-network-client"] }
-git-repository = { workspace = true }
+# TODO: review features
+git-repository = { workspace = true, features = ["blocking-http-transport-reqwest"] }
 ic-agent = "0.23"
 # When using ic-certified-assets = "0.2" we get an error that CandidType isn't
 # implemented for HttpRequest even though it is. This appears to be because it
@@ -23,4 +23,10 @@ ic-agent = "0.23"
 ic-certified-assets = { git = "https://github.com/dfinity/sdk", rev="763c2bb35bcba5cee34ecc08a991252f474e631e" }
 log = { workspace = true }
 serde_bytes = "0.11"
-tokio = { workspace = true }
+
+# TEMP? below here
+
+thiserror = "1.0"
+# Needed because git-repository doesn't seem to expose this feature
+git-features = { workspace = true, features = ["io-pipe"] }
+reqwest = "0.11"

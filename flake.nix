@@ -40,8 +40,8 @@
             ];
           };
 
-          # rust = pkgs.rust-bin.stable.latest.default;
-          rust = pkgs.rust-bin.nightly."2022-10-31".default;
+          rust = pkgs.rust-bin.stable.latest.default;
+          # rust = pkgs.rust-bin.nightly."2022-10-31".default;
 
           # NB: we don't need to overlay our custom toolchain for the *entire*
           # pkgs (which would require rebuilding anything else which uses rust).

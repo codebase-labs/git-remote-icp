@@ -1,29 +1,35 @@
-use crate::connection::Connection;
+// use crate::connection::Connection;
+// use crate::icp::remote::Remote;
 
 use git::protocol::transport;
+use git::url::Scheme;
+use git_repository as git;
 use ic_agent::export::Principal;
 use ic_agent::identity::Identity;
-use git_repository as git;
-use git::url::Scheme;
 use log::trace;
-use std::future::Future;
+use std::convert::Infallible;
 use std::sync::Arc;
 use transport::client::connect::Error;
 
-pub fn make<'a, Url, E>(
+pub fn make<Url, E>(
     identity: Arc<dyn Identity>,
     fetch_root_key: bool,
-    replica_url: &'a str,
+    replica_url: &str,
     canister_id: Principal,
-// ) -> impl Fn(Url, transport::Protocol) -> (impl Future<Output = Result<Box<(dyn transport::client::Transport + Send + 'a)>, transport::connect::Error>> + 'a)
-) -> Box<dyn Fn(Url, transport::Protocol) -> (impl Future<Output = Result<Connection, transport::connect::Error>> + 'a) + 'a>
+) -> impl Fn(Url, transport::Protocol) -> Result<Box<dyn transport::client::Transport + Send>, Error>
 where
-    Url: TryInto<git::url::Url, Error = E> + 'a,
+    Url: TryInto<git::url::Url, Error = E>,
     git::url::parse::Error: From<E>,
 {
-    let connect = async move |url: Url, desired_version| {
+    // TODO:
+    // * `transport::client::connect` (`transport::client::blocking_io::http::connect`) returns:
+    // * `Transport<Impl>` (`transport::client::blocking_io::http::Transport`)
+    // * where `Impl` is `H: Http`
+    // * where `pub type Impl = reqwest::Remote` (or `curl::Curl`)
+    // * `reqwest::Remote` is `transport::client::http::reqwest::Remote`
+    // * `impl Default for Remote` is in transport/blocking_io/http/reqwest/remote
+    |url: Url, desired_version| {
         let mut url = url.try_into().map_err(git::url::parse::Error::from)?;
-
         if url.user().is_some() {
             return Err(Error::UnsupportedUrlTokens {
                 url: url.to_bstring(),
@@ -41,10 +47,12 @@ where
 
         trace!("Resolved URL scheme: {:#?}", url.scheme);
 
+        /*
         let connection =
             Connection::new(identity, fetch_root_key, replica_url, canister_id, url, desired_version).await?;
 
         Ok(connection)
-    };
-    Box::new(connect)
+        */
+        transport::connect::<_, Infallible>(url, desired_version)
+    }
 }

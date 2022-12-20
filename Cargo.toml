@@ -2,7 +2,7 @@
 members = [
     "crates/git-remote-helper",
     "crates/git-remote-http-reqwest",
-    # "crates/git-remote-icp",
+    "crates/git-remote-icp",
     "crates/git-remote-tcp",
 ]
 
@@ -12,6 +12,7 @@ async-trait = "0.1"
 env_logger = "0.9"
 log = "0.4"
 git-remote-helper = { path = "crates/git-remote-helper" }
+git-features = { git = "https://github.com/Byron/gitoxide", rev="fbfd290dc73ffe25295e7eb109ed6d093db6f832" }
 git-repository = { git = "https://github.com/Byron/gitoxide", rev="fbfd290dc73ffe25295e7eb109ed6d093db6f832" }
 git-validate = { git = "https://github.com/Byron/gitoxide", rev="fbfd290dc73ffe25295e7eb109ed6d093db6f832" }
 tokio = { version = "1.12", features = ["full"] }
