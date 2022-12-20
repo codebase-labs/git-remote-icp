@@ -1,11 +1,13 @@
-use ic_agent::export::Principal;
+use anyhow::anyhow;
 use git_remote_helper::git;
+use ic_agent::export::Principal;
 
 const CANISTER_ID_KEY: &str = "icp.canisterId";
 const DEFAULT_CANISTER_ID: &str = "w7uni-tiaaa-aaaam-qaydq-cai";
 
 pub fn canister_id() -> anyhow::Result<Principal> {
-    let canister_id = git::config::get(CANISTER_ID_KEY).unwrap_or_else(|_| DEFAULT_CANISTER_ID.to_string());
+    let canister_id =
+        git::config::get(CANISTER_ID_KEY).unwrap_or_else(|_| DEFAULT_CANISTER_ID.to_string());
     let principal = Principal::from_text(canister_id)?;
     Ok(principal)
 }
@@ -24,8 +26,20 @@ pub fn fetch_root_key() -> bool {
 
 const PRIVATE_KEY_KEY: &str = "icp.privateKey";
 
+// TODO: consider falling back to AnonymousIdentity if icp.privateKey isn't
+// set to allow users to clone from public repos using the icp:// scheme.
 pub fn private_key() -> anyhow::Result<String> {
-    git::config::get(PRIVATE_KEY_KEY)
+    let private_key_path = git::config::get(PRIVATE_KEY_KEY).map_err(|_| {
+        anyhow!("failed to read icp.privateKey from git config. Set `icp.privateKey = <path to private key>`")
+    })?;
+
+    let trimmed = private_key_path.trim();
+
+    if trimmed.is_empty() {
+        Err(anyhow!("icp.privateKey is empty"))
+    } else {
+        Ok(trimmed.to_string())
+    }
 }
 
 const REPLICA_URL_KEY: &str = "icp.replicaUrl";
