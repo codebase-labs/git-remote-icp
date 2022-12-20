@@ -47,12 +47,33 @@ where
 
         trace!("Resolved URL scheme: {:#?}", url.scheme);
 
-        /*
-        let connection =
-            Connection::new(identity, fetch_root_key, replica_url, canister_id, url, desired_version).await?;
-
-        Ok(connection)
-        */
-        transport::connect::<_, Infallible>(url, desired_version)
+        connect::<_, Infallible>(url, desired_version)
     }
+}
+
+// TEMP: we likely need to inline this at the end of `make`
+pub fn connect<Url, E>(
+    url: Url,
+    desired_version: transport::Protocol,
+) -> Result<Box<dyn transport::client::Transport + Send>, Error>
+where
+    Url: TryInto<git::url::Url, Error = E>,
+    git::url::parse::Error: From<E>,
+{
+    let mut url: git::Url = url.try_into().map_err(git::url::parse::Error::from)?;
+    trace!("Provided URL scheme: {:#?}", url.scheme);
+
+    url.scheme = match url.scheme {
+        Scheme::Ext(scheme) if &scheme == "icp" => Ok(Scheme::Https),
+        scheme @ (Scheme::Http | Scheme::Https) => Ok(scheme),
+        _ => Err(Error::UnsupportedScheme(url.scheme)),
+    }?;
+    trace!("Resolved URL scheme: {:#?}", url.scheme);
+
+    // TODO: replace the placeholder generic argument with our `Remote` that
+    // implements the `Http` trait.
+    let transport: transport::client::http::Transport<_> =
+        transport::client::http::connect(&url.to_bstring().to_string(), desired_version);
+
+    Ok(Box::new(transport))
 }
