@@ -23,6 +23,7 @@ where
 {
     |url: Url, desired_version| {
         let mut url = url.try_into().map_err(git::url::parse::Error::from)?;
+
         if url.user().is_some() {
             return Err(Error::UnsupportedUrlTokens {
                 url: url.to_bstring(),
