@@ -21,13 +21,6 @@ where
     Url: TryInto<git::url::Url, Error = E>,
     git::url::parse::Error: From<E>,
 {
-    // TODO:
-    // * `transport::client::connect` (`transport::client::blocking_io::http::connect`) returns:
-    // * `Transport<Impl>` (`transport::client::blocking_io::http::Transport`)
-    // * where `Impl` is `H: Http`
-    // * where `pub type Impl = reqwest::Remote` (or `curl::Curl`)
-    // * `reqwest::Remote` is `transport::client::http::reqwest::Remote`
-    // * `impl Default for Remote` is in transport/blocking_io/http/reqwest/remote
     |url: Url, desired_version| {
         let mut url = url.try_into().map_err(git::url::parse::Error::from)?;
         if url.user().is_some() {
