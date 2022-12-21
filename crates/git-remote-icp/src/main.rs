@@ -6,9 +6,9 @@ mod http;
 
 use anyhow::anyhow;
 use git_remote_helper;
+use ic_agent::identity::{Identity, Secp256k1Identity};
 use log::trace;
 use std::sync::Arc;
-use ic_agent::identity::{Identity, Secp256k1Identity};
 
 pub fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -31,6 +31,10 @@ pub fn main() -> anyhow::Result<()> {
     let canister_id = config::canister_id()?;
     trace!("canister id: {}", canister_id);
 
-    let connect = connect::make::<String, _>(identity, fetch_root_key, &replica_url, canister_id);
-    git_remote_helper::main(connect)
+    git_remote_helper::main(connect::connect(
+        identity,
+        fetch_root_key,
+        &replica_url,
+        canister_id,
+    ))
 }

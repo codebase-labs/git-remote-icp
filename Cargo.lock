@@ -1412,6 +1412,7 @@ dependencies = [
  "anyhow",
  "candid",
  "env_logger",
+ "futures-lite",
  "git-features",
  "git-remote-helper",
  "git-repository",

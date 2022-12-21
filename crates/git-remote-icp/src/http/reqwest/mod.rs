@@ -1,7 +1,10 @@
-// https://github.com/Byron/gitoxide/blob/e6b9906c486b11057936da16ed6e0ec450a0fb83/git-transport/src/client/blocking_io/http/reqwest/mod.rs
+use ic_agent::export::Principal;
+use ic_agent::Agent;
 
 /// An implementation for HTTP requests via `reqwest`.
 pub struct Remote {
+    agent: Agent,
+    canister_id: Principal,
     /// A worker thread which performs the actual request.
     handle: Option<std::thread::JoinHandle<Result<(), remote::Error>>>,
     /// A channel to send requests (work) to the worker thread.
