@@ -17,10 +17,7 @@ const DEFAULT_FETCH_ROOT_KEY: bool = false;
 
 pub fn fetch_root_key() -> bool {
     git::config::get(FETCH_ROOT_KEY_KEY)
-        .map(|config_value| match config_value.as_str() {
-            "true" => true,
-            _ => false,
-        })
+        .map(|config_value| matches!(config_value.as_str(), "true"))
         .unwrap_or(DEFAULT_FETCH_ROOT_KEY)
 }
 
