@@ -24,17 +24,9 @@ pub fn fetch_root_key() -> bool {
 const PRIVATE_KEY_KEY: &str = "icp.privateKey";
 
 pub fn private_key() -> anyhow::Result<String> {
-    let private_key_path = git::config::get(PRIVATE_KEY_KEY).map_err(|_| {
+    git::config::get(PRIVATE_KEY_KEY).map_err(|_| {
         anyhow!("failed to read icp.privateKey from git config. Set `icp.privateKey = <path to private key>`")
-    })?;
-
-    let trimmed = private_key_path.trim();
-
-    if trimmed.is_empty() {
-        Err(anyhow!("icp.privateKey is empty"))
-    } else {
-        Ok(trimmed.to_string())
-    }
+    })
 }
 
 const REPLICA_URL_KEY: &str = "icp.replicaUrl";
