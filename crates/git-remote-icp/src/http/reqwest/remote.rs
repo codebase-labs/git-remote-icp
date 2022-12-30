@@ -9,11 +9,12 @@ use git_features::io::pipe;
 use git_repository as git;
 use ic_agent::export::Principal;
 use ic_agent::Agent;
-use ic_certified_assets::types::{HeaderField, HttpRequest, HttpResponse};
+use ic_certified_assets::types::{HttpRequest, HttpResponse};
 use log::trace;
 use serde_bytes::ByteBuf;
 use std::any::Any;
 use std::io::{Read, Write};
+use std::ops::Deref;
 
 /// The error returned by the 'remote' helper, a purely internal construct to perform http requests.
 #[derive(Debug, thiserror::Error)]
@@ -41,14 +42,10 @@ impl Remote {
     pub fn new(agent: Agent, canister_id: Principal) -> Self {
         let (req_send, req_recv) = std::sync::mpsc::sync_channel(0);
         let (res_send, res_recv) = std::sync::mpsc::sync_channel(0);
+        let moved_agent = agent.clone();
         let handle = std::thread::spawn(move || -> Result<(), Error> {
             // We may error while configuring, which is expected as part of the internal protocol. The error will be
             // received and the sender of the request might restart us.
-
-            // let client = reqwest::blocking::ClientBuilder::new()
-            //     .connect_timeout(std::time::Duration::from_secs(20))
-            //     .http1_title_case_headers()
-            //     .build()?;
             for Request {
                 url,
                 headers,
@@ -56,7 +53,7 @@ impl Remote {
             } in req_recv
             {
                 // TODO: let headers = _;
-                let (post_body_tx, post_body_rx) = pipe::unidirectional(0);
+                let (post_body_tx, mut post_body_rx) = pipe::unidirectional(0);
                 let (mut response_body_tx, response_body_rx) = pipe::unidirectional(0);
                 let (mut headers_tx, headers_rx) = pipe::unidirectional(0);
 
@@ -76,7 +73,12 @@ impl Remote {
                 let mut body = ByteBuf::new();
 
                 if upload {
-                    post_body_rx.read_to_end(&mut body);
+                    if let Err(err) = post_body_rx.read_to_end(&mut body) {
+                        let kind = std::io::ErrorKind::Other;
+                        let err = Err(std::io::Error::new(kind, err));
+                        response_body_tx.channel.send(err).ok();
+                        continue;
+                    }
                 }
 
                 let method = if upload { "POST" } else { "GET" }.to_string();
@@ -100,27 +102,40 @@ impl Remote {
                     }
                 };
 
-                let call = if upload {
+                let res = if upload {
                     future::block_on(
-                        agent
+                        moved_agent
                             .update(&canister_id, "http_request_update")
                             .with_arg(&arg)
                             .call_and_wait(),
                     )
                 } else {
                     future::block_on(
-                        agent
+                        moved_agent
                             .query(&canister_id, "http_request")
                             .with_arg(&arg)
                             .call(),
                     )
                 };
 
-                let mut res = match call.and_then(|res| res.error_for_status()) {
-                    Ok(res) => res,
-                    Err(err) => {
-                        let (kind, err) = match err.status() {
-                            Some(status) => {
+                let res = res
+                    .map_err(|agent_error| {
+                        std::io::Error::new(std::io::ErrorKind::Other, agent_error)
+                    })
+                    .and_then(|res| {
+                        Decode!(res.as_slice(), HttpResponse).map_err(|candid_error| {
+                            std::io::Error::new(std::io::ErrorKind::Other, candid_error)
+                        })
+                    })
+                    .and_then(|res| match res.status_code {
+                        400..=499 | 500..=599 => reqwest::StatusCode::from_u16(res.status_code)
+                            .map_err(|invalid_status_code_error| {
+                                std::io::Error::new(
+                                    std::io::ErrorKind::Other,
+                                    invalid_status_code_error,
+                                )
+                            })
+                            .and_then(|status| {
                                 let kind = if status == reqwest::StatusCode::UNAUTHORIZED {
                                     std::io::ErrorKind::PermissionDenied
                                 } else if status.is_server_error() {
@@ -128,20 +143,23 @@ impl Remote {
                                 } else {
                                     std::io::ErrorKind::Other
                                 };
-                                (kind, format!("Received HTTP status {}", status.as_str()))
-                            }
-                            None => (std::io::ErrorKind::Other, err.to_string()),
-                        };
-                        let err = Err(std::io::Error::new(kind, err));
-                        headers_tx.channel.send(err).ok();
+                                let err = format!("Received HTTP status {}", status.as_str());
+                                Err(std::io::Error::new(kind, err))
+                            }),
+                        _ => Ok(res),
+                    });
+
+                let res = match res {
+                    Ok(res) => res,
+                    Err(err) => {
+                        headers_tx.channel.send(Err(err)).ok();
                         continue;
                     }
                 };
 
                 let send_headers = {
-                    let headers = res.headers();
                     move || -> std::io::Result<()> {
-                        for (name, value) in headers {
+                        for (name, value) in res.headers {
                             headers_tx.write_all(name.as_str().as_bytes())?;
                             headers_tx.write_all(b":")?;
                             headers_tx.write_all(value.as_bytes())?;
@@ -153,14 +171,16 @@ impl Remote {
                     }
                 };
 
-                // We don't have to care if anybody is receiving the header, as a matter of fact we cannot fail sending them.
-                // Thus an error means the receiver failed somehow, but might also have decided not to read headers at all. Fine with us.
+                // We don't have to care if anybody is receiving the header, as
+                // a matter of fact we cannot fail sending them. Thus an error
+                // means the receiver failed somehow, but might also have
+                // decided not to read headers at all. Fine with us.
                 send_headers().ok();
 
-                // reading the response body is streaming and may fail for many reasons. If so, we send the error over the response
-                // body channel and that's all we can do.
-                // TODO: res here will be the response body vec
-                if let Err(err) = std::io::copy(&mut res, &mut response_body_tx) {
+                // Reading the response body is streaming and may fail for many
+                // reasons. If so, we send the error over the response body
+                // channel and that's all we can do.
+                if let Err(err) = std::io::copy(&mut res.body.deref(), &mut response_body_tx) {
                     response_body_tx.channel.send(Err(err)).ok();
                 }
             }
@@ -218,7 +238,7 @@ impl Remote {
                     .join()
                     .expect("no panic")
                     .expect_err("no receiver means thread is down with init error");
-                *self = Self::new(self.agent, self.canister_id);
+                *self = Self::new(self.agent.clone(), self.canister_id);
                 return Err(http::Error::InitHttpClient {
                     source: Box::new(err),
                 });

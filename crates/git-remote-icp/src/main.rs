@@ -34,7 +34,7 @@ pub fn main() -> anyhow::Result<()> {
     git_remote_helper::main(connect::connect(
         identity,
         fetch_root_key,
-        &replica_url,
+        replica_url,
         canister_id,
     ))
 }

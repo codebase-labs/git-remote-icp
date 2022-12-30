@@ -15,7 +15,7 @@ use transport::client::connect::Error;
 pub fn connect<'a, Url, E>(
     identity: Arc<dyn Identity>,
     fetch_root_key: bool,
-    replica_url: &'a str,
+    replica_url: String,
     canister_id: Principal,
 ) -> impl Fn(Url, transport::Protocol) -> Result<Box<dyn transport::client::Transport + Send + 'a>, Error>
 where
@@ -48,7 +48,7 @@ where
 
         trace!("Resolved URL scheme: {:#?}", url.scheme);
 
-        let replica_transport = ReqwestHttpReplicaV2Transport::create(replica_url)
+        let replica_transport = ReqwestHttpReplicaV2Transport::create(&replica_url)
             .map_err(|err| Error::Connection(Box::new(err)))?;
 
         let agent = Agent::builder()
