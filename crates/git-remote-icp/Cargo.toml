@@ -12,7 +12,6 @@ name = "git-remote-icp"
 anyhow = { workspace = true }
 candid = "0.8"
 env_logger = { workspace = true }
-futures-lite = "1.12"
 git-remote-helper = { workspace = true, features = ["blocking-network-client"] }
 # TODO: review features
 git-repository = { workspace = true, features = ["blocking-http-transport-reqwest"] }
@@ -24,6 +23,7 @@ ic-agent = "0.23"
 ic-certified-assets = { git = "https://github.com/dfinity/sdk", rev="763c2bb35bcba5cee34ecc08a991252f474e631e" }
 log = { workspace = true }
 serde_bytes = "0.11"
+tokio = { workspace = true }
 
 # TEMP? below here
 

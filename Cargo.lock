@@ -1412,7 +1412,6 @@ dependencies = [
  "anyhow",
  "candid",
  "env_logger",
- "futures-lite",
  "git-features",
  "git-remote-helper",
  "git-repository",
@@ -1422,6 +1421,7 @@ dependencies = [
  "reqwest",
  "serde_bytes",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

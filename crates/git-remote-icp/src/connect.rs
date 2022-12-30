@@ -1,7 +1,6 @@
 // use crate::connection::Connection;
 use crate::http::Remote;
 
-use futures_lite::future;
 use git::protocol::transport;
 use git::url::Scheme;
 use git_repository as git;
@@ -10,6 +9,7 @@ use ic_agent::export::Principal;
 use ic_agent::{Agent, Identity};
 use log::trace;
 use std::sync::Arc;
+use tokio::runtime::Runtime;
 use transport::client::connect::Error;
 
 pub fn connect<'a, Url, E>(
@@ -28,7 +28,6 @@ where
     trace!("canister_id: {}", canister_id);
 
     move |url: Url, desired_version| {
-
         let mut url = url.try_into().map_err(git::url::parse::Error::from)?;
 
         if url.user().is_some() {
@@ -58,7 +57,10 @@ where
             .map_err(|err| Error::Connection(Box::new(err)))?;
 
         if fetch_root_key {
-            future::block_on(agent.fetch_root_key())
+            let runtime = Runtime::new().map_err(|err| Error::Connection(Box::new(err)))?;
+
+            runtime
+                .block_on(agent.fetch_root_key())
                 .map_err(|err| Error::Connection(Box::new(err)))?;
         }
 

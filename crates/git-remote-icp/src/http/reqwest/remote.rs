@@ -4,7 +4,6 @@
 use crate::{http, http::reqwest::Remote};
 
 use candid::{Decode, Encode};
-use futures_lite::future;
 use git_features::io::pipe;
 use git_repository as git;
 use ic_agent::export::Principal;
@@ -15,6 +14,7 @@ use serde_bytes::ByteBuf;
 use std::any::Any;
 use std::io::{Read, Write};
 use std::ops::Deref;
+use tokio::runtime::Runtime;
 
 /// The error returned by the 'remote' helper, a purely internal construct to perform http requests.
 #[derive(Debug, thiserror::Error)]
@@ -42,6 +42,7 @@ impl Remote {
     pub fn new(agent: Agent, canister_id: Principal) -> Self {
         let (req_send, req_recv) = std::sync::mpsc::sync_channel(0);
         let (res_send, res_recv) = std::sync::mpsc::sync_channel(0);
+        let runtime = Runtime::new().expect("failed to create runtime");
         let moved_agent = agent.clone();
         let handle = std::thread::spawn(move || -> Result<(), Error> {
             // We may error while configuring, which is expected as part of the internal protocol. The error will be
@@ -103,14 +104,14 @@ impl Remote {
                 };
 
                 let res = if upload {
-                    future::block_on(
+                    runtime.block_on(
                         moved_agent
                             .update(&canister_id, "http_request_update")
                             .with_arg(&arg)
                             .call_and_wait(),
                     )
                 } else {
-                    future::block_on(
+                    runtime.block_on(
                         moved_agent
                             .query(&canister_id, "http_request")
                             .with_arg(&arg)
