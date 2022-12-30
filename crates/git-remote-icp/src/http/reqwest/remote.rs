@@ -53,7 +53,6 @@ impl Remote {
                 upload,
             } in req_recv
             {
-                // TODO: let headers = _;
                 let (post_body_tx, mut post_body_rx) = pipe::unidirectional(0);
                 let (mut response_body_tx, response_body_rx) = pipe::unidirectional(0);
                 let (mut headers_tx, headers_rx) = pipe::unidirectional(0);
