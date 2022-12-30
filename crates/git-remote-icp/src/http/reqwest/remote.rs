@@ -214,7 +214,7 @@ impl Remote {
                 .expect("header line must contain a colon to separate key and value");
             let header_name = &header_line[..colon_pos];
             let value = &header_line[colon_pos + 1..];
-            header_values.push((header_name.to_string(), value.to_string()));
+            header_values.push((header_name.trim().to_string(), value.trim().to_string()));
         }
         self.request
             .send(Request {
