@@ -23,8 +23,6 @@ pub fn fetch_root_key() -> bool {
 
 const PRIVATE_KEY_KEY: &str = "icp.privateKey";
 
-// TODO: consider falling back to AnonymousIdentity if icp.privateKey isn't
-// set to allow users to clone from public repos using the icp:// scheme.
 pub fn private_key() -> anyhow::Result<String> {
     let private_key_path = git::config::get(PRIVATE_KEY_KEY).map_err(|_| {
         anyhow!("failed to read icp.privateKey from git config. Set `icp.privateKey = <path to private key>`")

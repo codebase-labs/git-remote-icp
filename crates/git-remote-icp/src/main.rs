@@ -4,21 +4,21 @@ mod http;
 
 use anyhow::anyhow;
 use git_remote_helper;
-use ic_agent::identity::{Identity, Secp256k1Identity};
+use ic_agent::identity::{AnonymousIdentity, Identity, Secp256k1Identity};
 use log::trace;
 use std::sync::Arc;
 
 pub fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let private_key_path = config::private_key()?;
-    trace!("private key path: {}", private_key_path);
+    let private_key_path = config::private_key();
+    trace!("private key path: {:#?}", private_key_path);
 
-    let identity = Secp256k1Identity::from_pem_file(private_key_path)?;
-    let identity = Arc::new(identity);
+    let identity = get_identity(private_key_path)?;
 
     let principal = identity.sender().map_err(|err| anyhow!(err))?;
     trace!("principal: {}", principal);
+    eprintln!("Principal for caller: {}", principal);
 
     let fetch_root_key = config::fetch_root_key();
     trace!("fetch root key: {}", fetch_root_key);
@@ -35,4 +35,18 @@ pub fn main() -> anyhow::Result<()> {
         replica_url,
         canister_id,
     ))
+}
+
+fn get_identity<'a>(private_key_path: anyhow::Result<String>) -> anyhow::Result<Arc<dyn Identity>> {
+    match private_key_path {
+        Ok(path) => {
+            eprintln!("Using identity for private key found in git config");
+            let identity = Secp256k1Identity::from_pem_file(path)?;
+            Ok(Arc::new(identity))
+        }
+        Err(_) => {
+            eprintln!("No private key found git config, using anonymous identity");
+            Ok(Arc::new(AnonymousIdentity {}))
+        }
+    }
 }

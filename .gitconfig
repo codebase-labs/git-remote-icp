@@ -1,5 +1,5 @@
 [icp]
-  # Required. See "Generating a public/private key pair"
+  # Optional. See "Generating a public/private key pair"
   privateKey = ./identity.pem
 
   # Optional. Defaults to w7uni-tiaaa-aaaam-qaydq-cai
