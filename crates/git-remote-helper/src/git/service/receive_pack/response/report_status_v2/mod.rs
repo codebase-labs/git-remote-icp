@@ -302,7 +302,7 @@ fn parse_option_line<'a, E>(input: &'a [u8]) -> IResult<&'a [u8], OptionLine, E>
 where
     E: nom::error::ParseError<&'a [u8]> + nom::error::ContextError<&'a [u8]>,
 {
-    context("option-line", |input| {
+    context("option-line", |_input| {
         // TODO
         todo!("option-line")
     })(input)
