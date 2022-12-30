@@ -3,7 +3,6 @@ mod connect;
 mod http;
 
 use anyhow::anyhow;
-use git_remote_helper;
 use ic_agent::identity::{AnonymousIdentity, Identity, Secp256k1Identity};
 use log::trace;
 use std::sync::Arc;
