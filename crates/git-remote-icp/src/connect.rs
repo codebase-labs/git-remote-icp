@@ -1,4 +1,3 @@
-// use crate::connection::Connection;
 use crate::http::Remote;
 
 use git::protocol::transport;

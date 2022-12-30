@@ -1,7 +1,5 @@
-// mod async_io;
 mod config;
 mod connect;
-// mod connection;
 mod http;
 
 use anyhow::anyhow;
