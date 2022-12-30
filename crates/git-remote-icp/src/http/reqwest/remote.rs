@@ -8,7 +8,7 @@ use git_features::io::pipe;
 use git_repository as git;
 use ic_agent::export::Principal;
 use ic_agent::Agent;
-use ic_certified_assets::types::{HttpRequest, HttpResponse};
+use ic_certified_assets::types::{HeaderField, HttpRequest, HttpResponse};
 use log::trace;
 use serde_bytes::ByteBuf;
 use std::any::Any;
@@ -288,7 +288,7 @@ impl http::Http for Remote {
 
 pub(crate) struct Request {
     pub url: String,
-    pub headers: Vec<ic_certified_assets::types::HeaderField>,
+    pub headers: Vec<HeaderField>,
     pub upload: bool,
 }
 
