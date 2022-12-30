@@ -37,7 +37,7 @@ pub fn main() -> anyhow::Result<()> {
     ))
 }
 
-fn get_identity<'a>(private_key_path: anyhow::Result<String>) -> anyhow::Result<Arc<dyn Identity>> {
+fn get_identity(private_key_path: anyhow::Result<String>) -> anyhow::Result<Arc<dyn Identity>> {
     match private_key_path {
         Ok(path) => {
             eprintln!("Using identity for private key found in git config");
