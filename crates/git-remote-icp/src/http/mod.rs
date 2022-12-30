@@ -1,4 +1,3 @@
-// TODO: determine what to name this module
 mod reqwest;
 
 pub use self::reqwest::Remote;
