@@ -2,7 +2,7 @@
 
 ![](https://img.shields.io/badge/status%EF%B8%8F-experimental-blueviolet)
 
-A Git remote helper for the Internet Computer Protocol.
+A [Git remote helper](https://git-scm.com/docs/gitremote-helpers) for the Internet Computer Protocol.
 
 ## Usage
 
@@ -21,7 +21,7 @@ openssl ec -in secp256k1.pem -pubout -out public.pem
 
 See the example `.gitconfig`
 
-## Development
+## Crates
 
 This repository contains the following other crates:
 
@@ -43,15 +43,11 @@ This repository contains the following other crates:
 
     Primarily used to test that the blocking implementation in `git-remote-helper` behaves the same as `git` (`git-remote-http` and `git-remote-https`).
 
-### Resources
-
-* https://git-scm.com/docs/gitremote-helpers
-
-### Debugging
+## Development
 
 Set `HOME=.` when run from the root of this repository to use the provided `.gitconfig`.
 
-#### Against a local repository
+### Against a local repository
 
 ```
 cargo build --package git-remote-icp && PATH=./target/debug:$PATH RUST_LOG=trace HOME=. git clone icp::http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
@@ -63,13 +59,13 @@ or
 cargo build --package git-remote-icp && PATH=./target/debug:$PATH RUST_LOG=trace HOME=. git clone icp::http://git.codebase.ic0.localhost:8453/@paul/hello-world.git
 ```
 
-#### Against a remote repository
+### Against a remote repository
 
 ```
 cargo build --package git-remote-icp && PATH=./target/debug:$PATH RUST_LOG=trace HOME=. git clone icp://w7uni-tiaaa-aaaam-qaydq-cai.raw.ic0.app/@paul/hello-world.git
 ```
 
-#### By manually invoking the remote helper
+### By manually invoking the remote helper
 
 ```
 cargo build --package git-remote-icp && PATH=./target/debug:$PATH RUST_LOG=trace HOME=. GIT_DIR=~/temp/hello-world git-remote-icp origin http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
