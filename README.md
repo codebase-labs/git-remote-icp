@@ -41,7 +41,7 @@ This repository contains the following other crates:
 
     A Git remote helper for `http://` and `https://` protocols.
 
-    Primarily used to test that the blocking implementation in `git-remote-helper` behaves the same as `git` (`git-remote-http` and `git-remote-https`)
+    Primarily used to test that the blocking implementation in `git-remote-helper` behaves the same as `git` (`git-remote-http` and `git-remote-https`).
 
 ### Resources
 
