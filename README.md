@@ -49,6 +49,8 @@ This repository contains the following other crates:
 
 ### Debugging
 
+Set `HOME=.` when run from the root of this repository to use the provided `.gitconfig`.
+
 #### Against a local repository
 
 ```
