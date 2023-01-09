@@ -84,8 +84,6 @@ where
         // TODO: use Traverse for initial push
         let input_object_expansion = git::odb::pack::data::output::count::objects::ObjectExpansion::TreeAdditionsComparedToAncestor;
 
-        // TODO: combine with previous iterations if possible
-        // TODO: for loop instead of map
         let mut entries = vec![];
 
         for (src, dst, _allow_non_fast_forward) in push_instructions {
