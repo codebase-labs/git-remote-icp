@@ -21,13 +21,29 @@ openssl ec -in secp256k1.pem -pubout -out public.pem
 
 See the example `.gitconfig`
 
-## Resources
+## Development
+
+This repository contains the following other crates:
+
+* `git-remote-helper`
+
+    A library for implementing Git remote helpers. Provides core functionality for remote helpers in a protocol-agnostic way for both blocking and async implementations.
+
+* `git-remote-tcp`
+
+    A Git remote helper for the `git://` protocol. Primarily used to test that the async implementation in `git-remote-helper` behaves the same as `git`.
+
+* `git-remote-http-reqwest`
+
+    A Git remote helper for `http://` and `https://` protocols. Primarily used to test that the blocking implementation in `git-remote-helper` behaves the same as `git` (`git-remote-http` and `git-remote-https`)
+
+### Resources
 
 * https://git-scm.com/docs/gitremote-helpers
 
-## Debugging
+### Debugging
 
-### Against a local repository
+#### Against a local repository
 
 ```
 cargo build --package git-remote-icp && PATH=./target/debug:$PATH RUST_LOG=trace HOME=. git clone icp::http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
@@ -39,13 +55,13 @@ or
 cargo build --package git-remote-icp && PATH=./target/debug:$PATH RUST_LOG=trace HOME=. git clone icp::http://git.codebase.ic0.localhost:8453/@paul/hello-world.git
 ```
 
-### Against a remote repository
+#### Against a remote repository
 
 ```
 cargo build --package git-remote-icp && PATH=./target/debug:$PATH RUST_LOG=trace HOME=. git clone icp://w7uni-tiaaa-aaaam-qaydq-cai.raw.ic0.app/@paul/hello-world.git
 ```
 
-### By manually invoking the remote helper
+#### By manually invoking the remote helper
 
 ```
 cargo build --package git-remote-icp && PATH=./target/debug:$PATH RUST_LOG=trace HOME=. GIT_DIR=~/temp/hello-world git-remote-icp origin http://rwlgt-iiaaa-aaaaa-aaaaa-cai.raw.ic0.localhost:8453/@paul/hello-world.git
