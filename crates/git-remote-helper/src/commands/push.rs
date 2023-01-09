@@ -1,6 +1,7 @@
 use crate::git::service::receive_pack;
 use anyhow::anyhow;
 use git::bstr::ByteSlice as _;
+use git::odb::pack::data::output::count::objects::ObjectExpansion;
 use git_repository as git;
 use log::trace;
 use maybe_async::maybe_async;
@@ -82,7 +83,7 @@ where
         trace!("push instructions: {:#?}", push_instructions);
 
         // TODO: use Traverse for initial push
-        let input_object_expansion = git::odb::pack::data::output::count::objects::ObjectExpansion::TreeAdditionsComparedToAncestor;
+        let input_object_expansion = ObjectExpansion::TreeAdditionsComparedToAncestor;
 
         let mut entries = vec![];
 
