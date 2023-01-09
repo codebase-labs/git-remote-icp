@@ -2,7 +2,7 @@
 
 ![](https://img.shields.io/badge/status%EF%B8%8F-experimental-blueviolet)
 
-A [Git remote helper](https://git-scm.com/docs/gitremote-helpers) for the Internet Computer Protocol.
+A [Git remote helper](https://git-scm.com/docs/gitremote-helpers) for the [Internet Computer](https://internetcomputer.org) Protocol.
 
 ## Usage
 
