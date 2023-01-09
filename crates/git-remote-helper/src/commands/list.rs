@@ -41,7 +41,6 @@ where
 
     let refs = git::protocol::ls_refs(
         &mut transport,
-        // outcome.server_protocol_version,
         &outcome.capabilities,
         // TODO: gain a better understanding of
         // https://github.com/Byron/gitoxide/blob/da5f63cbc7506990f46d310f8064678decb86928/git-repository/src/remote/connection/ref_map.rs#L153-L168
