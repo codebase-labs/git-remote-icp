@@ -27,15 +27,21 @@ This repository contains the following other crates:
 
 * `git-remote-helper`
 
-    A library for implementing Git remote helpers. Provides core functionality for remote helpers in a protocol-agnostic way for both blocking and async implementations.
+    A library for implementing Git remote helpers.
+
+    Provides core functionality for remote helpers in a protocol-agnostic way for both blocking and async implementations.
 
 * `git-remote-tcp`
 
-    A Git remote helper for the `git://` protocol. Primarily used to test that the async implementation in `git-remote-helper` behaves the same as `git`.
+    A Git remote helper for the `git://` protocol.
+
+    Primarily used to test that the async implementation in `git-remote-helper` behaves the same as `git`.
 
 * `git-remote-http-reqwest`
 
-    A Git remote helper for `http://` and `https://` protocols. Primarily used to test that the blocking implementation in `git-remote-helper` behaves the same as `git` (`git-remote-http` and `git-remote-https`)
+    A Git remote helper for `http://` and `https://` protocols.
+
+    Primarily used to test that the blocking implementation in `git-remote-helper` behaves the same as `git` (`git-remote-http` and `git-remote-https`)
 
 ### Resources
 
