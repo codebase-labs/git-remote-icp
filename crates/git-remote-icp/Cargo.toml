@@ -21,7 +21,7 @@ ic-agent = "0.23"
 # implemented for HttpRequest even though it is. This appears to be because it
 # uses candid 0.7 when we are using candid 0.8. This commit isn't on crates.io
 # but depends on candid 0.8.
-ic-certified-assets = { git = "https://github.com/dfinity/sdk", rev="763c2bb35bcba5cee34ecc08a991252f474e631e" }
+ic-certified-assets = { git = "https://github.com/dfinity/sdk", rev = "763c2bb35bcba5cee34ecc08a991252f474e631e" }
 log = { workspace = true }
 reqwest = "0.11"
 serde_bytes = "0.11"
