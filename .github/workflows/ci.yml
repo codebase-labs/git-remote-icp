@@ -1,9 +1,9 @@
-name: "build"
+name: "ci"
 on:
   pull_request:
   push:
 jobs:
-  nix:
+  build:
     name: ${{ matrix.package }} on ${{ matrix.os }}
     strategy:
       matrix:
@@ -15,7 +15,7 @@ jobs:
           - git-remote-tcp
         os:
           - macos-latest
-          # - ubuntu-latest
+          - ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3

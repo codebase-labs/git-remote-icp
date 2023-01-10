@@ -4,6 +4,7 @@
 , scheme
 , port
 , path_ ? "/"
+, nativeBuildInputs ? []
 , installCheckInputs ? []
 , doInstallCheck ? true
 , configure ? ""
@@ -24,13 +25,10 @@ let
   cargoExtraArgs = "--package ${pname}";
 in
   craneLib.buildPackage {
-    inherit cargoExtraArgs pname src doInstallCheck;
+    inherit cargoExtraArgs pname src nativeBuildInputs doInstallCheck;
     cargoArtifacts = craneLib.buildDepsOnly {
-      inherit cargoExtraArgs pname src;
+      inherit cargoExtraArgs pname src nativeBuildInputs;
     };
-    nativeBuildInputs = [
-      pkgs.darwin.apple_sdk.frameworks.Security
-    ];
     installCheckInputs = installCheckInputs ++ [
       pkgs.git
       pkgs.netcat
