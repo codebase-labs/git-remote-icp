@@ -1,0 +1,23 @@
+name: "ci"
+on:
+  pull_request:
+  push:
+jobs:
+  build:
+    name: ${{ matrix.package }} on ${{ matrix.os }}
+    strategy:
+      matrix:
+        package:
+          - git-remote-helper-async
+          - git-remote-helper-blocking
+          - git-remote-http-reqwest
+          - git-remote-icp
+          - git-remote-tcp
+        os:
+          - macos-latest
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v18
+      - run: nix build .#${{ matrix.package }} --show-trace
