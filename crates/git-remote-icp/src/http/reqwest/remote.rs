@@ -297,7 +297,7 @@ impl http::Http for Remote {
 pub(crate) struct Request {
     pub url: String,
     pub headers: Vec<HeaderField>,
-    pub upload_body_kind: PostBodyDataKind,
+    pub upload_body_kind: Option<PostBodyDataKind>,
 }
 
 /// A link to a thread who provides data for the contained readers.
