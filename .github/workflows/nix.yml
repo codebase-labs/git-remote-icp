@@ -4,7 +4,7 @@ on:
   push:
 jobs:
   nix:
-    name: Nix on ${{ matrix.os }}
+    name: ${{ matrix.package }} on ${{ matrix.os }}
     strategy:
       matrix:
         package:
