@@ -99,6 +99,9 @@
             cargoArtifacts = craneLib.buildDepsOnly {
               inherit cargoExtraArgs pname src;
             };
+            nativeBuildInputs = [
+              pkgs.cmake
+            ];
           };
 
           git-remote-helper-async = git-remote-helper "async-network-client";

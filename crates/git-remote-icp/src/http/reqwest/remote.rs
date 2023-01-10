@@ -6,6 +6,8 @@ use crate::{http, http::reqwest::Remote};
 use candid::{Decode, Encode};
 use git_features::io::pipe;
 use git_repository as git;
+// https://github.com/Byron/gitoxide/pull/690
+use git::protocol::transport::client::http::PostBodyDataKind;
 use ic_agent::export::Principal;
 use ic_agent::Agent;
 use ic_certified_assets::types::{HeaderField, HttpRequest, HttpResponse};
@@ -50,7 +52,7 @@ impl Remote {
             for Request {
                 url,
                 headers,
-                upload,
+                upload_body_kind,
             } in req_recv
             {
                 let (post_body_tx, mut post_body_rx) = pipe::unidirectional(0);
@@ -72,7 +74,7 @@ impl Remote {
 
                 let mut body = ByteBuf::new();
 
-                if upload {
+                if let Some(_) = upload_body_kind {
                     if let Err(err) = post_body_rx.read_to_end(&mut body) {
                         let kind = std::io::ErrorKind::Other;
                         let err = Err(std::io::Error::new(kind, err));
@@ -81,7 +83,12 @@ impl Remote {
                     }
                 }
 
-                let method = if upload { "POST" } else { "GET" }.to_string();
+                let method = if let Some(_) = upload_body_kind {
+                    "POST"
+                } else {
+                    "GET"
+                }
+                .to_string();
 
                 let http_request = HttpRequest {
                     method,
@@ -102,7 +109,7 @@ impl Remote {
                     }
                 };
 
-                let res = if upload {
+                let res = if let Some(_) = upload_body_kind {
                     runtime.block_on(
                         moved_agent
                             .update(&canister_id, "http_request_update")
@@ -204,7 +211,7 @@ impl Remote {
         url: &str,
         _base_url: &str,
         headers: impl IntoIterator<Item = impl AsRef<str>>,
-        upload: bool,
+        upload_body_kind: Option<PostBodyDataKind>,
     ) -> Result<http::PostResponse<pipe::Reader, pipe::Reader, pipe::Writer>, http::Error> {
         let mut header_values = Vec::new();
         for header_line in headers {
@@ -220,7 +227,7 @@ impl Remote {
             .send(Request {
                 url: url.to_owned(),
                 headers: header_values,
-                upload,
+                upload_body_kind,
             })
             .expect("the remote cannot be down at this point");
 
@@ -264,7 +271,7 @@ impl http::Http for Remote {
         base_url: &str,
         headers: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<http::GetResponse<Self::Headers, Self::ResponseBody>, http::Error> {
-        self.make_request(url, base_url, headers, false)
+        self.make_request(url, base_url, headers, None)
             .map(Into::into)
     }
 
@@ -273,9 +280,10 @@ impl http::Http for Remote {
         url: &str,
         base_url: &str,
         headers: impl IntoIterator<Item = impl AsRef<str>>,
+        post_body_kind: PostBodyDataKind,
     ) -> Result<http::PostResponse<Self::Headers, Self::ResponseBody, Self::PostBody>, http::Error>
     {
-        self.make_request(url, base_url, headers, true)
+        self.make_request(url, base_url, headers, Some(post_body_kind))
     }
 
     fn configure(
@@ -289,7 +297,7 @@ impl http::Http for Remote {
 pub(crate) struct Request {
     pub url: String,
     pub headers: Vec<HeaderField>,
-    pub upload: bool,
+    pub upload_body_kind: PostBodyDataKind,
 }
 
 /// A link to a thread who provides data for the contained readers.

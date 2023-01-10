@@ -23,7 +23,9 @@ compile_error!("Cannot set both 'async-network-client' and 'blocking-network-cli
 const GIT_DIR: &str = "GIT_DIR";
 
 #[maybe_async]
-pub async fn main<C>(connect: impl Fn(String, transport::Protocol) -> C) -> anyhow::Result<()>
+pub async fn main<C>(
+    connect: impl Fn(String, transport::client::connect::Options) -> C,
+) -> anyhow::Result<()>
 where
     C: std::future::Future<
         Output = Result<
@@ -71,7 +73,11 @@ where
 
             let fetch_transport = connect(
                 args.url.clone(),
-                gitoxide::protocol::transport::Protocol::V2,
+                transport::client::connect::Options {
+                    version: transport::Protocol::V2,
+                    #[cfg(feature = "blocking-network-client")]
+                    ssh: Default::default(),
+                },
             )
             .await?;
 
@@ -80,7 +86,11 @@ where
             // NOTE: push still uses the v1 protocol so we use that here.
             let mut push_transport = connect(
                 args.url.clone(),
-                gitoxide::protocol::transport::Protocol::V1,
+                transport::client::connect::Options {
+                    version: transport::Protocol::V1,
+                    #[cfg(feature = "blocking-network-client")]
+                    ssh: Default::default(),
+                },
             )
             .await?;
 
@@ -118,7 +128,11 @@ where
             Commands::List { variant } => {
                 let mut transport = connect(
                     args.url.clone(),
-                    gitoxide::protocol::transport::Protocol::V2,
+                    transport::client::connect::Options {
+                        version: transport::Protocol::V2,
+                        #[cfg(feature = "blocking-network-client")]
+                        ssh: Default::default(),
+                    },
                 )
                 .await?;
 

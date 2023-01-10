@@ -7,7 +7,7 @@ use transport::client::connect::Error;
 
 pub async fn connect<Url, E>(
     url: Url,
-    desired_version: transport::Protocol,
+    options: transport::connect::Options,
 ) -> Result<Box<dyn transport::client::Transport + Send>, Error>
 where
     Url: TryInto<git::url::Url, Error = E>,
@@ -23,5 +23,5 @@ where
     }?;
     trace!("Resolved URL scheme: {:#?}", url.scheme);
 
-    transport::connect::<_, Infallible>(url, desired_version).await
+    transport::connect::<_, Infallible>(url, options).await
 }

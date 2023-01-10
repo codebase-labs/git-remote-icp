@@ -16,7 +16,7 @@ pub fn connect<'a, Url, E>(
     fetch_root_key: bool,
     replica_url: String,
     canister_id: Principal,
-) -> impl Fn(Url, transport::Protocol) -> Result<Box<dyn transport::client::Transport + Send + 'a>, Error>
+) -> impl Fn(Url, transport::connect::Options) -> Result<Box<dyn transport::client::Transport + Send + 'a>, Error>
 where
     Url: TryInto<git::url::Url, Error = E>,
     git::url::parse::Error: From<E>,
@@ -26,7 +26,7 @@ where
     trace!("replica_url: {}", replica_url);
     trace!("canister_id: {}", canister_id);
 
-    move |url: Url, desired_version| {
+    move |url: Url, options| {
         let mut url = url.try_into().map_err(git::url::parse::Error::from)?;
 
         if url.user().is_some() {
@@ -68,7 +68,7 @@ where
         let transport = transport::client::http::connect_http(
             remote,
             &url.to_bstring().to_string(),
-            desired_version,
+            options.version,
         );
 
         Ok(Box::new(transport))

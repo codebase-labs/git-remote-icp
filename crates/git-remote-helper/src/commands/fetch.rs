@@ -32,6 +32,7 @@ where
             .prepare_fetch(git::remote::ref_map::Options {
                 prefix_from_spec_as_filter_on_remote: true,
                 handshake_parameters: vec![],
+                extra_refspecs: vec![],
             })
             .await?
             .receive(&git::interrupt::IS_INTERRUPTED)
