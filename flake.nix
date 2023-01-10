@@ -92,6 +92,18 @@
             }
           '';
 
+          git-remote-helper = features: craneLib.buildPackage rec {
+            inherit src;
+            pname = "git-remote-helper";
+            cargoExtraArgs = "--package ${pname} --features ${features}";
+            cargoArtifacts = craneLib.buildDepsOnly {
+              inherit cargoExtraArgs pname src;
+            };
+          };
+
+          git-remote-helper-async = git-remote-helper "async-network-client";
+          git-remote-helper-blocking = git-remote-helper "blocking-network-client";
+
           git-remote-http-reqwest = pkgs.callPackage ./nix/git-remote-helper.nix rec {
             inherit craneLib src;
             scheme = { internal = "http"; external = "http-reqwest"; };
@@ -116,17 +128,15 @@
           git-remote-icp = pkgs.callPackage ./nix/git-remote-helper.nix {
             inherit craneLib src;
             scheme = { internal = "http"; external = "icp"; };
+            port = 1234;
+            # This package is currently not tested _in this repository_
+            doInstallCheck = false;
             configure = ''
-              git config --global --type bool icp.fetchRootKey true
-              git config --global icp.replicaUrl http://localhost:8000
-              git config --global icp.canisterId rwlgt-iiaaa-aaaaa-aaaaa-cai
-              git config --global icp.privateKey "$PWD/identity.pem"
+              HOME=.
             '';
             setup = ''
-              exit 1
             '';
             teardown = ''
-              exit 1
             '';
           };
 
@@ -148,6 +158,14 @@
           };
 
           apps = {
+            git-remote-http-reqwest = flake-utils.lib.mkApp {
+              drv = git-remote-http-reqwest;
+            };
+
+            git-remote-icp = flake-utils.lib.mkApp {
+              drv = git-remote-icp;
+            };
+
             git-remote-tcp = flake-utils.lib.mkApp {
               drv = git-remote-tcp;
             };
@@ -156,16 +174,20 @@
           rec {
             checks = {
               inherit
+                git-remote-helper-blocking
+                git-remote-helper-async
                 git-remote-http-reqwest
-                # git-remote-icp
+                git-remote-icp
                 git-remote-tcp
               ;
             };
 
             packages = {
               inherit
+                git-remote-helper-blocking
+                git-remote-helper-async
                 git-remote-http-reqwest
-                # git-remote-icp
+                git-remote-icp
                 git-remote-tcp
               ;
               lighttpd-conf = lighttpd-conf 8888;
@@ -173,8 +195,8 @@
 
             inherit apps;
 
-            # defaultPackage = packages.git-remote-icp;
-            # defaultApp = apps.git-remote-icp;
+            defaultPackage = packages.git-remote-icp;
+            defaultApp = apps.git-remote-icp;
 
             devShell = pkgs.mkShell {
               # RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;

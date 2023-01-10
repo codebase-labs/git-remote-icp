@@ -5,222 +5,223 @@
 , port
 , path_ ? "/"
 , installCheckInputs ? []
+, doInstallCheck ? true
 , configure ? ""
 , setup
 , teardown
 }:
 
-let schemeToEnvVar = scheme:
-  builtins.replaceStrings ["-"] ["_"] (pkgs.lib.toUpper scheme); in
+let
+  schemeToEnvVar = scheme:
+    builtins.replaceStrings ["-"] ["_"] (pkgs.lib.toUpper scheme);
 
-let SCHEME = {
-  INTERNAL = schemeToEnvVar scheme.internal;
-  EXTERNAL = schemeToEnvVar scheme.external;
-}; in
-
-let pname = "git-remote-${scheme.external}"; in
-let cargoExtraArgs = "--package ${pname}"; in
-
-craneLib.buildPackage {
-  inherit cargoExtraArgs pname src;
-  cargoArtifacts = craneLib.buildDepsOnly {
-    inherit cargoExtraArgs pname src;
+  SCHEME = {
+    INTERNAL = schemeToEnvVar scheme.internal;
+    EXTERNAL = schemeToEnvVar scheme.external;
   };
-  nativeBuildInputs = [
-    pkgs.darwin.apple_sdk.frameworks.Security
-  ];
-  doInstallCheck = true;
-  installCheckInputs = installCheckInputs ++ [
-    pkgs.git
-    pkgs.netcat
-  ];
-  installCheckPhase = ''
-    set -e
 
-    export HOME=$TMP
-    export PATH=$out/bin:$PATH
+  pname = "git-remote-${scheme.external}";
+  cargoExtraArgs = "--package ${pname}";
+in
+  craneLib.buildPackage {
+    inherit cargoExtraArgs pname src doInstallCheck;
+    cargoArtifacts = craneLib.buildDepsOnly {
+      inherit cargoExtraArgs pname src;
+    };
+    nativeBuildInputs = [
+      pkgs.darwin.apple_sdk.frameworks.Security
+    ];
+    installCheckInputs = installCheckInputs ++ [
+      pkgs.git
+      pkgs.netcat
+    ];
+    installCheckPhase = ''
+      set -e
 
-    export RUST_BACKTRACE=full
-    export RUST_LOG=trace
+      export HOME=$TMP
+      export PATH=$out/bin:$PATH
 
-    export GIT_TRACE=true
-    export GIT_CURL_VERBOSE=true
-    export GIT_TRACE_PACK_ACCESS=true
-    export GIT_TRACE_PACKET=true
-    export GIT_TRACE_PACKFILE=true
-    export GIT_TRACE_PERFORMANCE=true
-    export GIT_TRACE_SETUP=true
-    export GIT_TRACE_SHALLOW=true
+      export RUST_BACKTRACE=full
+      export RUST_LOG=trace
 
-    export GIT_AUTHOR_DATE="2022-11-14 21:26:57 -0800"
-    export GIT_COMMITTER_DATE="$GIT_AUTHOR_DATE"
+      export GIT_TRACE=true
+      export GIT_CURL_VERBOSE=true
+      export GIT_TRACE_PACK_ACCESS=true
+      export GIT_TRACE_PACKET=true
+      export GIT_TRACE_PACKFILE=true
+      export GIT_TRACE_PERFORMANCE=true
+      export GIT_TRACE_SETUP=true
+      export GIT_TRACE_SHALLOW=true
 
-    git config --global init.defaultBranch main
-    git config --global user.name "Test"
-    git config --global user.email 0+test.users.noreply@codebase.org
-    git config --global receive.denyCurrentBranch updateInstead
-    git config --global protocol.version 2
+      export GIT_AUTHOR_DATE="2022-11-14 21:26:57 -0800"
+      export GIT_COMMITTER_DATE="$GIT_AUTHOR_DATE"
 
-    echo "---------------"
-    echo "configure start"
-    echo "---------------"
+      git config --global init.defaultBranch main
+      git config --global user.name "Test"
+      git config --global user.email 0+test.users.noreply@codebase.org
+      git config --global receive.denyCurrentBranch updateInstead
+      git config --global protocol.version 2
 
-    ${configure}
+      echo "---------------"
+      echo "configure start"
+      echo "---------------"
 
-    echo "------------------"
-    echo "configure complete"
-    echo "------------------"
+      ${configure}
 
-    # Set up test repo
+      echo "------------------"
+      echo "configure complete"
+      echo "------------------"
 
-    mkdir test-repo
-    git -C test-repo init
-    echo '# Hello, World!' > test-repo/README.md
-    git -C test-repo add .
-    git -C test-repo commit -m "Initial commit"
+      # Set up test repo
 
-    GIT_LOG_INIT=$(git -C test-repo log)
+      mkdir test-repo
+      git -C test-repo init
+      echo '# Hello, World!' > test-repo/README.md
+      git -C test-repo add .
+      git -C test-repo commit -m "Initial commit"
 
-    git clone --bare test-repo test-repo-bare
-    git -C test-repo-bare update-server-info
+      GIT_LOG_INIT=$(git -C test-repo log)
 
-    echo "-----------"
-    echo "setup start"
-    echo "-----------"
+      git clone --bare test-repo test-repo-bare
+      git -C test-repo-bare update-server-info
 
-    ${setup}
+      echo "-----------"
+      echo "setup start"
+      echo "-----------"
 
-    echo "--------------"
-    echo "setup complete"
-    echo "--------------"
+      ${setup}
 
-    while ! nc -z localhost ${toString port}; do
-      sleep 0.1
-    done
+      echo "--------------"
+      echo "setup complete"
+      echo "--------------"
 
-
-    # Test clone
-
-    echo "------------------"
-    echo "native clone start"
-    echo "------------------"
-
-    git clone ${scheme.internal}://localhost:${toString port}${path_} test-repo-${scheme.internal}
-
-    echo "---------------------"
-    echo "native clone complete"
-    echo "---------------------"
-
-    echo "-------------------------"
-    echo "remote helper clone start"
-    echo "-------------------------"
-
-    git clone ${scheme.external}://localhost:${toString port}${path_} test-repo-${scheme.external}
-
-    echo "----------------------------"
-    echo "remote helper clone complete"
-    echo "----------------------------"
-
-    GIT_LOG_${SCHEME.INTERNAL}=$(git -C test-repo-${scheme.internal} log)
-    GIT_LOG_${SCHEME.EXTERNAL}=$(git -C test-repo-${scheme.external} log)
-
-    if [ "$GIT_LOG_INIT" == "$GIT_LOG_${SCHEME.INTERNAL}" ]; then
-      echo "GIT_LOG_INIT == GIT_LOG_${SCHEME.INTERNAL}"
-    else
-      echo "GIT_LOG_INIT != GIT_LOG_${SCHEME.INTERNAL}"
-      exit 1
-    fi
-
-    if [ "$GIT_LOG_${SCHEME.INTERNAL}" == "$GIT_LOG_${SCHEME.EXTERNAL}" ]; then
-      echo "GIT_LOG_${SCHEME.INTERNAL} == GIT_LOG_${SCHEME.EXTERNAL}"
-    else
-      echo "GIT_LOG_${SCHEME.INTERNAL} != GIT_LOG_${SCHEME.EXTERNAL}"
-      exit 1
-    fi
-
-    GIT_DIFF_${SCHEME.INTERNAL}=$(git -C test-repo-${scheme.internal} diff)
-
-    git -C test-repo-${scheme.external} remote add -f test-repo-${scheme.internal} "$PWD/test-repo-${scheme.internal}"
-    git -C test-repo-${scheme.external} remote update
-    GIT_DIFF_${SCHEME.EXTERNAL}=$(git -C test-repo-${scheme.external} diff main remotes/test-repo-${scheme.internal}/main)
-
-    if [ "$GIT_DIFF_${SCHEME.INTERNAL}" == "$GIT_DIFF_${SCHEME.EXTERNAL}" ]; then
-      echo "GIT_DIFF_${SCHEME.INTERNAL} == GIT_DIFF_${SCHEME.EXTERNAL}"
-    else
-      echo "GIT_DIFF_${SCHEME.INTERNAL} != GIT_DIFF_${SCHEME.EXTERNAL}"
-      exit 1
-    fi
+      while ! nc -z localhost ${toString port}; do
+        sleep 0.1
+      done
 
 
-    # Test push
+      # Test clone
 
-    echo "-----------------"
-    echo "native push start"
-    echo "-----------------"
+      echo "------------------"
+      echo "native clone start"
+      echo "------------------"
 
-    echo "" >> test-repo-${scheme.internal}/README.md
-    git -C test-repo-${scheme.internal} add .
-    git -C test-repo-${scheme.internal} commit -m "Add trailing newline"
-    git -C test-repo-${scheme.internal} push origin main
+      git clone ${scheme.internal}://localhost:${toString port}${path_} test-repo-${scheme.internal}
 
-    echo "--------------------"
-    echo "native push complete"
-    echo "--------------------"
+      echo "---------------------"
+      echo "native clone complete"
+      echo "---------------------"
 
-    echo "------------------------"
-    echo "remote helper push start"
-    echo "------------------------"
+      echo "-------------------------"
+      echo "remote helper clone start"
+      echo "-------------------------"
 
-    echo "" >> test-repo-${scheme.external}/README.md
-    git -C test-repo-${scheme.external} add .
-    git -C test-repo-${scheme.external} commit -m "Add trailing newline"
-    git -C test-repo-${scheme.external} push origin main
+      git clone ${scheme.external}://localhost:${toString port}${path_} test-repo-${scheme.external}
 
-    echo "---------------------------"
-    echo "remote helper push complete"
-    echo "---------------------------"
+      echo "----------------------------"
+      echo "remote helper clone complete"
+      echo "----------------------------"
 
-    GIT_LOG_${SCHEME.INTERNAL}_REMOTE=$(git -C test-repo-${scheme.internal} log origin/main)
-    GIT_LOG_${SCHEME.EXTERNAL}_REMOTE=$(git -C test-repo-${scheme.external} log origin/main)
+      GIT_LOG_${SCHEME.INTERNAL}=$(git -C test-repo-${scheme.internal} log)
+      GIT_LOG_${SCHEME.EXTERNAL}=$(git -C test-repo-${scheme.external} log)
 
-    if [ "$GIT_LOG_${SCHEME.INTERNAL}_REMOTE" == "$GIT_LOG_${SCHEME.EXTERNAL}_REMOTE" ]; then
-      echo "GIT_LOG_${SCHEME.INTERNAL}_REMOTE == GIT_LOG_${SCHEME.EXTERNAL}_REMOTE"
-    else
-      echo "GIT_LOG_${SCHEME.INTERNAL}_REMOTE != GIT_LOG_${SCHEME.EXTERNAL}_REMOTE"
-      echo "<<<<<<< GIT_LOG_${SCHEME.INTERNAL}_REMOTE"
-      echo "$GIT_LOG_${SCHEME.INTERNAL}_REMOTE"
-      echo "======="
-      echo "$GIT_LOG_${SCHEME.EXTERNAL}_REMOTE"
-      echo ">>>>>>> GIT_LOG_${SCHEME.EXTERNAL}_REMOTE"
+      if [ "$GIT_LOG_INIT" == "$GIT_LOG_${SCHEME.INTERNAL}" ]; then
+        echo "GIT_LOG_INIT == GIT_LOG_${SCHEME.INTERNAL}"
+      else
+        echo "GIT_LOG_INIT != GIT_LOG_${SCHEME.INTERNAL}"
+        exit 1
+      fi
 
-      exit 1
-    fi
+      if [ "$GIT_LOG_${SCHEME.INTERNAL}" == "$GIT_LOG_${SCHEME.EXTERNAL}" ]; then
+        echo "GIT_LOG_${SCHEME.INTERNAL} == GIT_LOG_${SCHEME.EXTERNAL}"
+      else
+        echo "GIT_LOG_${SCHEME.INTERNAL} != GIT_LOG_${SCHEME.EXTERNAL}"
+        exit 1
+      fi
 
-    git -C test-repo-${scheme.external} remote update
-    GIT_DIFF_${SCHEME.INTERNAL}_REMOTE=$(git -C test-repo-${scheme.internal} diff origin/main origin/main)
-    GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE=$(git -C test-repo-${scheme.external} diff origin/main remotes/test-repo-${scheme.internal}/main)
+      GIT_DIFF_${SCHEME.INTERNAL}=$(git -C test-repo-${scheme.internal} diff)
 
-    if [ "$GIT_DIFF_${SCHEME.INTERNAL}_REMOTE" == "$GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE" ]; then
-      echo "GIT_DIFF_${SCHEME.INTERNAL}_REMOTE == GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE"
-    else
-      echo "GIT_DIFF_${SCHEME.INTERNAL}_REMOTE != GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE"
-      echo "<<<<<<< GIT_DIFF_${SCHEME.INTERNAL}_REMOTE"
-      echo "$GIT_DIFF_${SCHEME.INTERNAL}_REMOTE"
-      echo "======="
-      echo "$GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE"
-      echo ">>>>>>> GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE"
+      git -C test-repo-${scheme.external} remote add -f test-repo-${scheme.internal} "$PWD/test-repo-${scheme.internal}"
+      git -C test-repo-${scheme.external} remote update
+      GIT_DIFF_${SCHEME.EXTERNAL}=$(git -C test-repo-${scheme.external} diff main remotes/test-repo-${scheme.internal}/main)
 
-      exit 1
-    fi
+      if [ "$GIT_DIFF_${SCHEME.INTERNAL}" == "$GIT_DIFF_${SCHEME.EXTERNAL}" ]; then
+        echo "GIT_DIFF_${SCHEME.INTERNAL} == GIT_DIFF_${SCHEME.EXTERNAL}"
+      else
+        echo "GIT_DIFF_${SCHEME.INTERNAL} != GIT_DIFF_${SCHEME.EXTERNAL}"
+        exit 1
+      fi
 
-    echo "--------------"
-    echo "teardown start"
-    echo "--------------"
 
-    ${teardown}
+      # Test push
 
-    echo "-----------------"
-    echo "teardown complete"
-    echo "-----------------"
-  '';
-}
+      echo "-----------------"
+      echo "native push start"
+      echo "-----------------"
+
+      echo "" >> test-repo-${scheme.internal}/README.md
+      git -C test-repo-${scheme.internal} add .
+      git -C test-repo-${scheme.internal} commit -m "Add trailing newline"
+      git -C test-repo-${scheme.internal} push origin main
+
+      echo "--------------------"
+      echo "native push complete"
+      echo "--------------------"
+
+      echo "------------------------"
+      echo "remote helper push start"
+      echo "------------------------"
+
+      echo "" >> test-repo-${scheme.external}/README.md
+      git -C test-repo-${scheme.external} add .
+      git -C test-repo-${scheme.external} commit -m "Add trailing newline"
+      git -C test-repo-${scheme.external} push origin main
+
+      echo "---------------------------"
+      echo "remote helper push complete"
+      echo "---------------------------"
+
+      GIT_LOG_${SCHEME.INTERNAL}_REMOTE=$(git -C test-repo-${scheme.internal} log origin/main)
+      GIT_LOG_${SCHEME.EXTERNAL}_REMOTE=$(git -C test-repo-${scheme.external} log origin/main)
+
+      if [ "$GIT_LOG_${SCHEME.INTERNAL}_REMOTE" == "$GIT_LOG_${SCHEME.EXTERNAL}_REMOTE" ]; then
+        echo "GIT_LOG_${SCHEME.INTERNAL}_REMOTE == GIT_LOG_${SCHEME.EXTERNAL}_REMOTE"
+      else
+        echo "GIT_LOG_${SCHEME.INTERNAL}_REMOTE != GIT_LOG_${SCHEME.EXTERNAL}_REMOTE"
+        echo "<<<<<<< GIT_LOG_${SCHEME.INTERNAL}_REMOTE"
+        echo "$GIT_LOG_${SCHEME.INTERNAL}_REMOTE"
+        echo "======="
+        echo "$GIT_LOG_${SCHEME.EXTERNAL}_REMOTE"
+        echo ">>>>>>> GIT_LOG_${SCHEME.EXTERNAL}_REMOTE"
+
+        exit 1
+      fi
+
+      git -C test-repo-${scheme.external} remote update
+      GIT_DIFF_${SCHEME.INTERNAL}_REMOTE=$(git -C test-repo-${scheme.internal} diff origin/main origin/main)
+      GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE=$(git -C test-repo-${scheme.external} diff origin/main remotes/test-repo-${scheme.internal}/main)
+
+      if [ "$GIT_DIFF_${SCHEME.INTERNAL}_REMOTE" == "$GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE" ]; then
+        echo "GIT_DIFF_${SCHEME.INTERNAL}_REMOTE == GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE"
+      else
+        echo "GIT_DIFF_${SCHEME.INTERNAL}_REMOTE != GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE"
+        echo "<<<<<<< GIT_DIFF_${SCHEME.INTERNAL}_REMOTE"
+        echo "$GIT_DIFF_${SCHEME.INTERNAL}_REMOTE"
+        echo "======="
+        echo "$GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE"
+        echo ">>>>>>> GIT_DIFF_${SCHEME.EXTERNAL}_REMOTE"
+
+        exit 1
+      fi
+
+      echo "--------------"
+      echo "teardown start"
+      echo "--------------"
+
+      ${teardown}
+
+      echo "-----------------"
+      echo "teardown complete"
+      echo "-----------------"
+    '';
+  }
