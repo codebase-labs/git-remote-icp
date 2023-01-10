@@ -14,8 +14,8 @@ jobs:
           - git-remote-icp
           - git-remote-tcp
         os:
-          # - macos-latest
-          - ubuntu-latest
+          - macos-latest
+          # - ubuntu-latest
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2.4.0
