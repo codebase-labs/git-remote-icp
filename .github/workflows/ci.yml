@@ -1,4 +1,4 @@
-name: "Nix"
+name: "ci"
 on:
   pull_request:
   push:
