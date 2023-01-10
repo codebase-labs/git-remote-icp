@@ -28,7 +28,7 @@ in
     cargoArtifacts = craneLib.buildDepsOnly {
       inherit cargoExtraArgs pname src;
     };
-    nativeBuildInputs = [
+    nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
       pkgs.darwin.apple_sdk.frameworks.Security
     ];
     installCheckInputs = installCheckInputs ++ [
