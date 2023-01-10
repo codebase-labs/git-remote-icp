@@ -4,6 +4,7 @@
 , scheme
 , port
 , path_ ? "/"
+, nativeBuildInputs ? []
 , installCheckInputs ? []
 , doInstallCheck ? true
 , configure ? ""
@@ -24,18 +25,10 @@ let
   cargoExtraArgs = "--package ${pname}";
 in
   craneLib.buildPackage {
-    inherit cargoExtraArgs pname src doInstallCheck;
+    inherit cargoExtraArgs pname src nativeBuildInputs doInstallCheck;
     cargoArtifacts = craneLib.buildDepsOnly {
-      inherit cargoExtraArgs pname src;
-      nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
-        # https://nixos.wiki/wiki/Rust#Building_the_openssl-sys_crate
-        pkgs.openssl_1_1
-        pkgs.pkgconfig
-      ];
+      inherit cargoExtraArgs pname src nativeBuildInputs;
     };
-    nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
-      pkgs.darwin.apple_sdk.frameworks.Security
-    ];
     installCheckInputs = installCheckInputs ++ [
       pkgs.git
       pkgs.netcat

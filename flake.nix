@@ -133,6 +133,13 @@
             inherit craneLib src;
             scheme = { internal = "http"; external = "icp"; };
             port = 1234;
+            nativeBuildInputs = pkgs.lib.optionals pkgs.stdenv.isLinux [
+              # https://nixos.wiki/wiki/Rust#Building_the_openssl-sys_crate
+              pkgs.openssl_1_1
+              pkgs.pkgconfig
+            ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+              pkgs.darwin.apple_sdk.frameworks.Security
+            ];
             # This package is currently not tested _in this repository_
             doInstallCheck = false;
             configure = ''
