@@ -46,7 +46,8 @@ This repository contains the following other crates:
 
 ## Development
 
-Set `HOME=.` when run from the root of this repository to use the provided `.gitconfig`.
+* Set `HOME=.` when run from the root of this repository to use the provided `.gitconfig`.
+* The `icp://` scheme requires HTTPS. Use `icp::http://` for local development.
 
 ### Against a local repository
 
