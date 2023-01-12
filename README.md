@@ -1,6 +1,8 @@
 # git-remote-icp
 
-![](https://img.shields.io/badge/status%EF%B8%8F-experimental-blueviolet)
+<picture>
+  <img src="https://img.shields.io/badge/status%EF%B8%8F-experimental-blueviolet">
+</picture>
 [![](https://github.com/codebase-labs/git-remote-icp/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/codebase-labs/git-remote-icp/actions/workflows/ci.yml)
 
 A [Git remote helper](https://git-scm.com/docs/gitremote-helpers) for the [Internet Computer](https://internetcomputer.org) Protocol.
