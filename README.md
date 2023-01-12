@@ -7,7 +7,7 @@ A [Git remote helper](https://git-scm.com/docs/gitremote-helpers) for the [Inter
 
 ## Demos
 
-* Cloning a repo from http://codebase.org, hosted on the Internet Computer, using the IC’s native auth
+* Cloning a repo from [codebase.org](https://codebase.org), hosted on the Internet Computer, using the IC’s native auth:
   * [with the Git CLI](https://twitter.com/py/status/1608749309427879936)
   * [with GitHub Desktop](https://twitter.com/py/status/1608749699980464129)
 
