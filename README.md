@@ -15,7 +15,7 @@ A [Git remote helper](https://git-scm.com/docs/gitremote-helpers) for the [Inter
 
 ```
 openssl ecparam -name secp256k1 -genkey -noout -out identity.pem
-openssl ec -in secp256k1.pem -pubout -out public.pem
+openssl ec -in identity.pem -pubout -out identity.pub
 ```
 
 ## Configuring Git
