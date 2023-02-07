@@ -199,7 +199,7 @@ where
             // * See comments on reading the `receive-pack` response as
             //   to why we send the sideband capability.
             let chunk = format!(
-                "{} {} {}\0 report-status-v2 side-band-64k",
+                "{} {} {}\0 report-status-v2",
                 dst_id.to_hex(),
                 src_id.to_hex(),
                 dst
@@ -218,7 +218,7 @@ where
         let num_entries: u32 = entries.len().try_into()?;
         trace!("num entries: {:#?}", num_entries);
 
-        let (mut writer, mut reader) = request_writer.into_parts();
+        let (mut writer, reader) = request_writer.into_parts();
 
         #[cfg(feature = "async-network-client")]
         let mut writer = git::protocol::futures_lite::io::BlockOn::new(&mut writer);
@@ -244,29 +244,6 @@ where
 
         trace!("finished writing pack");
 
-        // If we don't send any sideband capabilities, we get
-        // `Some(Err(Kind(UnexpectedEof)))` in the `AsyncBufRead`
-        // implementation for `WithSidebands` here when trying to read
-        // the `receive-pack` response:
-        // https://github.com/paulyoung/gitoxide/blob/93f2dd8f7db87afc04a523458faaa46f9b33f21a/git-packetline/src/read/sidebands/async_io.rs#L213
-        //
-        // So, we send `side-band-64k` to address that. Even though we
-        // currently don't support reporting any progress, we set a
-        // progress handler to keep the sideband information separate
-        // from the response we care about.
-        use std::ops::Deref as _;
-        use std::sync::{Arc, Mutex};
-        let messages = Arc::new(Mutex::new(Vec::<String>::new()));
-        reader.set_progress_handler(Some(Box::new({
-            move |is_err, data| {
-                assert!(!is_err);
-                messages
-                    .deref()
-                    .lock()
-                    .expect("no panic in other threads")
-                    .push(std::str::from_utf8(data).expect("valid utf8").to_owned())
-            }
-        })));
 
         let (_unpack_result, command_statuses) =
             receive_pack::response::read_and_parse(reader).await?;
