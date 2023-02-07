@@ -242,6 +242,9 @@ where
             trace!("bytes written: {:#?}", bytes_written);
         }
 
+        // Signal that we are done writing
+        drop(writer);
+
         trace!("finished writing pack");
 
 

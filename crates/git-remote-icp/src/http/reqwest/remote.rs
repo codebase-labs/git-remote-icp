@@ -6,7 +6,6 @@ use crate::{http, http::reqwest::Remote};
 use candid::{Decode, Encode};
 use git_features::io::pipe;
 use git_repository as git;
-// https://github.com/Byron/gitoxide/pull/690
 use git::protocol::transport::client::http::PostBodyDataKind;
 use ic_agent::export::Principal;
 use ic_agent::Agent;
