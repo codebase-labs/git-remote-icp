@@ -199,6 +199,7 @@ where
             // status report to stdout in the format that remote helpers are
             // expected to produce.
             let chunk = format!(
+                // TODO: object-format=sha1 and agent=
                 "{} {} {}\0 report-status report-status-v2 \n",
                 dst_id.to_hex(),
                 src_id.to_hex(),
