@@ -192,8 +192,12 @@ where
             // NOTE: We request `report-status` and `report-status-v2` so that
             // we receive a response that includes a status report.
             //
-            // We parse this and write a status report to stdout in the format
-            // that remote helpers are expected to produce.
+            // We request both in case a server only advertises one or the
+            // other.
+            //
+            // We parse the status report from the response and write our own
+            // status report to stdout in the format that remote helpers are
+            // expected to produce.
             let chunk = format!(
                 "{} {} {}\0 report-status report-status-v2 \n",
                 dst_id.to_hex(),
