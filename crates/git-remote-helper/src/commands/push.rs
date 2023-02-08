@@ -195,7 +195,7 @@ where
             // We parse this and write a status report to stdout in the format
             // that remote helpers are expected to produce.
             let chunk = format!(
-                "{} {} {}\0 report-status-v2",
+                "{} {} {}\0 report-status-v2 ",
                 dst_id.to_hex(),
                 src_id.to_hex(),
                 dst
