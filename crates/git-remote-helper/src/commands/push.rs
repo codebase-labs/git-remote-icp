@@ -189,13 +189,13 @@ where
                     .collect::<Vec<_>>(),
             );
 
-            // NOTE: We send `report-status-v2` so that we receive a response
-            // that includes a status report.
+            // NOTE: We request `report-status` and `report-status-v2` so that
+            // we receive a response that includes a status report.
             //
             // We parse this and write a status report to stdout in the format
             // that remote helpers are expected to produce.
             let chunk = format!(
-                "{} {} {}\0 report-status-v2 \n",
+                "{} {} {}\0 report-status report-status-v2 \n",
                 dst_id.to_hex(),
                 src_id.to_hex(),
                 dst
