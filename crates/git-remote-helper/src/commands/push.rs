@@ -189,15 +189,11 @@ where
                     .collect::<Vec<_>>(),
             );
 
-            // NOTE
+            // NOTE: We send `report-status-v2` so that we receive a response
+            // that includes a status report.
             //
-            // * We send `report-status-v2` so that we receive a
-            //   response that includes a status report. We parse this
-            //   and write a status report to stdout in the format that
-            //   remote helpers are expected to produce.
-            //
-            // * See comments on reading the `receive-pack` response as
-            //   to why we send the sideband capability.
+            // We parse this and write a status report to stdout in the format
+            // that remote helpers are expected to produce.
             let chunk = format!(
                 "{} {} {}\0 report-status-v2",
                 dst_id.to_hex(),
