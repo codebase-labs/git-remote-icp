@@ -1,3 +1,5 @@
+// https://git-scm.com/docs/pack-protocol#_reference_update_request_and_packfile_transfer
+
 use crate::git::service::receive_pack;
 use anyhow::anyhow;
 use git::bstr::ByteSlice as _;
@@ -198,8 +200,12 @@ where
             // We parse the status report from the response and write our own
             // status report to stdout in the format that remote helpers are
             // expected to produce.
+            //
+            // FIXME: we only want to include the capability list on the first
+            // line.
             let chunk = format!(
-                "{} {} {}\0 report-status report-status-v2 \n",
+                // TODO: object-format=sha1 and agent=
+                "{} {} {}\0report-status report-status-v2\n",
                 dst_id.to_hex(),
                 src_id.to_hex(),
                 dst
