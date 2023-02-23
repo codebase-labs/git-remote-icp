@@ -200,6 +200,9 @@ where
             // We parse the status report from the response and write our own
             // status report to stdout in the format that remote helpers are
             // expected to produce.
+            //
+            // FIXME: we only want to include the capability list on the first
+            // line.
             let chunk = format!(
                 // TODO: object-format=sha1 and agent=
                 "{} {} {}\0report-status report-status-v2\n",
