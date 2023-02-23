@@ -1,3 +1,5 @@
+// https://git-scm.com/docs/pack-protocol#_reference_update_request_and_packfile_transfer
+
 use crate::git::service::receive_pack;
 use anyhow::anyhow;
 use git::bstr::ByteSlice as _;
@@ -200,7 +202,7 @@ where
             // expected to produce.
             let chunk = format!(
                 // TODO: object-format=sha1 and agent=
-                "{} {} {}\0 report-status report-status-v2 \n",
+                "{} {} {}\0report-status report-status-v2\n",
                 dst_id.to_hex(),
                 src_id.to_hex(),
                 dst
